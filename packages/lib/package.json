@@ -1,5 +1,5 @@
 {
-  "name": "@pdf-to-bloom/core",
+  "name": "@pdf-to-bloom/lib",
   "version": "1.0.0",
   "description": "Core Node.js library for PDF to Bloom conversion",
   "main": "dist/index.cjs",

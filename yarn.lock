@@ -737,7 +737,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@pdf-to-bloom/cli@workspace:packages/cli"
   dependencies:
-    "@pdf-to-bloom/core": "workspace:*"
+    "@pdf-to-bloom/lib": "workspace:*"
     "@types/node": "npm:^22.15.24"
     chalk: "npm:^5.3.0"
     commander: "npm:^12.0.0"
@@ -748,9 +748,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@pdf-to-bloom/core@workspace:*, @pdf-to-bloom/core@workspace:packages/core":
+"@pdf-to-bloom/lib@workspace:*, @pdf-to-bloom/lib@workspace:packages/lib":
   version: 0.0.0-use.local
-  resolution: "@pdf-to-bloom/core@workspace:packages/core"
+  resolution: "@pdf-to-bloom/lib@workspace:packages/lib"
   dependencies:
     "@mistralai/mistralai": "npm:^1.7.1"
     "@types/node": "npm:^22.15.24"
@@ -766,7 +766,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@pdf-to-bloom/web@workspace:packages/web"
   dependencies:
-    "@pdf-to-bloom/core": "workspace:*"
+    "@pdf-to-bloom/lib": "workspace:*"
     "@types/react": "npm:^18.3.17"
     "@types/react-dom": "npm:^18.3.5"
     "@vitejs/plugin-react": "npm:^4.3.4"

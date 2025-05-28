@@ -2,7 +2,7 @@
 
 import { Command } from "commander";
 import chalk from "chalk";
-import { pdfToBloomFolder } from "@pdf-to-bloom/core";
+import { pdfToBloomFolder } from "@pdf-to-bloom/lib";
 
 const program = new Command();
 
