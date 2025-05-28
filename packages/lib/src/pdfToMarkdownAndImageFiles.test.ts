@@ -24,8 +24,11 @@ describe("pdfToMarkdownAndImageFiles", () => {
     const logs: LogEntry[] = [];
 
     await expect(
-      pdfToMarkdownAndImageFiles("/test.pdf", tempDir, "", (log) =>
-        logs.push(log)
+      pdfToMarkdownAndImageFiles(
+        "/test-inputs/testme.pdf",
+        tempDir,
+        "",
+        (log) => logs.push(log)
       )
     ).rejects.toThrow("MistralAI API key is required");
 
@@ -41,7 +44,7 @@ describe("pdfToMarkdownAndImageFiles", () => {
   it("should log conversion process", async () => {
     const logs: LogEntry[] = [];
     const result = await pdfToMarkdownAndImageFiles(
-      "/test.pdf",
+      "/test-inputs/testme.pdf",
       tempDir,
       "valid-key",
       (log) => logs.push(log)
@@ -62,13 +65,16 @@ describe("pdfToMarkdownAndImageFiles", () => {
           log.message === "PDF to markdown conversion completed successfully"
       )
     ).toBe(true);
-    expect(result).toContain("# Document from /test.pdf");
+    expect(result).toContain("# Document from /testme.pdf");
   });
 
   it("should create files in the output directory", async () => {
     const logs: LogEntry[] = [];
-    await pdfToMarkdownAndImageFiles("/test.pdf", tempDir, "valid-key", (log) =>
-      logs.push(log)
+    await pdfToMarkdownAndImageFiles(
+      "/test-inputs/testme.pdf",
+      tempDir,
+      "valid-key",
+      (log) => logs.push(log)
     );
 
     // Verify that the image file was created in the temp directory

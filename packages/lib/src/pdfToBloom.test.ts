@@ -25,7 +25,7 @@ import { makeBloomHtml } from "./makeBloomHtml";
 
 describe("pdfToBloomFolder", () => {
   let tempDir: string;
-  const mockPdfPath = "/path/to/test.pdf";
+  const mockPdfPath = path.join(__dirname, "..", "..", "..", "test-inputs", "testme.pdf");
   const mockApiKey = "test-api-key";
   const mockMarkdown = "# Test Document\n\nThis is test content.";
   const mockEnrichedMarkdown =

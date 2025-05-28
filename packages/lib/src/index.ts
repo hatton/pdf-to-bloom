@@ -1,5 +1,8 @@
 // Re-export all functions from their individual modules
-export { pdfToMarkdownAndImageFiles as makeMarkdownFromPDF } from "./pdfToMarkdownAndImageFiles";
+export {
+  pdfToMarkdownAndImageFiles,
+  pdfToMarkdownAndImageFiles as makeMarkdownFromPDF,
+} from "./pdfToMarkdownAndImageFiles";
 export { enrichMarkdown } from "./enrichMarkdown";
 export { makeBloomHtml } from "./makeBloomHtml";
 export { pdfToBloomFolder } from "./pdfToBloom";
