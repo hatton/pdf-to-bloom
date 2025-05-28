@@ -1,0 +1,13 @@
+{
+  "name": "pdf-to-bloom",
+  "packageManager": "yarn@1.22.22",
+  "volta": {
+    "node": "22.11.0",
+    "yarn": "1.22.22"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3",
+    "vite": "^6.3.5",
+    "vite-plugin-dts": "^4.5.4"
+  }
+}
