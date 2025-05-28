@@ -1,8 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { helloWorld } from "./index";
-
-describe("helloWorld", () => {
-  it('should return "hello world"', () => {
-    expect(helloWorld()).toBe("hello world");
-  });
-});
+// Import all test suites to run them together
+import "./pdfToMarkdownAndImageFiles.test";
+import "./enrichMarkdown.test";
+import "./makeBloomHtml.test";
+import "./pdfToBloom.test";
