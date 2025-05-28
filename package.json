@@ -1,33 +1,22 @@
 {
-  "name": "pdf-to-bloom",
+  "name": "pdf-to-bloom-monorepo",
   "version": "1.0.0",
-  "description": "A Node.js library for PDF to Bloom conversion",
-  "main": "dist/index.cjs",
-  "module": "dist/index.mjs",
-  "types": "dist/index.d.ts",
-  "files": [
-    "dist"
+  "description": "A monorepo for PDF to Bloom conversion tools",
+  "private": true,
+  "workspaces": [
+    "packages/*"
   ],
   "scripts": {
-    "build": "vite build",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "dev": "vite build --watch",
-    "prepublishOnly": "yarn build"
+    "build": "yarn workspaces run build",
+    "test": "yarn workspaces run test",
+    "test:watch": "yarn workspaces run test:watch",
+    "dev": "yarn workspaces run dev",
+    "start:cli": "yarn workspace @pdf-to-bloom/cli start",
+    "start:web": "yarn workspace @pdf-to-bloom/web dev"
   },
-  "packageManager": "yarn@1.22.22",
+  "packageManager": "yarn@4.9.1",
   "volta": {
     "node": "22.11.0",
     "yarn": "1.22.22"
-  },
-  "devDependencies": {
-    "@types/node": "^22.15.24",
-    "typescript": "^5.8.3",
-    "vite": "^6.3.5",
-    "vite-plugin-dts": "^4.5.4",
-    "vitest": "^2.1.8"
-  },
-  "dependencies": {
-    "@mistralai/mistralai": "^1.7.1"
   }
 }

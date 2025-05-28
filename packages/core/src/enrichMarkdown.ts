@@ -18,7 +18,11 @@ export async function enrichMarkdown(
   openRouterApiKey: string,
   options?: EnrichMarkdownOptions
 ): Promise<string> {
-  const { logCallback, overridePrompt, overrideModel } = options || {};
+  const {
+    logCallback,
+    overridePrompt = undefined,
+    overrideModel = undefined,
+  } = options || {};
 
   if (logCallback) logger.subscribe(logCallback);
 
@@ -28,6 +32,11 @@ export async function enrichMarkdown(
     // TODO: Implement markdown enrichment logic using OpenRouter
     // This could include adding metadata, formatting improvements, etc.
     logger.verbose("Enriching markdown content using OpenRouter...");
+
+    // Placeholder for future implementation - these variables will be used
+    if (overridePrompt || overrideModel) {
+      logger.verbose("Using custom prompt or model configuration");
+    }
 
     if (!openRouterApiKey) {
       logger.error("OpenRouter API key is required");
