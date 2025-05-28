@@ -27,7 +27,9 @@ export async function pdfToBloomFolder(
       logCallback,
     });
     logger.verbose("Markdown enrichment completed");
-    const bloomHtml = makeBloomHtml(enrichedMarkdown, { logCallback });
+    const bloomHtml = await makeBloomHtml(enrichedMarkdown, mistralApiKey, {
+      logCallback,
+    });
     logger.verbose("Bloom HTML conversion completed");
     // Save the Bloom HTML to a file in the output directory
     const bloomHtmlPath = path.join(outputDir, "bloom.html");

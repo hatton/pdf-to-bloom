@@ -42,8 +42,9 @@ pdf-to-bloom is a TypeScript library that provides a three-stage pipeline for co
    ```typescript
    makeBloomHtml(
      markdown: string,
+     openRouterApiKey?: string,
      options?: MakeBloomHtmlOptions
-   ): string
+   ): Promise<string>
    ```
 
    Options interface:
@@ -51,6 +52,10 @@ pdf-to-bloom is a TypeScript library that provides a three-stage pipeline for co
    ```typescript
    interface MakeBloomHtmlOptions {
      logCallback?: (log: LogEntry) => void;
+     // Options that can be passed through to enrichMarkdown
+     overridePrompt?: string;
+     overrideModel?: string;
+     // HTML generation specific options
      customStyles?: string;
      outputFormat?: "standard" | "enhanced";
    }

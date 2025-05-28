@@ -35,12 +35,10 @@ describe("pdfToBloomFolder", () => {
 
   beforeEach(() => {
     // Create a unique temporary directory for each test
-    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "pdf-to-bloom-test-"));
-
-    // Setup default mock implementations
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "pdf-to-bloom-test-")); // Setup default mock implementations
     vi.mocked(pdfToMarkdownAndImageFiles).mockResolvedValue(mockMarkdown);
     vi.mocked(enrichMarkdown).mockResolvedValue(mockEnrichedMarkdown);
-    vi.mocked(makeBloomHtml).mockReturnValue(mockBloomHtml);
+    vi.mocked(makeBloomHtml).mockResolvedValue(mockBloomHtml);
   });
 
   afterEach(() => {
@@ -79,6 +77,7 @@ describe("pdfToBloomFolder", () => {
     );
     expect(makeBloomHtml).toHaveBeenCalledWith(
       mockEnrichedMarkdown,
+      mockApiKey,
       expect.objectContaining({
         logCallback: expect.any(Function),
       })
@@ -194,9 +193,8 @@ describe("pdfToBloomFolder", () => {
   it("should handle errors in makeBloomHtml step", async () => {
     const logs: LogEntry[] = [];
     const errorMessage = "Bloom HTML generation failed";
-
     vi.mocked(makeBloomHtml).mockImplementation(() => {
-      throw new Error(errorMessage);
+      return Promise.reject(new Error(errorMessage));
     });
 
     await expect(
@@ -265,6 +263,7 @@ describe("pdfToBloomFolder", () => {
     );
     expect(makeBloomHtml).toHaveBeenCalledWith(
       expect.any(String),
+      mockApiKey,
       expect.objectContaining({
         logCallback: expect.any(Function),
       })
@@ -275,7 +274,7 @@ describe("pdfToBloomFolder", () => {
     const logs: LogEntry[] = [];
     const customHtml = '<div class="bloom-book"><h1>Custom Content</h1></div>';
 
-    vi.mocked(makeBloomHtml).mockReturnValue(customHtml);
+    vi.mocked(makeBloomHtml).mockResolvedValue(customHtml);
 
     const result = await pdfToBloomFolder(
       mockPdfPath,
