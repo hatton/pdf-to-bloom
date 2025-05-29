@@ -52,8 +52,9 @@ export async function enrichMarkdown(
       apiKey: openRouterApiKey,
     });
 
-    logger.verbose(`Using model: ${modelName}`);
-    logger.verbose("Processing markdown with OpenRouter API...");
+    logger.info(
+      `Processing markdown with ${modelName} through OpenRouter API...`
+    );
 
     // let's set the maxTokens to at least the length of the markdown content
     // because we're typically working on minority languages so can expect poor tokenization.

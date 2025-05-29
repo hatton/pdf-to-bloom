@@ -71,19 +71,6 @@ class Logger {
     // Notify all subscribers
     this.subscribers.forEach((callback) => callback(entry));
 
-    // Also output to console for development
-    switch (level) {
-      case "error":
-        console.error(`[ERROR] ${message}`);
-        break;
-      case "info":
-        console.log(`[INFO] ${message}`);
-        break;
-      case "verbose":
-        console.log(`[VERBOSE] ${message}`);
-        break;
-    }
-
     return entry;
   }
 }

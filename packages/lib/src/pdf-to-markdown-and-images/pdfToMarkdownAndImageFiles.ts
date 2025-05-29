@@ -114,7 +114,7 @@ export async function pdfToMarkdownAndImageFiles(
     }
 
     // Process and save images
-    logger.info("💾 Saving extracted images...");
+    logger.info("Saving extracted images...");
     const images: OCRImage[] = [];
 
     for (const page of ocrResponse.pages) {
@@ -147,7 +147,6 @@ export async function pdfToMarkdownAndImageFiles(
     // Enhance markdown with image dimensions
     markdown = enhanceMarkdownWithImageDimensions(markdown, images);
 
-    logger.verbose("Processing completed");
     logger.info("PDF to markdown conversion completed successfully");
     return markdown;
   } catch (error: unknown) {

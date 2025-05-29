@@ -5,6 +5,7 @@ import {
   makeMarkdownFromPDF,
   enrichMarkdown,
   makeBloomHtml,
+  logger,
 } from "@pdf-to-bloom/lib"; // Assuming these functions are async and return/handle as described
 import * as fs from "fs/promises"; // Use promises API for async file operations
 import { existsSync } from "fs"; // Import the synchronous existsSync function
@@ -41,12 +42,18 @@ function getApiKeys(options: any) {
 }
 
 function createLogCallback(verbose: boolean) {
-  return verbose
-    ? (log: any) => {
-        const timestamp = new Date().toISOString();
-        console.log(chalk.gray(`[${timestamp}] ${log.level}: ${log.message}`));
-      }
-    : undefined;
+  return (log: any) => {
+    // Always show errors and info messages
+    if (log.level === "error" || log.level === "info") {
+      const timestamp = new Date().toISOString();
+      console.log(chalk.gray(`[${timestamp}] ${log.level}: ${log.message}`));
+    }
+    // Only show verbose messages if verbose flag is enabled
+    else if (log.level === "verbose" && verbose) {
+      const timestamp = new Date().toISOString();
+      console.log(chalk.gray(`[${timestamp}] ${log.level}: ${log.message}`));
+    }
+  };
 }
 
 async function fileExists(filePath: string): Promise<boolean> {
@@ -337,9 +344,11 @@ async function processConversion(inputPathArg: string, options: any) {
     // Determine if intermediate output files should be stored in a temporary directory.
     // They should go to temp UNLESS the current target IS that intermediate file type
     // AND the user has NOT specified an explicit --output path (meaning, save next to input).
-    const useTempForIntermediate =
-      !(resolvedTargetType === TargetType.Markdown && !options.output) &&
-      !(resolvedTargetType === TargetType.Enriched && !options.output);
+    // const useTempForIntermediate =
+    //   !(resolvedTargetType === TargetType.Markdown && !options.output) &&
+    //   !(resolvedTargetType === TargetType.Enriched && !options.output);
+
+    const useTempForIntermediate = false;
 
     if (useTempForIntermediate) {
       tempDir = await createTempDir();
@@ -377,6 +386,7 @@ async function processConversion(inputPathArg: string, options: any) {
         mistralKey,
         logCallback
       );
+      logger.info(`Writing OCR'd markdown to: ${markdownOutputLocation}`);
       await fs.writeFile(markdownOutputLocation, markdownContent); // Write the markdown content to file
 
       currentProcessingFilePath = markdownOutputLocation; // Update current file path
@@ -421,6 +431,9 @@ async function processConversion(inputPathArg: string, options: any) {
         markdownContentToEnrich,
         openrouterKey,
         { logCallback }
+      );
+      logger.info(
+        `Writing enriched markdown to: ${enrichedMarkdownOutputLocation}`
       );
       await fs.writeFile(
         enrichedMarkdownOutputLocation,
