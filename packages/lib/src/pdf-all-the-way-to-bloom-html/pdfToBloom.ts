@@ -32,10 +32,27 @@ export async function pdfToBloomFolder(
         logCallback,
       }
     );
+    // write out the enrichment.result.markdownResultFromEnrichmentLLM and enrichment.result.cleanedUpMarkdown to files in the output directory
+    const markdownPath = path.join(outputDir, "enriched_markdown.md");
+    logger.info(`Saving enriched markdown to: ${markdownPath}`);
+    await fs.promises.writeFile(
+      markdownPath,
+      enrichmentLLMResult.markdownResultFromEnrichmentLLM,
+      "utf8"
+    );
+    const cleanedupMarkdownPath = path.join(outputDir, "cleanedup_markdown.md");
+    logger.info(`Saving cleaned up markdown to: ${cleanedupMarkdownPath}`);
+    await fs.promises.writeFile(
+      cleanedupMarkdownPath,
+      enrichmentLLMResult.cleanedupMarkdown,
+      "utf8"
+    );
+
     if (!enrichmentLLMResult.valid) {
       logger.error("Enrichment LLM result is not valid, aborting conversion");
       throw new Error("Enrichment LLM result is not valid");
     }
+
     const bloomHtml = await enrichedMarkdownToBloomHtml(
       enrichmentLLMResult.cleanedupMarkdown,
       {

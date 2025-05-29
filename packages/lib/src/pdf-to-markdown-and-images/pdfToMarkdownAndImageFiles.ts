@@ -139,7 +139,7 @@ export async function pdfToMarkdownAndImageFiles(
 
           logger.verbose(`Saved image: ${img.id}`);
         } catch (imageError) {
-          logger.error(`⚠️ Failed to save image ${img.id}: ${imageError}`);
+          logger.error(`Failed to save image ${img.id}: ${imageError}`);
         }
       }
     }
@@ -151,7 +151,7 @@ export async function pdfToMarkdownAndImageFiles(
     return markdown;
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error(`❌ Mistral AI OCR failed: ${errorMessage}`);
+    logger.error(`Mistral AI OCR failed: ${errorMessage}`);
     throw new Error(`Mistral AI OCR processing failed: ${errorMessage}`);
   } finally {
     if (logCallback) logger.unsubscribe(logCallback);

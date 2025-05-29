@@ -56,7 +56,7 @@ function createLogCallback(showVerbose: boolean) {
 
       case "verbose":
         if (showVerbose) {
-          console.log(chalk.gray(`🔍 ${log.message}`));
+          console.log(chalk.gray(`${log.message}`));
         }
         break;
     }
@@ -355,8 +355,7 @@ async function processConversion(inputPathArg: string, options: any) {
         throw new Error(
           "Mistral API key is required for PDF to Markdown conversion. Provide --mistral-api-key or set MISTRAL_API_KEY environment variable."
         );
-      }
-      // Path for the markdown output file (either temp or final)
+      } // Path for the markdown output file (either temp or final)
       let markdownOutputLocation: string;
       if (useTempForIntermediate) {
         markdownOutputLocation = path.join(
@@ -366,9 +365,9 @@ async function processConversion(inputPathArg: string, options: any) {
       } else if (resolvedTargetType === TargetType.Markdown) {
         markdownOutputLocation = finalOutputPath;
       } else {
-        // For intermediate markdown when target is enriched or bloom, create it next to the input
+        // create it in the bloom output directory
         markdownOutputLocation = path.join(
-          path.dirname(currentProcessingFilePath),
+          finalOutputPath,
           `${currentProcessingBaseName}.md`
         );
       }
@@ -397,7 +396,7 @@ async function processConversion(inputPathArg: string, options: any) {
       // If Markdown was the final target, we're done here
       if (resolvedTargetType === TargetType.Markdown) {
         if (useTempForIntermediate) {
-          // If it was written to temp, copy to final destination
+          // If it was written to temp, copy to final destination.
           await copyFileToDest(currentProcessingFilePath, finalOutputPath);
         }
         console.log(
@@ -413,8 +412,7 @@ async function processConversion(inputPathArg: string, options: any) {
         throw new Error(
           "OpenRouter API key is required for markdown enrichment. Provide --openrouter-key or set OPENROUTER_KEY environment variable."
         );
-      }
-      // Path for the enriched markdown output file (either temp or final)
+      } // Path for the enriched markdown output file (either temp or final)
       let enrichedMarkdownOutputLocation: string;
       if (useTempForIntermediate) {
         enrichedMarkdownOutputLocation = path.join(
@@ -424,9 +422,9 @@ async function processConversion(inputPathArg: string, options: any) {
       } else if (resolvedTargetType === TargetType.Enriched) {
         enrichedMarkdownOutputLocation = finalOutputPath;
       } else {
-        // For intermediate enriched markdown when target is bloom, create it next to the input
+        // For intermediate enriched markdown when target is bloom, create it in the bloom output directory
         enrichedMarkdownOutputLocation = path.join(
-          path.dirname(currentProcessingFilePath),
+          finalOutputPath,
           `${currentProcessingBaseName}.enriched.md`
         );
       }
