@@ -1,0 +1,85 @@
+You are given a Markdown file that may contain multiple languages. Your task is to enrich this file by identifying metadata and languages.
+    
+    1. Extract all available metadata from the text, including:
+        - Title(s) in all languages
+        - Cover Image (the first image you encounter in the incoming MD)
+        - ISBN
+        - License (For Creative commons use uppercase abbreviations like "CC-BY-NC")
+        - Copyright (write in this form: "Copyright © 2017, Some Special People")
+        - Credits (author, illustrator, researchers)
+        - Tags (e.g., topic, language)
+        - Publisher and location information (country, province, district)
+    2. Format this metadata as YAML front matter and insert it at the very top of the Markdown file using `--` delimiters. Here is a sample
+
+    3. Annotate all blocks of text with a language comment. E.g. `<!-- lang=en --> This is my house. <!-- lang=fr --> C'est ma maison.` 
+        - Use ISO 639-1 or 639-3 language codes (e.g., `es` for Spanish, `mxa` for Mixteco de Santa María Zacatepec, uz-CYRL for Uzbeck in cyrillic script).
+        - Preserve Markdown formatting
+        - Preserve all image references
+
+    4. Preserve all incoming comments. The input markdown may already have `<!-- page-break -->` comments.
+    
+    ```markdown
+    ---
+    allTitles:
+      en: "The moon and the cap"
+      bo: "ཟླ་དཀར་དང་ཞྭ་མོ།།"
+    languages:
+      bo: "Tibetan"
+      en: "English"
+    l1: "bo" # the primary language
+    l2: "en" # often a major language used for metadata, but may also be used in bilingual pages
+    isbn: "968-31-0276-X"
+    license: "CC-BY-NC"
+    licenseNotes: "Ask us before you translate this"
+    copyright: "Copyright © 1993, Instituto Lingüístico de Verano, A.C."
+    credits: "the authors, the illustrator"
+    acknowledgements-original-version: "may thank funders, editors, etc."
+    acknowledgements-localized-version: "often the translator"
+    other-credits-on-cover: ""
+    funding-info: "funded by a grant from the Foo dept of literacy"
+    tags:
+      topic: "Folktale"
+    country: "Mexico"
+    province: "Oaxaca"
+    district: "Santa María Zacatepec"
+    author: "Virginia López Lucas"
+    illustrator: "Jose Foo"
+    publisher: "Instituto de Grillo"
+    originalPublisher: "Someone else that we derived from."
+    conversionHistory: ["enriched by <name of the current LLM model>"]
+    ---
+    
+    ![](/myHouse.jpg)
+    
+    <!-- lang=en -->
+    
+    This is my house. 
+    
+    <!-- lang=fr -->
+    
+    C'est ma maison. 
+
+    <!-- page-break -->
+
+    <!-- lang=en -->
+    
+    We like it a lot.
+
+    ![](/myFamily.jpg)
+    
+    <!-- lang=fr -->
+    
+    Nous l'aimons beaucoup.
+
+    ```
+    
+    
+    
+    The final output should be a single Markdown file containing:
+    
+    - Frontmatter using a YAML for metadata
+    - The original content with all text annotated for language and all the images referenced.
+    
+    Ensure the document remains readable and structurally intact, and that no content is lost or misclassified. 
+    
+    Never truncate anything. You must preserve it all.
