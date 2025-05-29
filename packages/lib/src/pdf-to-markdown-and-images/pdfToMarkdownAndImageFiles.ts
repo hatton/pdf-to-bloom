@@ -105,7 +105,7 @@ export async function pdfToMarkdownAndImageFiles(
     // Combine markdown from all pages, inserting page break comments between them
     let markdown = ocrResponse.pages
       .map((page: MistralOCRPage) => page.markdown)
-      .join("\n\n<!-- Page break -->\n\n");
+      .join("\n\n<!-- page-break -->\n\n");
 
     // Ensure output directory exists
     logger.verbose("Creating output directory for images...");

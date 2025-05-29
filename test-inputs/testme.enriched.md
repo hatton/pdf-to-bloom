@@ -1,4 +1,3 @@
-```yaml
 ---
 allTitles:
   en: "test me"
@@ -12,56 +11,71 @@ tags:
   topic: []
 country: "India"
 publisher: "Bloom Enterprise"
+languages:
+  en: "english"
+  ta: "tamil"
+  gon: "Gondi"
+l1: "gon"
+l2: "ta"
 ---
 
 <!-- lang=en -->
-# test me 
+
+# test me
 
 ![img-0.jpeg](img-0.jpeg){width=731}
 
 <!-- lang=gon -->
+
 ஹ்வ்லி (Gondi)
 
-<!-- Page break -->
+<!-- page-break -->
 
 <!-- lang=en -->
+
 .
 
-<!-- Page break -->
+<!-- page-break -->
 
 <!-- lang=en -->
-# test me 
+
+# test me
 
 <!-- lang=ta -->
+
 ## சிவ்ஸி (Gondi)
 
 <!-- lang=en -->
+
 India
 ![img-1.jpeg](img-1.jpeg){width=162}
 
-<!-- Page break -->
+<!-- page-break -->
 
 <!-- lang=en -->
+
 http://creativecommons.org/licenses/by/4.0/
 You are free to make commercial use of this work. You may adapt and add to this work. You must keep the copyright and credits for authors, illustrators, etc.
 
-<!-- Page break -->
+<!-- page-break -->
 
 ![img-2.jpeg](img-2.jpeg){width=995}
 
 <!-- lang=en -->
+
 This is a glass ceiling.
 Another paragraph about the ceiling.
 
-<!-- Page break -->
+<!-- page-break -->
 
 <!-- lang=en -->
+
 .
 
-<!-- Page break -->
+<!-- page-break -->
 
 <!-- lang=en -->
+
 This book was created with some Bloom Enterprise features enabled at no cost in order to support projects solely funded by the local community.
 
 A Happy Group of Devs
-```

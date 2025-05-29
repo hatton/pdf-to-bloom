@@ -26,6 +26,9 @@ export class MarkdownToBloomHtml {
 
     const { frontmatter, body } = this.extractFrontmatter(content);
     const metadata = this.parseMetadata(frontmatter);
+    if (!metadata) {
+      throw new Error("Failed to parse metadata from frontmatter");
+    }
     const pages = this.createPageObjects(body, metadata);
 
     if (this.errors.some((e) => e.type === "error")) {
@@ -68,7 +71,7 @@ export class MarkdownToBloomHtml {
     }
   }
 
-  private validateMetadata(metadata: BookMetadata): void {
+  private validateMetadata(metadata: BookMetadata): boolean {
     if (!metadata.allTitles) {
       this.addError("Missing required field: allTitles");
     }
@@ -90,6 +93,9 @@ export class MarkdownToBloomHtml {
         `Secondary language '${metadata.l2}' not found in languages`
       );
     }
+
+    // return true if no errors
+    return this.errors.length === 0;
   }
 
   private createPageObjects(
@@ -203,9 +209,12 @@ export class MarkdownToBloomHtml {
       if (currentTextBlock && currentLang) {
         currentText += trimmedLine + "\n"; // Accumulate text
       } else {
-        this.addWarning(
-          `Found text outside of a language block (page ${pageNumber}): "${trimmedLine}"`
-        );
+        // if the trimmed line is not empty
+        if (trimmedLine.length > 0) {
+          this.addWarning(
+            `Found text outside of a language block (page ${pageNumber}): "${trimmedLine}"`
+          );
+        }
       }
     }
 

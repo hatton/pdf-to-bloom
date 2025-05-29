@@ -8,19 +8,25 @@
   ],
   "scripts": {
     "build": "yarn workspaces foreach --all run build",
+    "build:lib": "yarn workspace @pdf-to-bloom/lib build",
+    "build:cli": "yarn workspace @pdf-to-bloom/cli build",
     "test": "yarn workspaces foreach --all run test || true",
     "test:watch": "yarn workspaces foreach --all run test:watch || true",
     "test:lib": "yarn workspace @pdf-to-bloom/lib test",
     "test:lib:watch": "yarn workspace @pdf-to-bloom/lib test:watch",
     "test:strict": "yarn workspaces foreach --all run test",
     "dev": "yarn workspaces foreach --all run dev",
-    "start:cli": "node packages/cli/dist/index.js",
-    "start:web": "yarn workspace @pdf-to-bloom/web dev",
-    "test:md-to-enriched": "node packages/cli/dist/index.js test-inputs/testme.md --target enriched"
+    "watch": "concurrently \"yarn dev:lib\" \"yarn dev:cli\" --names \"lib,cli\" --prefix-colors \"blue,green\"",
+    "cli": "yarn node packages/cli/dist/index.js",
+    "web": "yarn workspace @pdf-to-bloom/web dev",
+    "test:md-to-enriched": "yarn build:lib && yarn build:cli && node packages/cli/dist/index.js test-inputs/testme.md --target enriched"
   },
   "packageManager": "yarn@4.9.1",
   "volta": {
     "node": "22.11.0",
     "yarn": "1.22.22"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
   }
 }
