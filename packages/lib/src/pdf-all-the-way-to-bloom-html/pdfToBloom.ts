@@ -4,6 +4,7 @@ import { enrichMarkdown } from "../enrich-markdown/enrichMarkdown";
 import { enrichedMarkdownToBloomHtml } from "../enriched-markdown-to-bloom-html/enrichedMarkdownToBloomHtml";
 import fs from "fs";
 import path from "path";
+import { th } from "zod/v4/locales";
 
 export async function pdfToBloomFolder(
   pdfPath: string,
@@ -24,13 +25,23 @@ export async function pdfToBloomFolder(
       logCallback
     );
     logger.verbose("PDF to Markdown conversion completed");
-    const enrichedMarkdown = await enrichMarkdown(markdown, openRouterApiKey, {
-      logCallback,
-    });
-    logger.verbose("Markdown enrichment completed");
-    const bloomHtml = await enrichedMarkdownToBloomHtml(enrichedMarkdown, {
-      logCallback,
-    });
+    const enrichmentLLMResult = await enrichMarkdown(
+      markdown,
+      openRouterApiKey,
+      {
+        logCallback,
+      }
+    );
+    if (!enrichmentLLMResult.valid) {
+      logger.error("Enrichment LLM result is not valid, aborting conversion");
+      throw new Error("Enrichment LLM result is not valid");
+    }
+    const bloomHtml = await enrichedMarkdownToBloomHtml(
+      enrichmentLLMResult.cleanedupMarkdown,
+      {
+        logCallback,
+      }
+    );
     logger.verbose("Bloom HTML conversion completed");
     // Save the Bloom HTML to a file in the output directory
     const bloomHtmlPath = path.join(outputDir, "bloom.html");

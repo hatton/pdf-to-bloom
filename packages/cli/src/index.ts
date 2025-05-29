@@ -41,21 +41,27 @@ function getApiKeys(options: any) {
   return { mistralKey, openrouterKey };
 }
 
-function createLogCallback(verbose: boolean) {
+function createLogCallback(showVerbose: boolean) {
   return (log: any) => {
-    // Always show errors and info messages
-    if (log.level === "error" || log.level === "info") {
-      const timestamp = new Date().toISOString();
-      console.log(chalk.gray(`[${timestamp}] ${log.level}: ${log.message}`));
-    }
-    // Only show verbose messages if verbose flag is enabled
-    else if (log.level === "verbose" && verbose) {
-      const timestamp = new Date().toISOString();
-      console.log(chalk.gray(`[${timestamp}] ${log.level}: ${log.message}`));
+    switch (log.level) {
+      case "error":
+        console.error(chalk.red(`❌ ${log.message}`));
+        break;
+      case "info":
+        console.info(chalk.blue(`${log.message}`));
+        break;
+      case "warn":
+        console.warn(chalk.yellow(`⚠️ ${log.message}`));
+        break;
+
+      case "verbose":
+        if (showVerbose) {
+          console.log(chalk.gray(`🔍 ${log.message}`));
+        }
+        break;
     }
   };
 }
-
 async function fileExists(filePath: string): Promise<boolean> {
   try {
     await fs.access(filePath);
@@ -298,15 +304,15 @@ async function processConversion(inputPathArg: string, options: any) {
           break;
       }
     }
-    console.log(chalk.gray(`Final output path: "${finalOutputPath}"`));
-
-    // --- Conversion Orchestration: Execute the necessary transformation steps ---
+    console.log(chalk.gray(`Final output path: "${finalOutputPath}"`)); // --- Conversion Orchestration: Execute the necessary transformation steps ---
     console.log(
       chalk.blue(
         `🔄 Starting conversion pipeline from ${resolvedInputType} to ${resolvedTargetType}...`
       )
-    ); // Special Case: Direct PDF to Bloom HTML conversion using pdfToBloomFolder()
-    // This is explicitly called out in the requirements and is an optimized path in the library.
+    ); // Note: We always use the step-by-step pipeline approach instead of pdfToBloomFolder()
+    // to create intermediate files that can be inspected for debugging purposes
+
+    // Validate API keys early for PDF to Bloom conversion
     if (
       resolvedInputType === InputType.PDF &&
       resolvedTargetType === TargetType.Bloom
@@ -321,33 +327,12 @@ async function processConversion(inputPathArg: string, options: any) {
           "OpenRouter API key is required for PDF to Bloom conversion. Provide --openrouter-key or set OPENROUTER_KEY environment variable."
         );
       }
-      // pdfToBloomFolder handles the entire A -> D pipeline internally
-      await pdfToBloomFolder(
-        actualFilePath,
-        finalOutputPath,
-        mistralKey,
-        openrouterKey,
-        logCallback
-      );
-      console.log(
-        chalk.green(
-          "✅ PDF to Bloom conversion completed successfully via direct path!"
-        )
-      );
-      console.log(chalk.blue(`📄 Output saved to: "${finalOutputPath}"`));
-      return; // Exit as conversion is complete
     }
 
     // For all other conversion paths, follow the staged pipeline:
-    // PDF -> Markdown -> Enriched Markdown -> Bloom HTML
-
-    // Determine if intermediate output files should be stored in a temporary directory.
-    // They should go to temp UNLESS the current target IS that intermediate file type
-    // AND the user has NOT specified an explicit --output path (meaning, save next to input).
-    // const useTempForIntermediate =
-    //   !(resolvedTargetType === TargetType.Markdown && !options.output) &&
-    //   !(resolvedTargetType === TargetType.Enriched && !options.output);
-
+    // PDF -> Markdown -> Enriched Markdown -> Bloom HTML    // Determine if intermediate output files should be stored in a temporary directory.
+    // For debugging purposes, we'll always save intermediate files next to the input
+    // so they can be inspected.
     const useTempForIntermediate = false;
 
     if (useTempForIntermediate) {
@@ -364,9 +349,7 @@ async function processConversion(inputPathArg: string, options: any) {
     let currentProcessingFileType = resolvedInputType;
     let currentProcessingBaseName = getFileNameWithoutExtension(
       currentProcessingFilePath
-    );
-
-    // Step 1: Convert PDF to Markdown (if input is PDF)
+    ); // Step 1: Convert PDF to Markdown (if input is PDF)
     if (currentProcessingFileType === InputType.PDF) {
       if (!mistralKey) {
         throw new Error(
@@ -374,10 +357,21 @@ async function processConversion(inputPathArg: string, options: any) {
         );
       }
       // Path for the markdown output file (either temp or final)
-      const markdownOutputLocation = useTempForIntermediate
-        ? path.join(tempDir!, `${currentProcessingBaseName}.md`)
-        : finalOutputPath;
-
+      let markdownOutputLocation: string;
+      if (useTempForIntermediate) {
+        markdownOutputLocation = path.join(
+          tempDir!,
+          `${currentProcessingBaseName}.md`
+        );
+      } else if (resolvedTargetType === TargetType.Markdown) {
+        markdownOutputLocation = finalOutputPath;
+      } else {
+        // For intermediate markdown when target is enriched or bloom, create it next to the input
+        markdownOutputLocation = path.join(
+          path.dirname(currentProcessingFilePath),
+          `${currentProcessingBaseName}.md`
+        );
+      }
       console.log(chalk.blue(`-> Converting PDF to Markdown...`));
       // makeMarkdownFromPDF returns the markdown content string and writes associated images
       const markdownContent = await makeMarkdownFromPDF(
@@ -387,6 +381,11 @@ async function processConversion(inputPathArg: string, options: any) {
         logCallback
       );
       logger.info(`Writing OCR'd markdown to: ${markdownOutputLocation}`);
+      console.log(
+        chalk.gray(
+          `📝 Creating intermediate markdown file: ${markdownOutputLocation}`
+        )
+      );
       await fs.writeFile(markdownOutputLocation, markdownContent); // Write the markdown content to file
 
       currentProcessingFilePath = markdownOutputLocation; // Update current file path
@@ -407,9 +406,7 @@ async function processConversion(inputPathArg: string, options: any) {
         console.log(chalk.blue(`📄 Output saved to: "${finalOutputPath}"`));
         return;
       }
-    }
-
-    // Step 2: Enrich Markdown (if current file is Markdown and needs enrichment)
+    } // Step 2: Enrich Markdown (if current file is Markdown and needs enrichment)
     // This step is skipped if the input was already EnrichedMarkdown
     if (currentProcessingFileType === InputType.Markdown) {
       if (!openrouterKey) {
@@ -418,28 +415,54 @@ async function processConversion(inputPathArg: string, options: any) {
         );
       }
       // Path for the enriched markdown output file (either temp or final)
-      const enrichedMarkdownOutputLocation = useTempForIntermediate
-        ? path.join(tempDir!, `${currentProcessingBaseName}.enriched.md`)
-        : finalOutputPath;
-
+      let enrichedMarkdownOutputLocation: string;
+      if (useTempForIntermediate) {
+        enrichedMarkdownOutputLocation = path.join(
+          tempDir!,
+          `${currentProcessingBaseName}.enriched.md`
+        );
+      } else if (resolvedTargetType === TargetType.Enriched) {
+        enrichedMarkdownOutputLocation = finalOutputPath;
+      } else {
+        // For intermediate enriched markdown when target is bloom, create it next to the input
+        enrichedMarkdownOutputLocation = path.join(
+          path.dirname(currentProcessingFilePath),
+          `${currentProcessingBaseName}.enriched.md`
+        );
+      }
       console.log(chalk.blue(`-> Enriching Markdown...`));
       const markdownContentToEnrich = await fs.readFile(
         currentProcessingFilePath,
         "utf-8"
       );
-      const enrichedMarkdownContent = await enrichMarkdown(
+      const result = await enrichMarkdown(
         markdownContentToEnrich,
         openrouterKey,
         { logCallback }
       );
       logger.info(
-        `Writing enriched markdown to: ${enrichedMarkdownOutputLocation}`
+        `Writing uncleaned enriched markdown to: ${enrichedMarkdownOutputLocation.replace(".enriched.", ".fromLLM.enriched.")}`
       );
       await fs.writeFile(
-        enrichedMarkdownOutputLocation,
-        enrichedMarkdownContent
-      ); // Write enriched markdown content to file
+        enrichedMarkdownOutputLocation.replace(
+          ".enriched.",
+          ".fromLLM.enriched."
+        ),
+        result.markdownResultFromEnrichmentLLM
+      );
 
+      logger.info(`Writing cleaned enriched markdown to: }`);
+
+      await fs.writeFile(
+        enrichedMarkdownOutputLocation,
+        result.cleanedupMarkdown
+      );
+
+      if (!result.valid) {
+        throw new Error(
+          `Enrichment process returned invalid content. This can be a result of the mode/prompt. You may be able to errors in the file "${enrichedMarkdownOutputLocation}" for details.`
+        );
+      }
       currentProcessingFilePath = enrichedMarkdownOutputLocation; // Update current file path
       currentProcessingFileType = InputType.EnrichedMarkdown; // Update current file type
       currentProcessingBaseName = getFileNameWithoutExtension(

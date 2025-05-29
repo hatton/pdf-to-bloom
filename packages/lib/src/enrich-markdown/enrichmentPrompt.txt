@@ -46,7 +46,6 @@ You are given a Markdown file that may contain multiple languages. Your task is 
     illustrator: "Jose Foo"
     publisher: "Instituto de Grillo"
     originalPublisher: "Someone else that we derived from."
-    conversionHistory: ["enriched by <name of the current LLM model>"]
     ---
     
     ![](/myHouse.jpg)

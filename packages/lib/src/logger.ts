@@ -46,6 +46,10 @@ class Logger {
     return this.addLog("info", message);
   }
 
+  public warn(message: string): LogEntry {
+    return this.addLog("warn", message);
+  }
+
   /**
    * Log an error message
    */
