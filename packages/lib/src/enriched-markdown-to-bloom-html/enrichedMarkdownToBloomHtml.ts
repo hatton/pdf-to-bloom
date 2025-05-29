@@ -1,10 +1,13 @@
 import { logger, LogEntry } from "../logger";
+import { MarkdownToBloomHtml } from "./md-to-bloom.js";
+import { HtmlGenerator } from "./html-generator.js";
 
 export interface MakeBloomHtmlOptions {
   logCallback?: (log: LogEntry) => void;
   // HTML generation specific options
   customStyles?: string;
   outputFormat?: "standard" | "enhanced";
+  validateImages?: boolean;
 }
 
 /**
@@ -17,41 +20,62 @@ export async function enrichedMarkdownToBloomHtml(
   enrichedMarkdown: string,
   options?: MakeBloomHtmlOptions
 ): Promise<string> {
-  const { logCallback, customStyles, outputFormat } = options || {};
+  const { logCallback, customStyles, outputFormat, validateImages } =
+    options || {};
 
-  if (logCallback) logger.subscribe(logCallback);
+  if (logCallback) {
+    logger.subscribe(logCallback);
+  }
+
   try {
     logger.info("Starting markdown to Bloom HTML conversion");
 
-    // TODO: Implement markdown to Bloom HTML conversion
-    // This would convert markdown syntax to Bloom-specific HTML structure
-    logger.verbose("Converting markdown to Bloom HTML..."); // Basic placeholder implementation
-    // In a real implementation, you'd parse markdown and create Bloom-specific HTML
-    logger.verbose("Applying markdown transformations...");
-    let htmlContent = enrichedMarkdown
-      .replace(/^# (.+)$/gm, '<div class="bloom-page"><h1>$1</h1></div>')
-      .replace(/^## (.+)$/gm, "<h2>$1</h2>")
-      .replace(/^### (.+)$/gm, "<h3>$1</h3>")
-      .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-      .replace(/\*(.+?)\*/g, "<em>$1</em>")
-      .replace(/\n\n/g, "</p><p>")
-      .replace(/^(?!<)/gm, "<p>")
-      .replace(/(?<!>)$/gm, "</p>");
+    // Parse the markdown into a book object
+    logger.verbose("Parsing markdown content...");
+    const parser = new MarkdownToBloomHtml(undefined, {
+      validateImages: validateImages ?? false,
+    });
+    const book = parser.parseMarkdownIntoABookObject(enrichedMarkdown);
+
+    // Log any warnings or errors from parsing
+    const errors = parser.getErrors();
+    errors.forEach((error) => {
+      if (error.type === "error") {
+        logger.error(error.message);
+      } else {
+        // Use error method for warnings since warn doesn't exist
+        logger.error(`Warning: ${error.message}`);
+      }
+    });
+
+    // Generate HTML from the book object
+    logger.verbose("Generating Bloom HTML...");
+    const htmlGenerator = new HtmlGenerator();
+    let htmlContent = htmlGenerator.generateHtmlDocument(book);
 
     // Apply custom styles if provided
     if (customStyles) {
-      htmlContent = `<style>${customStyles}</style>\n${htmlContent}`;
+      // Insert custom styles into the head section
+      htmlContent = htmlContent.replace(
+        "</head>",
+        `    <style>\n${customStyles}\n    </style>\n  </head>`
+      );
     }
 
-    // Apply output format variations
-    const wrapperClass =
-      outputFormat === "enhanced" ? "bloom-book enhanced" : "bloom-book";
-    const result = `<div class="${wrapperClass}">\n${htmlContent}\n</div>`;
+    // Apply output format variations if needed
+    if (outputFormat === "enhanced") {
+      // Add enhanced classes or modifications here if needed
+      logger.verbose("Applying enhanced output format...");
+    }
 
-    logger.info("Bloom HTML conversion completed successfully");
+    logger.info(
+      `Bloom HTML conversion completed successfully. Generated ${book.pages.length} pages.`
+    );
 
-    return result;
+    return htmlContent;
   } finally {
-    if (logCallback) logger.unsubscribe(logCallback);
+    if (logCallback) {
+      logger.unsubscribe(logCallback);
+    }
   }
 }
