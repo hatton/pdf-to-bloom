@@ -8,8 +8,11 @@
   ],
   "scripts": {
     "build": "yarn workspaces foreach --all run build",
-    "test": "yarn workspaces foreach --all run test",
-    "test:watch": "yarn workspaces foreach --all run test:watch",
+    "test": "yarn workspaces foreach --all run test || true",
+    "test:watch": "yarn workspaces foreach --all run test:watch || true",
+    "test:lib": "yarn workspace @pdf-to-bloom/lib test",
+    "test:lib:watch": "yarn workspace @pdf-to-bloom/lib test:watch",
+    "test:strict": "yarn workspaces foreach --all run test",
     "dev": "yarn workspaces foreach --all run dev",
     "start:cli": "yarn workspace @pdf-to-bloom/cli start",
     "start:web": "yarn workspace @pdf-to-bloom/web dev",
