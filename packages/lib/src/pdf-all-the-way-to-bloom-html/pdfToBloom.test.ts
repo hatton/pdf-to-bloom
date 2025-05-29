@@ -1,27 +1,30 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { pdfToBloomFolder } from "./pdfToBloom";
-import { LogEntry } from "./logger";
+import { LogEntry } from "../logger";
 import fs from "fs";
 import path from "path";
 import os from "os";
 
 // Mock the dependencies
-vi.mock("./pdfToMarkdownAndImageFiles", () => ({
+vi.mock("../pdf-to-markdown-and-images/pdfToMarkdownAndImageFiles", () => ({
   pdfToMarkdownAndImageFiles: vi.fn(),
 }));
 
-vi.mock("./enrichMarkdown", () => ({
+vi.mock("../enrich-markdown/enrichMarkdown", () => ({
   enrichMarkdown: vi.fn(),
 }));
 
-vi.mock("./makeBloomHtml", () => ({
-  makeBloomHtml: vi.fn(),
-}));
+vi.mock(
+  "../enriched-markdown-to-bloom-html/enrichedMarkdownToBloomHtml",
+  () => ({
+    enrichedMarkdownToBloomHtml: vi.fn(),
+  })
+);
 
 // Import the mocked functions
-import { pdfToMarkdownAndImageFiles } from "./pdfToMarkdownAndImageFiles";
-import { enrichMarkdown } from "./enrichMarkdown";
-import { makeBloomHtml } from "./makeBloomHtml";
+import { pdfToMarkdownAndImageFiles } from "../pdf-to-markdown-and-images/pdfToMarkdownAndImageFiles";
+import { enrichMarkdown } from "../enrich-markdown/enrichMarkdown";
+import { enrichedMarkdownToBloomHtml } from "../enriched-markdown-to-bloom-html/enrichedMarkdownToBloomHtml";
 
 describe("pdfToBloomFolder", () => {
   let tempDir: string;
@@ -46,7 +49,7 @@ describe("pdfToBloomFolder", () => {
     tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "pdf-to-bloom-test-")); // Setup default mock implementations
     vi.mocked(pdfToMarkdownAndImageFiles).mockResolvedValue(mockMarkdown);
     vi.mocked(enrichMarkdown).mockResolvedValue(mockEnrichedMarkdown);
-    vi.mocked(makeBloomHtml).mockResolvedValue(mockBloomHtml);
+    vi.mocked(enrichedMarkdownToBloomHtml).mockResolvedValue(mockBloomHtml);
   });
 
   afterEach(() => {
@@ -79,14 +82,13 @@ describe("pdfToBloomFolder", () => {
     );
     expect(enrichMarkdown).toHaveBeenCalledWith(
       mockMarkdown,
-      mockMistralApiKey,
+      mockOpenRouterKey,
       expect.objectContaining({
         logCallback: expect.any(Function),
       })
     );
-    expect(makeBloomHtml).toHaveBeenCalledWith(
+    expect(enrichedMarkdownToBloomHtml).toHaveBeenCalledWith(
       mockEnrichedMarkdown,
-      mockMistralApiKey,
       expect.objectContaining({
         logCallback: expect.any(Function),
       })
@@ -173,7 +175,7 @@ describe("pdfToBloomFolder", () => {
 
     // Verify subsequent steps were not called
     expect(enrichMarkdown).not.toHaveBeenCalled();
-    expect(makeBloomHtml).not.toHaveBeenCalled();
+    expect(enrichedMarkdownToBloomHtml).not.toHaveBeenCalled();
 
     // Verify no HTML file was created
     const expectedFilePath = path.join(tempDir, "bloom.html");
@@ -199,18 +201,18 @@ describe("pdfToBloomFolder", () => {
     // Verify pdfToMarkdownAndImageFiles was called
     expect(pdfToMarkdownAndImageFiles).toHaveBeenCalled();
 
-    // Verify makeBloomHtml was not called
-    expect(makeBloomHtml).not.toHaveBeenCalled();
+    // Verify enrichedMarkdownToBloomHtml was not called
+    expect(enrichedMarkdownToBloomHtml).not.toHaveBeenCalled();
 
     // Verify no HTML file was created
     const expectedFilePath = path.join(tempDir, "bloom.html");
     expect(fs.existsSync(expectedFilePath)).toBe(false);
   });
 
-  it("should handle errors in makeBloomHtml step", async () => {
+  it("should handle errors in enrichedMarkdownToBloomHtml step", async () => {
     const logs: LogEntry[] = [];
     const errorMessage = "Bloom HTML generation failed";
-    vi.mocked(makeBloomHtml).mockImplementation(() => {
+    vi.mocked(enrichedMarkdownToBloomHtml).mockImplementation(() => {
       return Promise.reject(new Error(errorMessage));
     });
 
@@ -250,7 +252,7 @@ describe("pdfToBloomFolder", () => {
     // Verify all processing steps were completed
     expect(pdfToMarkdownAndImageFiles).toHaveBeenCalled();
     expect(enrichMarkdown).toHaveBeenCalled();
-    expect(makeBloomHtml).toHaveBeenCalled();
+    expect(enrichedMarkdownToBloomHtml).toHaveBeenCalled();
   });
 
   it("should work without log callback", async () => {
@@ -264,7 +266,7 @@ describe("pdfToBloomFolder", () => {
     // Verify the pipeline completed successfully
     expect(pdfToMarkdownAndImageFiles).toHaveBeenCalled();
     expect(enrichMarkdown).toHaveBeenCalled();
-    expect(makeBloomHtml).toHaveBeenCalled();
+    expect(enrichedMarkdownToBloomHtml).toHaveBeenCalled();
 
     // Verify the HTML file was created
     const expectedFilePath = path.join(tempDir, "bloom.html");
@@ -297,9 +299,8 @@ describe("pdfToBloomFolder", () => {
         logCallback: expect.any(Function),
       })
     );
-    expect(makeBloomHtml).toHaveBeenCalledWith(
+    expect(enrichedMarkdownToBloomHtml).toHaveBeenCalledWith(
       expect.any(String),
-      mockMistralApiKey,
       expect.objectContaining({
         logCallback: expect.any(Function),
       })
@@ -310,7 +311,7 @@ describe("pdfToBloomFolder", () => {
     const logs: LogEntry[] = [];
     const customHtml = '<div class="bloom-book"><h1>Custom Content</h1></div>';
 
-    vi.mocked(makeBloomHtml).mockResolvedValue(customHtml);
+    vi.mocked(enrichedMarkdownToBloomHtml).mockResolvedValue(customHtml);
 
     const result = await pdfToBloomFolder(
       mockPdfPath,

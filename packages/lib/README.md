@@ -35,7 +35,7 @@ const enrichedMarkdown = await enrichMarkdown(
   markdown,
   "your-openrouter-api-key"
 );
-const bloomHtml = await makeBloomHtml(enrichedMarkdown, "your-mistral-api-key");
+const bloomHtml = await makeBloomHtml(enrichedMarkdown);
 ```
 
 ## API
@@ -52,6 +52,6 @@ Extract and convert PDF content to markdown using MistralAI.
 
 Enhance the markdown content using OpenRouter API.
 
-### `makeBloomHtml(markdown, mistralApiKey, options?)`
+### `makeBloomHtml(markdown, options?)`
 
 Convert markdown to Bloom-compatible HTML format.

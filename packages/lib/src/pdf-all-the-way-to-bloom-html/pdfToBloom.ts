@@ -1,7 +1,7 @@
-import { logger, LogEntry } from "./logger";
-import { pdfToMarkdownAndImageFiles } from "./pdfToMarkdownAndImageFiles";
-import { enrichMarkdown } from "./enrichMarkdown";
-import { makeBloomHtml } from "./makeBloomHtml";
+import { logger, LogEntry } from "../logger";
+import { pdfToMarkdownAndImageFiles } from "../pdf-to-markdown-and-images/pdfToMarkdownAndImageFiles";
+import { enrichMarkdown } from "../enrich-markdown/enrichMarkdown";
+import { enrichedMarkdownToBloomHtml } from "../enriched-markdown-to-bloom-html/enrichedMarkdownToBloomHtml";
 import fs from "fs";
 import path from "path";
 
@@ -28,7 +28,7 @@ export async function pdfToBloomFolder(
       logCallback,
     });
     logger.verbose("Markdown enrichment completed");
-    const bloomHtml = await makeBloomHtml(enrichedMarkdown, mistralApiKey, {
+    const bloomHtml = await enrichedMarkdownToBloomHtml(enrichedMarkdown, {
       logCallback,
     });
     logger.verbose("Bloom HTML conversion completed");

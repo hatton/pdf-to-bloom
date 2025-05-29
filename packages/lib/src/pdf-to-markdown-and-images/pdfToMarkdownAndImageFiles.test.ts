@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { pdfToMarkdownAndImageFiles } from "./pdfToMarkdownAndImageFiles";
-import { LogEntry } from "./logger";
+import { LogEntry } from "../logger";
 import fs from "fs";
 import path from "path";
 import os from "os";

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { enrichMarkdown } from "./enrichMarkdown";
-import { LogEntry } from "./logger";
+import { LogEntry } from "../logger";
 
 describe("enrichMarkdown", () => {
   it("should throw error when API key is missing", async () => {

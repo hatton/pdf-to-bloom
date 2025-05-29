@@ -1,4 +1,4 @@
-import { logger, LogEntry } from "./logger";
+import { logger, LogEntry } from "../logger";
 import { generateText } from "ai";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import fs from "fs";

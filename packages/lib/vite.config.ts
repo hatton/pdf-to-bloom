@@ -11,7 +11,10 @@ export default defineConfig({
       name: "copy-enrichment-prompt",
       apply: "build",
       generateBundle() {
-        const srcPath = path.resolve(__dirname, "src/enrichmentPrompt.txt");
+        const srcPath = path.resolve(
+          __dirname,
+          "src/enrich-markdown/enrichmentPrompt.txt"
+        );
         const content = fs.readFileSync(srcPath, "utf8");
         this.emitFile({
           type: "asset",

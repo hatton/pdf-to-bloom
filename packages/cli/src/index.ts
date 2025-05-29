@@ -447,19 +447,9 @@ async function processConversion(inputPathArg: string, options: any) {
       }
     }
     // If the input was originally EnrichedMarkdown, this step is naturally skipped,
-    // and currentProcessingFileType remains InputType.EnrichedMarkdown.
-
-    // Step 3: Convert Enriched Markdown to Bloom HTML (if current file is Enriched Markdown)
+    // and currentProcessingFileType remains InputType.EnrichedMarkdown.    // Step 3: Convert Enriched Markdown to Bloom HTML (if current file is Enriched Markdown)
     if (currentProcessingFileType === InputType.EnrichedMarkdown) {
       if (resolvedTargetType === TargetType.Bloom) {
-        // OpenRouter key is often optional for makeBloomHtml, but useful for advanced features
-        if (!openrouterKey) {
-          console.warn(
-            chalk.yellow(
-              "Warning: OpenRouter API key not provided. Some advanced Bloom HTML generation features might be limited."
-            )
-          );
-        }
         console.log(
           chalk.blue(`-> Converting Enriched Markdown to Bloom HTML...`)
         );
@@ -468,11 +458,9 @@ async function processConversion(inputPathArg: string, options: any) {
           "utf-8"
         );
         // makeBloomHtml returns the HTML content string, which we then write to index.html in the bloom folder
-        const bloomHtmlContent = await makeBloomHtml(
-          enrichedMarkdownContent,
-          openrouterKey,
-          { logCallback }
-        );
+        const bloomHtmlContent = await makeBloomHtml(enrichedMarkdownContent, {
+          logCallback,
+        });
         await fs.writeFile(
           path.join(finalOutputPath, "index.html"),
           bloomHtmlContent
