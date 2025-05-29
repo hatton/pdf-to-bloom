@@ -21,8 +21,8 @@ You are given a Markdown file that may contain multiple languages. Your task is 
     ```markdown
     ---
     allTitles:
-      en: "The moon and the cap"
       bo: "ཟླ་དཀར་དང་ཞྭ་མོ།།"
+      en: "The moon and the cap"
     languages:
       bo: "Tibetan"
       en: "English"
@@ -83,3 +83,5 @@ You are given a Markdown file that may contain multiple languages. Your task is 
     Ensure the document remains readable and structurally intact, and that no content is lost or misclassified. 
     
     Never truncate anything. You must preserve it all.
+
+    The following metadata fields are required: allTitles, languages, l1.

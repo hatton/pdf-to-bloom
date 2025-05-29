@@ -76,12 +76,18 @@ export async function enrichMarkdown(
       temperature: 0.0, // Deterministic, no creativity needed
       maxTokens,
     });
-
-    const enrichedContent = result.text;
+    let enrichedContent = result.text;
 
     if (!enrichedContent) {
       logger.error("No markdown content received from AI model");
       throw new Error("Failed to generate enriched markdown");
+    } // Strip code block wrapper if present
+    // AI models sometimes wrap the response in ```markdown, ```yaml, etc.
+    const codeBlockPattern = /^```\w*\s*\n([\s\S]*?)\n```\s*$/;
+    const match = enrichedContent.match(codeBlockPattern);
+    if (match) {
+      enrichedContent = match[1];
+      logger.verbose("Stripped code block wrapper from AI response");
     }
 
     logger.info("Markdown enrichment completed successfully");

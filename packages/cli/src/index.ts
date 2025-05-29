@@ -447,7 +447,9 @@ async function processConversion(inputPathArg: string, options: any) {
       }
     }
     // If the input was originally EnrichedMarkdown, this step is naturally skipped,
-    // and currentProcessingFileType remains InputType.EnrichedMarkdown.    // Step 3: Convert Enriched Markdown to Bloom HTML (if current file is Enriched Markdown)
+    // and currentProcessingFileType remains InputType.EnrichedMarkdown.
+
+    // Step 3: Convert Enriched Markdown to Bloom HTML (if current file is Enriched Markdown)
     if (currentProcessingFileType === InputType.EnrichedMarkdown) {
       if (resolvedTargetType === TargetType.Bloom) {
         console.log(
