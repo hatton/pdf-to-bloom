@@ -1,9 +1,26 @@
 /// <reference types="vitest" />
 import { defineConfig } from "vitest/config";
 import dts from "vite-plugin-dts";
+import fs from "fs";
+import path from "path";
 
 export default defineConfig({
-  plugins: [dts()],
+  plugins: [
+    dts() as any,
+    {
+      name: "copy-enrichment-prompt",
+      apply: "build",
+      generateBundle() {
+        const srcPath = path.resolve(__dirname, "src/enrichmentPrompt.txt");
+        const content = fs.readFileSync(srcPath, "utf8");
+        this.emitFile({
+          type: "asset",
+          fileName: "enrichmentPrompt.txt",
+          source: content,
+        });
+      },
+    } as any,
+  ],
   build: {
     lib: {
       entry: "src/index.ts",

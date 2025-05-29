@@ -9,6 +9,7 @@ export async function pdfToBloomFolder(
   pdfPath: string,
   outputDir: string,
   mistralApiKey: string,
+  openRouterApiKey: string,
   logCallback?: (log: LogEntry) => void
 ): Promise<string> {
   if (logCallback) logger.subscribe(logCallback);
@@ -23,7 +24,7 @@ export async function pdfToBloomFolder(
       logCallback
     );
     logger.verbose("PDF to Markdown conversion completed");
-    const enrichedMarkdown = await enrichMarkdown(markdown, mistralApiKey, {
+    const enrichedMarkdown = await enrichMarkdown(markdown, openRouterApiKey, {
       logCallback,
     });
     logger.verbose("Markdown enrichment completed");

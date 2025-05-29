@@ -33,7 +33,8 @@ describe("pdfToBloomFolder", () => {
     "test-inputs",
     "testme.pdf"
   );
-  const mockApiKey = "test-api-key";
+  const mockMistralApiKey = "test-api-key";
+  const mockOpenRouterKey = "test-open-router-key";
   const mockMarkdown = "# Test Document\n\nThis is test content.";
   const mockEnrichedMarkdown =
     "<!-- Enriched -->\n# Test Document\n\nThis is enriched test content.";
@@ -64,7 +65,8 @@ describe("pdfToBloomFolder", () => {
     const result = await pdfToBloomFolder(
       mockPdfPath,
       tempDir,
-      mockApiKey,
+      mockMistralApiKey,
+      mockOpenRouterKey,
       (log) => logs.push(log)
     );
 
@@ -72,19 +74,19 @@ describe("pdfToBloomFolder", () => {
     expect(pdfToMarkdownAndImageFiles).toHaveBeenCalledWith(
       mockPdfPath,
       tempDir,
-      mockApiKey,
+      mockMistralApiKey,
       expect.any(Function)
     );
     expect(enrichMarkdown).toHaveBeenCalledWith(
       mockMarkdown,
-      mockApiKey,
+      mockMistralApiKey,
       expect.objectContaining({
         logCallback: expect.any(Function),
       })
     );
     expect(makeBloomHtml).toHaveBeenCalledWith(
       mockEnrichedMarkdown,
-      mockApiKey,
+      mockMistralApiKey,
       expect.objectContaining({
         logCallback: expect.any(Function),
       })
@@ -160,8 +162,12 @@ describe("pdfToBloomFolder", () => {
     );
 
     await expect(
-      pdfToBloomFolder(mockPdfPath, tempDir, mockApiKey, (log) =>
-        logs.push(log)
+      pdfToBloomFolder(
+        mockPdfPath,
+        tempDir,
+        mockMistralApiKey,
+        mockOpenRouterKey,
+        (log) => logs.push(log)
       )
     ).rejects.toThrow(errorMessage);
 
@@ -181,8 +187,12 @@ describe("pdfToBloomFolder", () => {
     vi.mocked(enrichMarkdown).mockRejectedValue(new Error(errorMessage));
 
     await expect(
-      pdfToBloomFolder(mockPdfPath, tempDir, mockApiKey, (log) =>
-        logs.push(log)
+      pdfToBloomFolder(
+        mockPdfPath,
+        tempDir,
+        mockMistralApiKey,
+        mockOpenRouterKey,
+        (log) => logs.push(log)
       )
     ).rejects.toThrow(errorMessage);
 
@@ -205,8 +215,12 @@ describe("pdfToBloomFolder", () => {
     });
 
     await expect(
-      pdfToBloomFolder(mockPdfPath, tempDir, mockApiKey, (log) =>
-        logs.push(log)
+      pdfToBloomFolder(
+        mockPdfPath,
+        tempDir,
+        mockMistralApiKey,
+        mockOpenRouterKey,
+        (log) => logs.push(log)
       )
     ).rejects.toThrow(errorMessage);
 
@@ -224,8 +238,12 @@ describe("pdfToBloomFolder", () => {
     const invalidOutputDir = "/invalid/path/that/does/not/exist";
 
     await expect(
-      pdfToBloomFolder(mockPdfPath, invalidOutputDir, mockApiKey, (log) =>
-        logs.push(log)
+      pdfToBloomFolder(
+        mockPdfPath,
+        invalidOutputDir,
+        mockMistralApiKey,
+        mockOpenRouterKey,
+        (log) => logs.push(log)
       )
     ).rejects.toThrow();
 
@@ -236,7 +254,12 @@ describe("pdfToBloomFolder", () => {
   });
 
   it("should work without log callback", async () => {
-    const result = await pdfToBloomFolder(mockPdfPath, tempDir, mockApiKey);
+    const result = await pdfToBloomFolder(
+      mockPdfPath,
+      tempDir,
+      mockMistralApiKey,
+      mockOpenRouterKey
+    );
 
     // Verify the pipeline completed successfully
     expect(pdfToMarkdownAndImageFiles).toHaveBeenCalled();
@@ -252,7 +275,13 @@ describe("pdfToBloomFolder", () => {
   it("should pass logCallback to all pipeline steps", async () => {
     const mockLogCallback = vi.fn();
 
-    await pdfToBloomFolder(mockPdfPath, tempDir, mockApiKey, mockLogCallback);
+    await pdfToBloomFolder(
+      mockPdfPath,
+      tempDir,
+      mockMistralApiKey,
+      mockOpenRouterKey,
+      mockLogCallback
+    );
 
     // Verify logCallback was passed to each step
     expect(pdfToMarkdownAndImageFiles).toHaveBeenCalledWith(
@@ -270,7 +299,7 @@ describe("pdfToBloomFolder", () => {
     );
     expect(makeBloomHtml).toHaveBeenCalledWith(
       expect.any(String),
-      mockApiKey,
+      mockMistralApiKey,
       expect.objectContaining({
         logCallback: expect.any(Function),
       })
@@ -286,7 +315,8 @@ describe("pdfToBloomFolder", () => {
     const result = await pdfToBloomFolder(
       mockPdfPath,
       tempDir,
-      mockApiKey,
+      mockMistralApiKey,
+      mockOpenRouterKey,
       (log) => logs.push(log)
     );
 
@@ -305,7 +335,8 @@ describe("pdfToBloomFolder", () => {
     const result = await pdfToBloomFolder(
       mockPdfPath,
       customOutputDir,
-      mockApiKey
+      mockMistralApiKey,
+      mockOpenRouterKey
     );
 
     const expectedPath = path.join(customOutputDir, "bloom.html");

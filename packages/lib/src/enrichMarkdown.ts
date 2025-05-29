@@ -1,8 +1,8 @@
 import { logger, LogEntry } from "./logger";
 import { generateText } from "ai";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
-import { readFileSync } from "fs";
-import { join } from "path";
+import fs from "fs";
+import path from "path";
 
 export interface EnrichMarkdownOptions {
   logCallback?: (log: LogEntry) => void;
@@ -36,18 +36,16 @@ export async function enrichMarkdown(
     if (!openRouterApiKey) {
       logger.error("OpenRouter API key is required");
       throw new Error("OpenRouter API key is required");
-    }
-
-    // Read the enrichment prompt from file
-    const promptPath = join(__dirname, "enrichmentPrompt.txt");
+    } // Read the enrichment prompt from file
+    const promptPath = path.join(__dirname, "enrichmentPrompt.txt");
     let enrichmentPrompt: string;
 
     try {
-      enrichmentPrompt = overridePrompt || readFileSync(promptPath, "utf-8");
+      enrichmentPrompt = overridePrompt || fs.readFileSync(promptPath, "utf8");
       logger.verbose("Loaded enrichment prompt from file");
     } catch (error) {
       logger.error(`Failed to read enrichment prompt: ${error}`);
-      throw new Error("Failed to read enrichment prompt file");
+      throw error;
     } // Configure OpenRouter with Gemini 2.5 Flash
     const modelName = overrideModel || "google/gemini-2.5-flash-preview-05-20";
     const openrouterProvider = createOpenRouter({

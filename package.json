@@ -12,7 +12,8 @@
     "test:watch": "yarn workspaces foreach --all run test:watch",
     "dev": "yarn workspaces foreach --all run dev",
     "start:cli": "yarn workspace @pdf-to-bloom/cli start",
-    "start:web": "yarn workspace @pdf-to-bloom/web dev"
+    "start:web": "yarn workspace @pdf-to-bloom/web dev",
+    "test:md-to-enriched": "yarn workspace @pdf-to-bloom/cli start ../../test-inputs/testme.md --target enriched"
   },
   "packageManager": "yarn@4.9.1",
   "volta": {
