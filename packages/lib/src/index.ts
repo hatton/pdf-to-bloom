@@ -23,7 +23,10 @@ export type {
   Layout,
   ValidationError,
   ConversionStats,
-} from "./enriched-markdown-to-bloom-html/types";
+} from "./types";
 
 // Export logger utilities for callers to access log messages
 export { logger } from "./logger";
+
+//export Language type
+export type { Language } from "./types";

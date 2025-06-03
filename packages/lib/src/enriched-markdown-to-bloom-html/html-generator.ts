@@ -1,14 +1,13 @@
 import escapeHtml from "escape-html";
 import { mapLicense } from "./licenses.js";
-import type { Book, BookMetadata, PageContent } from "./types.js";
+import type { Book, BookMetadata, PageContent } from "../types.js";
 
 // A note about bloom-monolingual, bloom-bilingual, and bloom-trilingual
 // Although they show up on page divs, they are put there at runtime, so
 // this converter doesn't need to add them, and if it does, they will
 // just be overwritten.
 
-export class HtmlGenerator { 
-  
+export class HtmlGenerator {
   generateHtmlDocument(book: Book): string {
     return `<!doctype html>
 <html>

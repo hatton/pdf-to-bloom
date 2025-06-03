@@ -1,21 +1,22 @@
 import { logger, LogEntry } from "../logger";
-import { generateText } from "ai";
+import { generateText, CoreUserMessage } from "ai";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import fs from "fs";
 import path from "path";
+import { Language } from "../types";
 
 export interface EnrichMarkdownOptions {
   logCallback?: (log: LogEntry) => void;
   overridePrompt?: string;
   overrideModel?: string;
+  // AI can guess at these, but in the context of a bloom collection, we already know what to expect so we can provide these to help the AI model
+  l1?: Language; // Primary language of the content
+  l2?: Language; // Secondary language
+  l3?: Language; // Tertiary language
 }
 
 /**
  * Enriches markdown content with additional processing
- * @param markdown - Input markdown string
- * @param openRouterApiKey - OpenRouter API key for enrichment processing
- * @param options - Optional configuration options
- * @returns Promise resolving to enriched markdown string
  */
 export async function enrichMarkdown(
   markdown: string,
@@ -23,7 +24,7 @@ export async function enrichMarkdown(
   options?: EnrichMarkdownOptions
 ): Promise<{
   markdownResultFromEnrichmentLLM: string;
-  cleanedupMarkdown: string;
+  cleanedUpMarkdown: string;
   valid: boolean;
 }> {
   const {
@@ -65,19 +66,36 @@ export async function enrichMarkdown(
     const maxTokens = markdown.length + 2000; // Adding a buffer of 2000 tokens for metadata and new tagging
     logger.verbose(`Setting maxTokens to: ${maxTokens}`);
 
+    let messages: CoreUserMessage[] = [
+      {
+        role: "user",
+        content: enrichmentPrompt,
+      },
+    ];
+    if (options?.l1) {
+      // build up a single message that conveys info about for each language that was provided, and is silent on the others
+      // E.g. "We have reason to expect that some or all of these languages are in this document. [l1: {tag:"mza", "Mixteco de Santa María Zacatepec"}, l2: {tag:"en", name:"English"}]
+      const languages: Language[] = [];
+      if (options.l1) languages.push(options.l1);
+      if (options.l2) languages.push(options.l2);
+      if (options.l3) languages.push(options.l3);
+      if (languages.length > 0) {
+        messages.push({
+          role: "user",
+          content: `We have reason to expect that some or all of these languages are in the following document. ${JSON.stringify(
+            languages
+          )}`,
+        });
+      }
+    }
+    messages.push({
+      role: "user",
+      content: `Here is the Markdown content:\n\n${markdown}`,
+    });
     // Call the AI model to enrich the markdown
     const result = await generateText({
       model: openrouterProvider(modelName),
-      messages: [
-        {
-          role: "user",
-          content: enrichmentPrompt,
-        },
-        {
-          role: "user",
-          content: `Here is the Markdown content:\n\n${markdown}`,
-        },
-      ],
+      messages,
       temperature: 0.0, // Deterministic, no creativity needed
       maxTokens,
     });
@@ -102,7 +120,7 @@ export async function enrichMarkdown(
     }
     return {
       markdownResultFromEnrichmentLLM: enrichedContent,
-      cleanedupMarkdown: cleanupResult.cleaned,
+      cleanedUpMarkdown: cleanupResult.cleaned,
       valid: cleanupResult.valid,
     };
   } catch (error) {

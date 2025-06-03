@@ -9,7 +9,7 @@ import type {
   PageElement,
   TextBlockElement,
   ValidationError,
-} from "./types.js";
+} from "../types.js";
 
 export class MarkdownToBloomHtml {
   private inputPath?: string;

@@ -43,7 +43,7 @@ export async function pdfToBloomFolder(
     logger.info(`Saving cleaned up markdown to: ${cleanedupMarkdownPath}`);
     await fs.promises.writeFile(
       cleanedupMarkdownPath,
-      enrichmentLLMResult.cleanedupMarkdown,
+      enrichmentLLMResult.cleanedUpMarkdown,
       "utf8"
     );
 
@@ -53,7 +53,7 @@ export async function pdfToBloomFolder(
     }
 
     const bloomHtml = await enrichedMarkdownToBloomHtml(
-      enrichmentLLMResult.cleanedupMarkdown,
+      enrichmentLLMResult.cleanedUpMarkdown,
 
       logCallback
     );

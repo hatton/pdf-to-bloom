@@ -1,4 +1,4 @@
-import type { Layout, PageContent } from "./types.js";
+import type { Layout, PageContent } from "../types.js";
 
 export type ElementFlavor =
   | "image"

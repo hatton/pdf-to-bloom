@@ -51,3 +51,7 @@ export interface ValidationError {
   message: string;
   line?: number;
 }
+export type Language = {
+  tag: string; // BCP-47 language tag, e.g., "en", "uz-CYRL"
+  name: string;
+};
