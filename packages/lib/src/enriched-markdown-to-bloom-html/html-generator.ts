@@ -7,7 +7,8 @@ import type { Book, BookMetadata, PageContent } from "./types.js";
 // this converter doesn't need to add them, and if it does, they will
 // just be overwritten.
 
-export class HtmlGenerator {
+export class HtmlGenerator { 
+  
   generateHtmlDocument(book: Book): string {
     return `<!doctype html>
 <html>

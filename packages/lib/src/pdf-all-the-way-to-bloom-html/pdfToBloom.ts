@@ -4,14 +4,13 @@ import { enrichMarkdown } from "../enrich-markdown/enrichMarkdown";
 import { enrichedMarkdownToBloomHtml } from "../enriched-markdown-to-bloom-html/enrichedMarkdownToBloomHtml";
 import fs from "fs";
 import path from "path";
-import { th } from "zod/v4/locales";
 
 export async function pdfToBloomFolder(
   pdfPath: string,
   outputDir: string,
   mistralApiKey: string,
   openRouterApiKey: string,
-  logCallback?: (log: LogEntry) => void
+  logCallback: (log: LogEntry) => void
 ): Promise<string> {
   if (logCallback) logger.subscribe(logCallback);
 
@@ -55,9 +54,8 @@ export async function pdfToBloomFolder(
 
     const bloomHtml = await enrichedMarkdownToBloomHtml(
       enrichmentLLMResult.cleanedupMarkdown,
-      {
-        logCallback,
-      }
+
+      logCallback
     );
     logger.verbose("Bloom HTML conversion completed");
     // Save the Bloom HTML to a file in the output directory

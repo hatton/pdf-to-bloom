@@ -268,39 +268,79 @@ async function processConversion(inputPathArg: string, options: any) {
     let finalOutputPath: string;
     const inputFileNameWithoutExt = getFileNameWithoutExtension(actualFilePath);
     const inputBaseDir = path.dirname(actualFilePath);
-
     if (options.output) {
-      // If --output is specified, use it directly (resolved relative to current working directory)
-      finalOutputPath = path.resolve(options.output);
-      // Ensure the directory for the final output exists
-      if (resolvedTargetType === TargetType.Bloom) {
-        // Bloom HTML is a directory, so create it directly
-        await fs.mkdir(finalOutputPath, { recursive: true });
-      } else {
-        // For markdown or enriched, create the parent directory of the output file
-        await fs.mkdir(path.dirname(finalOutputPath), { recursive: true });
-      }
-    } else {
-      // If no --output is specified, derive it based on input and target
+      // If --output is specified, create a subdirectory within it based on the input file name
+      const outputBaseDir = path.resolve(options.output);
       switch (resolvedTargetType) {
         case TargetType.Markdown:
           finalOutputPath = path.join(
-            inputBaseDir,
+            outputBaseDir,
+            `${inputFileNameWithoutExt}.md`
+          );
+          await fs.mkdir(path.dirname(finalOutputPath), { recursive: true });
+          break;
+        case TargetType.Enriched:
+          finalOutputPath = path.join(
+            outputBaseDir,
+            `${inputFileNameWithoutExt}.enriched.md`
+          );
+          await fs.mkdir(path.dirname(finalOutputPath), { recursive: true });
+          break;
+        case TargetType.Bloom:
+          finalOutputPath = path.join(
+            outputBaseDir,
+            `${inputFileNameWithoutExt}_bloom`
+          );
+          await fs.mkdir(finalOutputPath, { recursive: true });
+          break;
+      }
+    } else {
+      // If no --output is specified, derive it based on input type and target
+      // For PDF inputs: use current working directory (traditional behavior)
+      // For markdown inputs: use same directory as input, unless it contains "test-inputs/"
+      let outputBaseDir: string;
+
+      if (resolvedInputType === InputType.PDF) {
+        // PDF inputs create output in current working directory
+        outputBaseDir = process.cwd();
+      } else {
+        // Markdown inputs (plain or enriched) use same directory as input,
+        // unless the path contains "test-inputs/" to avoid polluting test directories
+        if (inputBaseDir.includes("test-inputs")) {
+          outputBaseDir = process.cwd();
+        } else {
+          outputBaseDir = inputBaseDir;
+        }
+      }
+
+      switch (resolvedTargetType) {
+        case TargetType.Markdown:
+          finalOutputPath = path.join(
+            outputBaseDir,
             `${inputFileNameWithoutExt}.md`
           );
           break;
         case TargetType.Enriched:
           finalOutputPath = path.join(
-            inputBaseDir,
+            outputBaseDir,
             `${inputFileNameWithoutExt}.enriched.md`
           );
           break;
         case TargetType.Bloom:
-          finalOutputPath = path.join(
-            inputBaseDir,
-            `${inputFileNameWithoutExt}_bloom`
-          ); // Bloom output is a folder
-          await fs.mkdir(finalOutputPath, { recursive: true }); // Ensure the Bloom output folder exists
+          if (resolvedInputType === InputType.PDF) {
+            // For PDF inputs, create a bloom folder (traditional behavior)
+            finalOutputPath = path.join(
+              outputBaseDir,
+              `${inputFileNameWithoutExt}_bloom`
+            );
+            await fs.mkdir(finalOutputPath, { recursive: true });
+          } else {
+            // For markdown inputs, create HTML file directly in the same directory
+            finalOutputPath = path.join(
+              outputBaseDir,
+              `${inputFileNameWithoutExt}.html`
+            );
+          }
           break;
       }
     }
@@ -422,11 +462,23 @@ async function processConversion(inputPathArg: string, options: any) {
       } else if (resolvedTargetType === TargetType.Enriched) {
         enrichedMarkdownOutputLocation = finalOutputPath;
       } else {
-        // For intermediate enriched markdown when target is bloom, create it in the bloom output directory
-        enrichedMarkdownOutputLocation = path.join(
-          finalOutputPath,
-          `${currentProcessingBaseName}.enriched.md`
-        );
+        // For intermediate enriched markdown when target is bloom
+        if (
+          resolvedInputType === InputType.PDF ||
+          finalOutputPath.endsWith("_bloom")
+        ) {
+          // If finalOutputPath is a directory (PDF input or explicit bloom folder), create intermediate file inside it
+          enrichedMarkdownOutputLocation = path.join(
+            finalOutputPath,
+            `${currentProcessingBaseName}.enriched.md`
+          );
+        } else {
+          // If finalOutputPath is an HTML file (markdown input), create intermediate file in same directory
+          enrichedMarkdownOutputLocation = path.join(
+            path.dirname(finalOutputPath),
+            `${currentProcessingBaseName}.enriched.md`
+          );
+        }
       }
       console.log(chalk.blue(`-> Enriching Markdown...`));
       const markdownContentToEnrich = await fs.readFile(
@@ -481,9 +533,7 @@ async function processConversion(inputPathArg: string, options: any) {
       }
     }
     // If the input was originally EnrichedMarkdown, this step is naturally skipped,
-    // and currentProcessingFileType remains InputType.EnrichedMarkdown.
-
-    // Step 3: Convert Enriched Markdown to Bloom HTML (if current file is Enriched Markdown)
+    // and currentProcessingFileType remains InputType.EnrichedMarkdown.    // Step 3: Convert Enriched Markdown to Bloom HTML (if current file is Enriched Markdown)
     if (currentProcessingFileType === InputType.EnrichedMarkdown) {
       if (resolvedTargetType === TargetType.Bloom) {
         console.log(
@@ -492,15 +542,26 @@ async function processConversion(inputPathArg: string, options: any) {
         const enrichedMarkdownContent = await fs.readFile(
           currentProcessingFilePath,
           "utf-8"
+        ); // makeBloomHtml returns the HTML content string
+        const bloomHtmlContent = await makeBloomHtml(
+          enrichedMarkdownContent,
+          logCallback
         );
-        // makeBloomHtml returns the HTML content string, which we then write to index.html in the bloom folder
-        const bloomHtmlContent = await makeBloomHtml(enrichedMarkdownContent, {
-          logCallback,
-        });
-        await fs.writeFile(
-          path.join(finalOutputPath, "index.html"),
-          bloomHtmlContent
-        ); // Save as index.html in the bloom directory
+
+        // Check if finalOutputPath is a directory or a file path
+        if (
+          resolvedInputType === InputType.PDF ||
+          finalOutputPath.endsWith("_bloom")
+        ) {
+          // For PDF inputs or when explicitly creating a bloom folder, save as index.html in the directory
+          await fs.writeFile(
+            path.join(finalOutputPath, "index.html"),
+            bloomHtmlContent
+          );
+        } else {
+          // For markdown inputs, save directly as the HTML file
+          await fs.writeFile(finalOutputPath, bloomHtmlContent);
+        }
 
         console.log(
           chalk.green("✅ Conversion to Bloom HTML completed successfully!")
@@ -546,7 +607,7 @@ program
   )
   .option(
     "-o, --output <path>",
-    "Output directory or file path. Defaults to same directory as input (or a derived name for Bloom output)."
+    "Directory in which a new directory will be created based on the input file name. Defaults to your current working directory."
   )
   .option(
     "--mistral-api-key <key>",

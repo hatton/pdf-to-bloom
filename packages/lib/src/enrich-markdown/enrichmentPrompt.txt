@@ -83,4 +83,6 @@ You are given a Markdown file that may contain multiple languages. Your task is 
     
     Never truncate anything. You must preserve it all.
 
-    The following metadata fields are required: allTitles, languages, l1.
+    If you aren't sure about the lang tag, do not hallucinate it. Just put in unk-x-languageName, e.g. if you don't know what langtag "northern foobar" uses, you can say "unk-x-northern_foobar".
+
+    The following metadata fields are required: allTitles, languages, l1. Normally you can also provide l2 if there is a second language.
