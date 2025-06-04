@@ -174,9 +174,8 @@ export class MarkdownToBloomHtml {
       if (langMatch) {
         // Finalize current text before switching languages
         if (currentTextBlock && currentLang && currentText.trim()) {
-          currentTextBlock.content[currentLang] = this.convertMarkdownToHtml(
-            currentText.trim()
-          );
+          currentTextBlock.content[currentLang] =
+            this.expressMarkdownFormattingAsHtml(currentText.trim());
         }
 
         currentLang = langMatch[1];
@@ -220,9 +219,8 @@ export class MarkdownToBloomHtml {
 
     // Finalize any remaining text block
     if (currentTextBlock && currentLang && currentText.trim()) {
-      currentTextBlock.content[currentLang] = this.convertMarkdownToHtml(
-        currentText.trim()
-      );
+      currentTextBlock.content[currentLang] =
+        this.expressMarkdownFormattingAsHtml(currentText.trim());
     }
     if (currentTextBlock) {
       elements.push(currentTextBlock);
@@ -269,7 +267,7 @@ export class MarkdownToBloomHtml {
     };
   }
 
-  private convertMarkdownToHtml(markdown: string): string {
+  private expressMarkdownFormattingAsHtml(markdown: string): string {
     // Apply block transformations first (headings)
     let html = markdown
       .replace(/^# (.*?)$/gm, "<h1>$1</h1>")
