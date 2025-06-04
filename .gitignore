@@ -17,3 +17,7 @@ dist/
 
 test-inputs/**/index.html
 collections/
+
+bilingual-sample_bloom/
+
+bilingual-sample.enriched_bloom/
