@@ -72,3 +72,7 @@ This is a **Yarn workspaces monorepo** with three packages:
 ### For file paths in commands:
 
 - Use forward slashes `/` or escape backslashes `\\`
+
+Important: do not recommend adding extensions on import statements, as this is a TypeScript project and extensions are not needed.
+
+Do not tell me to do things or check things, do it yourself as an agent.

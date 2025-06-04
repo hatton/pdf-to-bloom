@@ -11,10 +11,10 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "vite build",
     "test": "vitest run",
     "test:watch": "vitest",
-    "dev": "tsc --watch",
+    "dev": "vite build --watch",
     "start": "node dist/index.js",
     "prepublishOnly": "yarn build"
   },
@@ -26,6 +26,7 @@
   "devDependencies": {
     "@types/node": "^22.15.24",
     "typescript": "^5.8.3",
+    "vite": "^6.3.5",
     "vitest": "^2.1.8"
   }
 }
