@@ -16,7 +16,7 @@ You are given a Markdown file that may contain multiple languages. Your task is 
         - Preserve Markdown formatting
         - Preserve all image references
 
-    4. Preserve all incoming comments. The input markdown may already have `<!-- page-break -->` comments.
+    4. Preserve all incoming comments. The input markdown may already have `<!-- start-page -->` comments.
     
     ```markdown
     ---
@@ -58,7 +58,7 @@ You are given a Markdown file that may contain multiple languages. Your task is 
     
     C'est ma maison. 
 
-    <!-- page-break -->
+    <!-- start-page -->
 
     <!-- lang=en -->
     

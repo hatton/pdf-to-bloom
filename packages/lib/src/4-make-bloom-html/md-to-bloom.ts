@@ -102,7 +102,7 @@ export class MarkdownToBloomHtml {
     body: string,
     metadata: BookMetadata
   ): PageContent[] {
-    const pageBreaks = body.split("<!-- page-break -->");
+    const pageBreaks = body.split("<!-- start-page -->");
     const pages: PageContent[] = [];
 
     for (let i = 0; i < pageBreaks.length; i++) {

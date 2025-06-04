@@ -98,11 +98,11 @@ l1: en
 ![Test Image](test-image.png)
 <!-- lang=en -->
 Text after image
-<!-- page-break -->
+<!-- start-page -->
 <!-- lang=en -->
 Text before image
 ![Test Image](test-image.png)
-<!-- page-break -->
+<!-- start-page -->
 <!-- lang=en -->
 Text only page`;
 
@@ -231,9 +231,9 @@ l1: en
 ---
 <!-- lang=en -->
 First page
-<!-- page-break -->
+<!-- start-page -->
 <!-- Empty page with no content -->
-<!-- page-break -->
+<!-- start-page -->
 <!-- lang=en -->
 Third page`;
 
