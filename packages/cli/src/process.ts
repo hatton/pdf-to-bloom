@@ -368,7 +368,7 @@ export async function processConversion(inputPathArg: string, options: any) {
 
       await fs.writeFile(
         enrichedMarkdownOutputLocation,
-        result.cleanedupMarkdown
+        result.cleanedUpMarkdown
       );
 
       if (!result.valid) {

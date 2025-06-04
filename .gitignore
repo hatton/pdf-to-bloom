@@ -16,3 +16,4 @@ node_modules/
 dist/
 
 test-inputs/**/index.html
+collections/
