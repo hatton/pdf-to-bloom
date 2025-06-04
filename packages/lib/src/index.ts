@@ -2,17 +2,16 @@
 export {
   pdfToMarkdownAndImageFiles,
   pdfToMarkdownAndImageFiles as makeMarkdownFromPDF,
-} from "./pdf-to-markdown-and-images/pdfToMarkdownAndImageFiles";
-export { enrichMarkdown } from "./enrich-markdown/enrichMarkdown";
+} from "./1-pdf-to-markdown-and-images/pdfToMarkdownAndImageFiles";
+export { llmMarkdown } from "./2-llm-markdown/llmMarkdown";
 export {
   enrichedMarkdownToBloomHtml as makeBloomHtml,
   type MakeBloomHtmlOptions,
-} from "./enriched-markdown-to-bloom-html/enrichedMarkdownToBloomHtml";
-export { pdfToBloomFolder } from "./pdf-all-the-way-to-bloom-html/pdfToBloom";
+} from "./4-make-bloom-html/makeBloomHtml";
 
 // Export additional types and classes for advanced usage
-export { MarkdownToBloomHtml } from "./enriched-markdown-to-bloom-html/md-to-bloom";
-export { HtmlGenerator } from "./enriched-markdown-to-bloom-html/html-generator";
+export { MarkdownToBloomHtml } from "./4-make-bloom-html/md-to-bloom";
+export { HtmlGenerator } from "./4-make-bloom-html/html-generator";
 export type {
   Book,
   BookMetadata,

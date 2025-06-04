@@ -18,7 +18,7 @@ export interface EnrichMarkdownOptions {
 /**
  * Enriches markdown content with additional processing
  */
-export async function enrichMarkdown(
+export async function llmMarkdown(
   markdown: string,
   openRouterApiKey: string,
   options?: EnrichMarkdownOptions
@@ -42,11 +42,11 @@ export async function enrichMarkdown(
       logger.error("OpenRouter API key is required");
       throw new Error("OpenRouter API key is required");
     } // Read the enrichment prompt from file
-    const promptPath = path.join(__dirname, "enrichmentPrompt.txt");
-    let enrichmentPrompt: string;
+    const promptPath = path.join(__dirname, "llmPrompt.txt");
+    let llmPrompt: string;
 
     try {
-      enrichmentPrompt = overridePrompt || fs.readFileSync(promptPath, "utf8");
+      llmPrompt = overridePrompt || fs.readFileSync(promptPath, "utf8");
       logger.verbose("Loaded enrichment prompt from file");
     } catch (error) {
       logger.error(`Failed to read enrichment prompt: ${error}`);
@@ -69,7 +69,7 @@ export async function enrichMarkdown(
     let messages: CoreUserMessage[] = [
       {
         role: "user",
-        content: enrichmentPrompt,
+        content: llmPrompt,
       },
     ];
     if (options?.l1) {

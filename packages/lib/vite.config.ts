@@ -8,17 +8,17 @@ export default defineConfig({
   plugins: [
     dts() as any,
     {
-      name: "copy-enrichment-prompt",
+      name: "copy-llm-prompt",
       apply: "build",
       generateBundle() {
         const srcPath = path.resolve(
           __dirname,
-          "src/enrich-markdown/enrichmentPrompt.txt"
+          "src/2-llm-markdown/llmPrompt.txt"
         );
         const content = fs.readFileSync(srcPath, "utf8");
         this.emitFile({
           type: "asset",
-          fileName: "enrichmentPrompt.txt",
+          fileName: "llmPrompt.txt",
           source: content,
         });
       },

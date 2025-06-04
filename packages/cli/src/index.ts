@@ -1,12 +1,9 @@
 import { Command } from "commander";
 import chalk from "chalk";
-
-import * as fs from "fs/promises"; // Use promises API for async file operations
 import { existsSync } from "fs"; // Import the synchronous existsSync function
 import * as path from "path";
 import { spawn } from "child_process";
 import { fileURLToPath } from "url";
-import os from "os"; // For temporary directory creation
 import { processConversion } from "./process";
 
 // ES module equivalent of __dirname

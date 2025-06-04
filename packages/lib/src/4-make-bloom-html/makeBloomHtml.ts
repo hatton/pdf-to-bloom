@@ -1,4 +1,4 @@
-import { logger, LogEntry } from "../logger";
+import { logger, LogEntry } from "../logger.js";
 import { MarkdownToBloomHtml } from "./md-to-bloom.js";
 import { HtmlGenerator } from "./html-generator.js";
 
