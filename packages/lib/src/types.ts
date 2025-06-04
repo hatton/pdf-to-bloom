@@ -31,6 +31,7 @@ export type Layout =
 
 export interface PageContent {
   layout: Layout;
+  appearsToBeBilingualPage: boolean;
   elements: PageElement[];
 }
 

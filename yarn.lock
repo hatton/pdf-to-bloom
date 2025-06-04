@@ -839,7 +839,9 @@ __metadata:
     "@types/node": "npm:^22.15.24"
     chalk: "npm:^5.3.0"
     commander: "npm:^12.0.0"
+    fast-xml-parser: "npm:^5.2.3"
     typescript: "npm:^5.8.3"
+    vite: "npm:^6.3.5"
     vitest: "npm:^2.1.8"
   bin:
     pdf-to-bloom: ./dist/index.js
@@ -2273,6 +2275,17 @@ __metadata:
   version: 3.0.6
   resolution: "fast-uri@npm:3.0.6"
   checksum: 10c0/74a513c2af0584448aee71ce56005185f81239eab7a2343110e5bad50c39ad4fb19c5a6f99783ead1cac7ccaf3461a6034fda89fffa2b30b6d99b9f21c2f9d29
+  languageName: node
+  linkType: hard
+
+"fast-xml-parser@npm:^5.2.3":
+  version: 5.2.3
+  resolution: "fast-xml-parser@npm:5.2.3"
+  dependencies:
+    strnum: "npm:^2.1.0"
+  bin:
+    fxparser: src/cli/cli.js
+  checksum: 10c0/fa48e1e6f56ab8968ac009c7b82bb48a903a070c0899a90e4a58ea0110d7b005711e0ada2a35d0c9bfadc0c3b57e2178a0a63d49ca6142838d4b26869cbf4a1f
   languageName: node
   linkType: hard
 
@@ -3750,6 +3763,13 @@ __metadata:
   version: 3.1.1
   resolution: "strip-json-comments@npm:3.1.1"
   checksum: 10c0/9681a6257b925a7fa0f285851c0e613cc934a50661fa7bb41ca9cbbff89686bb4a0ee366e6ecedc4daafd01e83eee0720111ab294366fe7c185e935475ebcecd
+  languageName: node
+  linkType: hard
+
+"strnum@npm:^2.1.0":
+  version: 2.1.1
+  resolution: "strnum@npm:2.1.1"
+  checksum: 10c0/1f9bd1f9b4c68333f25c2b1f498ea529189f060cd50aa59f1876139c994d817056de3ce57c12c970f80568d75df2289725e218bd9e3cdf73cd1a876c9c102733
   languageName: node
   linkType: hard
 

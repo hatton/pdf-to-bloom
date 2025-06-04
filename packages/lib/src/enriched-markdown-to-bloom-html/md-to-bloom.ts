@@ -232,28 +232,41 @@ export class MarkdownToBloomHtml {
       return null; // No content for this page
     }
 
-    const pattern = elements.map((e) => {
-      if (e.type === "image") return "image";
-      else if (e.type === "text") {
+    console.log(`Page ${pageNumber}`);
+
+    const pattern = elements.map((e, index) => {
+      if (e.type === "image") {
+        console.log(`   ${index}: image`);
+        return "image";
+      } else if (e.type === "text") {
         // determine if we want  "l1-only", "l2-only", or "multiple-languages"
         const textBlock = e as TextBlockElement;
         const langs = Object.keys(textBlock.content);
         if (langs.length === 1) {
-          return langs[0] === metadata.l1 ? "l1-only" : "l2-only";
+          const x = langs[0] === metadata.l1 ? "l1-only" : "l2-only";
+          console.log(`   ${index}: ${x}`);
+          return x;
         } else if (langs.length > 1) {
+          console.log(`   ${index}: multiple-languages`);
           return "multiple-languages";
         } else {
+          console.log(`   ${index}: PROBLEM`);
           this.addError(
             `Text block without languages found on page ${pageNumber}`
           );
         }
       }
+      console.log(`   ${index}: FALLBACK TO l1-only`);
       return "l1-only"; // Default fallback
     });
 
     const layout = determinePageLayout(pattern);
 
-    return { layout, elements };
+    return {
+      layout,
+      elements,
+      appearsToBeBilingualPage: pattern.includes("multiple-languages"),
+    };
   }
 
   private convertMarkdownToHtml(markdown: string): string {

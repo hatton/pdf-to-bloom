@@ -13,14 +13,14 @@ export class HtmlGenerator {
 <html>
   <head>
     <meta charset="UTF-8" />
-    <meta name="Generator" content="Bloom Markdown Converter" />
+    <meta name="Generator" content="PDF-to-Bloom Converter" />
     <meta name="BloomFormatVersion" content="2.1" />
     <title>${escapeHtml(
       book.metadata.allTitles[book.metadata.l1] || "Untitled"
     )}</title>
   </head>
   <body>
-    ${this.generateBloomDataDiv(book.metadata)}
+    ${this.generateBloomDataDiv(book.metadata, book.pages)}
     ${book.pages
       .map((page) => this.generatePage(page, book.metadata))
       .join("\n")}
@@ -28,7 +28,10 @@ export class HtmlGenerator {
 </html>`;
   }
 
-  private generateBloomDataDiv(metadata: BookMetadata): string {
+  private generateBloomDataDiv(
+    metadata: BookMetadata,
+    pages: PageContent[]
+  ): string {
     const elements: string[] = [];
 
     // Content languages
@@ -36,9 +39,15 @@ export class HtmlGenerator {
       <div data-book="contentLanguage1" lang="*">${metadata.l1}</div>`);
 
     if (metadata.l2) {
-      elements.push(
-        `      <div data-book="contentLanguage2" lang="*">${metadata.l2}</div>`
-      );
+      // hack only do this if we have a the majority of pages marked as multilingual
+      const bilingualContentPages = pages.filter(
+        (page) => page.appearsToBeBilingualPage
+      ).length;
+      if (bilingualContentPages > pages.length / 2) {
+        elements.push(
+          `      <div data-book="contentLanguage2" lang="*">${metadata.l2}</div>`
+        );
+      }
     }
 
     // Cover image

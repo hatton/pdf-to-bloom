@@ -2,6 +2,7 @@ import * as fs from "fs/promises"; // Use promises API for async file operations
 import * as path from "path";
 import os from "os"; // For temporary directory creation
 import chalk from "chalk";
+import { XMLParser } from "fast-xml-parser";
 import { Language } from "@pdf-to-bloom/lib";
 
 // --- Helper Functions from original code, slightly adapted for async/promises ---
@@ -119,22 +120,71 @@ export async function fileExists(filePath: string): Promise<boolean> {
 export async function readBloomCollectionSettingsIfFound(
   folderPath: string
 ): Promise<{ l1?: Language; l2?: Language; l3?: Language } | null> {
-  const settingsFilePath = path.join(folderPath, "collection-settings.xml");
-  if (!(await fileExists(settingsFilePath))) {
-    return null; // No settings file found
+  // the settingFilePath will be the first file that ends in ".bloomCollection". It does not end in "xml"
+  // search a file ending in ".bloomCollection" in the folderPath, then one level up if not found
+
+  let settingsFilePath: string | null = null;
+
+  // First, try the current folder
+  try {
+    const files = await fs.readdir(folderPath);
+    const bloomCollectionFile = files.find((file) =>
+      file.endsWith(".bloomCollection")
+    );
+    if (bloomCollectionFile) {
+      settingsFilePath = path.join(folderPath, bloomCollectionFile);
+    }
+  } catch (error) {
+    console.warn(
+      chalk.yellow(`Could not read directory ${folderPath}: ${error}`)
+    );
   }
 
+  // If not found, try one level up
+  if (!settingsFilePath) {
+    const parentPath = path.dirname(folderPath);
+    try {
+      const parentFiles = await fs.readdir(parentPath);
+      const bloomCollectionFile = parentFiles.find((file) =>
+        file.endsWith(".bloomCollection")
+      );
+      if (bloomCollectionFile) {
+        settingsFilePath = path.join(parentPath, bloomCollectionFile);
+      }
+    } catch (error) {
+      console.warn(
+        chalk.yellow(`Could not read parent directory ${parentPath}: ${error}`)
+      );
+    }
+  }
+
+  if (!settingsFilePath || !(await fileExists(settingsFilePath))) {
+    console.warn(
+      chalk.yellow(
+        `No .bloomCollection file found in ${folderPath}. Using default language settings.`
+      )
+    );
+    return null; // No settings file found
+  }
   try {
     const content = await fs.readFile(settingsFilePath, "utf-8");
-    const parser = new DOMParser();
-    const xmlDoc = parser.parseFromString(content, "application/xml");
 
-    const l1Name = xmlDoc.querySelector("Language1Name")?.textContent;
-    const l1IsoCode = xmlDoc.querySelector("Language1Iso639Code")?.textContent;
-    const l2Name = xmlDoc.querySelector("Language2Name")?.textContent;
-    const l2IsoCode = xmlDoc.querySelector("Language2Iso639Code")?.textContent;
-    const l3Name = xmlDoc.querySelector("Language3Name")?.textContent;
-    const l3IsoCode = xmlDoc.querySelector("Language3Iso639Code")?.textContent;
+    const parser = new XMLParser({
+      ignoreAttributes: false,
+      parseAttributeValue: false,
+      parseTagValue: false,
+      trimValues: true,
+    });
+
+    const xmlData = parser.parse(content);
+    const collection = xmlData.Collection;
+
+    const l1Name = collection?.Language1Name;
+    const l1IsoCode = collection?.Language1Iso639Code;
+    const l2Name = collection?.Language2Name;
+    const l2IsoCode = collection?.Language2Iso639Code;
+    const l3Name = collection?.Language3Name;
+    const l3IsoCode = collection?.Language3Iso639Code;
 
     return {
       l1: l1Name && l1IsoCode ? { tag: l1IsoCode, name: l1Name } : undefined,
@@ -146,6 +196,5 @@ export async function readBloomCollectionSettingsIfFound(
       chalk.red(`Error reading Bloom collection settings: ${error}`)
     );
     throw error;
-    return null;
   }
 }

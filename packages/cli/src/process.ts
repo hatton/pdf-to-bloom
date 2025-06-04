@@ -21,7 +21,6 @@ import {
   isDirectory,
   readBloomCollectionSettingsIfFound,
 } from "./processUtils";
-//
 
 enum InputType {
   PDF = "pdf",
@@ -332,9 +331,9 @@ export async function processConversion(inputPathArg: string, options: any) {
         currentProcessingFilePath,
         "utf-8"
       );
-      const langs = await readBloomCollectionSettingsIfFound(
-        currentProcessingFilePath
-      );
+      // For markdown enrichment, if the input is from a Bloom collection, try to get language info from collection settings
+      const inputFolder = path.dirname(currentProcessingFilePath);
+      const langs = await readBloomCollectionSettingsIfFound(inputFolder);
       // put to the console whether we found the languages
       if (langs) {
         console.log(
