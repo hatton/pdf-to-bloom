@@ -363,7 +363,9 @@ export async function processConversion(inputPathArg: string, options: any) {
         result.markdownResultFromEnrichmentLLM
       );
 
-      logger.info(`Writing cleaned enriched markdown to: }`);
+      logger.info(
+        `Writing cleaned enriched markdown to: ${enrichedMarkdownOutputLocation}`
+      );
 
       await fs.writeFile(
         enrichedMarkdownOutputLocation,
