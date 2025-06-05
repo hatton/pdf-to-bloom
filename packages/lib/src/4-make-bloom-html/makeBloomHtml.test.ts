@@ -283,7 +283,7 @@ describe("HtmlGenerator", () => {
     expect(html).toContain("Hello world");
   });
 
-  it("should generate data div with metadata", () => {
+  it("no pages, should generate data div with metadata", () => {
     const book = {
       metadata: {
         allTitles: { en: "Test Book", es: "Libro de Prueba" },
@@ -301,7 +301,7 @@ describe("HtmlGenerator", () => {
     const html = generator.generateHtmlDocument(book);
 
     expect(html).toContain('data-book="contentLanguage1"');
-    expect(html).toContain('data-book="contentLanguage2"');
+    expect(html).not.toContain('data-book="contentLanguage2"'); // even though l2 is set, we don't have pages saying they are bilingual
     expect(html).toContain('data-book="bookTitle"');
     expect(html).toContain('data-book="ISBN"');
     expect(html).toContain('data-book="copyright"');
