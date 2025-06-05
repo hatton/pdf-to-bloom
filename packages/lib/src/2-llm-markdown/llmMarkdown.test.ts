@@ -1,6 +1,18 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { llmMarkdown } from "./llmMarkdown";
 import { LogEntry } from "../logger";
+
+// Mock the AI SDK generateText function
+vi.mock("ai", () => ({
+  generateText: vi.fn().mockResolvedValue({
+    text: "<!-- Enriched Content via OpenRouter -->\n\n# Test Content\n\nThis is enriched test content.",
+  }),
+}));
+
+// Mock the OpenRouter provider
+vi.mock("@openrouter/ai-sdk-provider", () => ({
+  createOpenRouter: vi.fn().mockReturnValue(() => ({})),
+}));
 
 describe("llmMarkdown", () => {
   it("should throw error when API key is missing", async () => {
@@ -38,11 +50,23 @@ describe("llmMarkdown", () => {
           log.message === "Markdown enrichment completed... validating..."
       )
     ).toBe(true);
-    expect(result).toContain("<!-- Enriched Content via OpenRouter -->");
+
+    // Result is an object with properties, not a string
+    expect(result).toHaveProperty("markdownResultFromEnrichmentLLM");
+    expect(result).toHaveProperty("cleanedUpMarkdown");
+    expect(result).toHaveProperty("valid");
+    expect(result.cleanedUpMarkdown).toContain(
+      "<!-- Enriched Content via OpenRouter -->"
+    );
   });
   it("should work without options", async () => {
     const result = await llmMarkdown("# Test", "valid-key");
-    expect(result).toContain("<!-- Enriched Content via OpenRouter -->");
+    expect(result).toHaveProperty("markdownResultFromEnrichmentLLM");
+    expect(result).toHaveProperty("cleanedUpMarkdown");
+    expect(result).toHaveProperty("valid");
+    expect(result.cleanedUpMarkdown).toContain(
+      "<!-- Enriched Content via OpenRouter -->"
+    );
   });
 
   it("should work with partial options", async () => {
@@ -50,6 +74,11 @@ describe("llmMarkdown", () => {
       overridePrompt: "Custom prompt",
       overrideModel: "custom-model",
     });
-    expect(result).toContain("<!-- Enriched Content via OpenRouter -->");
+    expect(result).toHaveProperty("markdownResultFromEnrichmentLLM");
+    expect(result).toHaveProperty("cleanedUpMarkdown");
+    expect(result).toHaveProperty("valid");
+    expect(result.cleanedUpMarkdown).toContain(
+      "<!-- Enriched Content via OpenRouter -->"
+    );
   });
 });

@@ -4,6 +4,7 @@ export {
   pdfToMarkdownAndImageFiles as makeMarkdownFromPDF,
 } from "./1-pdf-to-markdown-and-images/pdfToMarkdownAndImageFiles";
 export { llmMarkdown } from "./2-llm-markdown/llmMarkdown";
+export { enrichMarkdown } from "./2-llm-markdown/enrichMarkdown";
 export {
   enrichedMarkdownToBloomHtml as makeBloomHtml,
   type MakeBloomHtmlOptions,
