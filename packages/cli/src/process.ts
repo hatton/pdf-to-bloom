@@ -374,7 +374,7 @@ export async function processConversion(inputPathArg: string, options: any) {
 
       if (!result.valid) {
         throw new Error(
-          `Enrichment process returned invalid content. This can be a result of the mode/prompt. You may be able to errors in the file "${enrichedMarkdownOutputLocation}" for details.`
+          `Enrichment process returned invalid content. This can be a result of the mode/prompt. You may be able to see errors in the file "${enrichedMarkdownOutputLocation}" for details.`
         );
       }
       currentProcessingFilePath = enrichedMarkdownOutputLocation; // Update current file path
