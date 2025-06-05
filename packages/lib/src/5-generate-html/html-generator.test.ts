@@ -1,10 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { mdToBloomHtml } from "./makeBloomHtml";
-import { MarkdownToBloomHtml } from "./md-to-bloom";
+import { Parser } from "../4-parse-markdown/parseMarkdown";
 import { HtmlGenerator } from "./html-generator";
 import type { TextBlockElement, ImageElement } from "../types";
 
-describe("enrichedMarkdownToBloomHtml", () => {
+describe("mdToBloomHtml", () => {
   it("should convert simple markdown to Bloom HTML", async () => {
     const markdown = `---
 allTitles:
@@ -72,8 +71,8 @@ Hello world
 <!-- lang=es -->
 Hola mundo`;
 
-    const parser = new MarkdownToBloomHtml();
-    const result = parser.parseMarkdownIntoABookObject(content);
+    const parser = new Parser();
+    const result = parser.parseMarkdown(content);
 
     expect(result.metadata.allTitles.en).toBe("Test Book");
     expect(result.metadata.l1).toBe("en");
@@ -106,8 +105,8 @@ Text before image
 <!-- lang=en -->
 Text only page`;
 
-    const parser = new MarkdownToBloomHtml();
-    const result = parser.parseMarkdownIntoABookObject(content);
+    const parser = new Parser();
+    const result = parser.parseMarkdown(content);
 
     expect(result.pages).toHaveLength(3);
     expect(result.pages[0].layout).toBe("image-top-text-bottom");
@@ -129,8 +128,8 @@ Here's a [link](https://example.com).
 Line one
 Line two`;
 
-    const parser = new MarkdownToBloomHtml();
-    const result = parser.parseMarkdownIntoABookObject(content);
+    const parser = new Parser();
+    const result = parser.parseMarkdown(content);
 
     const htmlText = (result.pages[0].elements[0] as TextBlockElement).content
       .en;
@@ -149,10 +148,8 @@ allTitles:
 <!-- lang=en -->
 Test content`;
 
-    const parser = new MarkdownToBloomHtml();
-    expect(() => parser.parseMarkdownIntoABookObject(content)).toThrow(
-      "Validation failed"
-    );
+    const parser = new Parser();
+    expect(() => parser.parseMarkdown(content)).toThrow("Validation failed");
   });
 
   it("should handle images without file validation", () => {
@@ -167,10 +164,10 @@ l1: en
 <!-- lang=en -->
 Text with image that doesn't exist on disk`;
 
-    const parser = new MarkdownToBloomHtml(undefined, {
+    const parser = new Parser(undefined, {
       validateImages: false,
     });
-    const result = parser.parseMarkdownIntoABookObject(content);
+    const result = parser.parseMarkdown(content);
 
     expect(result.pages).toHaveLength(1);
     expect(result.pages[0].layout).toBe("image-top-text-bottom");
@@ -203,8 +200,8 @@ French text
 <!-- lang=es -->
 Spanish text`;
 
-    const parser = new MarkdownToBloomHtml();
-    const result = parser.parseMarkdownIntoABookObject(content);
+    const parser = new Parser();
+    const result = parser.parseMarkdown(content);
 
     expect(result.pages).toHaveLength(1);
     expect((result.pages[0].elements[0] as TextBlockElement).content.en).toBe(
@@ -237,8 +234,8 @@ First page
 <!-- lang=en -->
 Third page`;
 
-    const parser = new MarkdownToBloomHtml();
-    const result = parser.parseMarkdownIntoABookObject(content);
+    const parser = new Parser();
+    const result = parser.parseMarkdown(content);
 
     // Empty pages should be filtered out
     expect(result.pages).toHaveLength(2);
@@ -297,8 +294,7 @@ describe("HtmlGenerator", () => {
       pages: [],
     };
 
-    const generator = new HtmlGenerator();
-    const html = generator.generateHtmlDocument(book);
+    const html = HtmlGenerator.generateHtmlDocument(book);
 
     expect(html).toContain('data-book="contentLanguage1"');
     expect(html).not.toContain('data-book="contentLanguage2"'); // even though l2 is set, we don't have pages saying they are bilingual

@@ -1,7 +1,7 @@
 import { existsSync } from "fs";
 import * as yaml from "js-yaml";
 import { dirname, join } from "path";
-import { determinePageLayout } from "./layout-determiner.js";
+import { determinePageLayout } from "../5-generate-html/layout-determiner";
 import type {
   Book,
   BookMetadata,
@@ -9,22 +9,22 @@ import type {
   PageElement,
   TextBlockElement,
   ValidationError,
-} from "../types.js";
+} from "../types";
 
-export class MarkdownToBloomHtml {
+export class Parser {
   private inputPath?: string;
-  private validateImages: boolean;
+  private validateImages: boolean = false;
   private errors: ValidationError[] = [];
 
-  constructor(inputPath?: string, options: { validateImages?: boolean } = {}) {
-    this.inputPath = inputPath;
+  public parseMarkdown(
+    markdown: string,
+    options: { inputPath?: string; validateImages?: boolean } = {}
+  ): Book {
+    this.inputPath = options.inputPath;
     this.validateImages = options.validateImages ?? true;
-  }
-
-  parseMarkdownIntoABookObject(content: string): Book {
     this.errors = [];
 
-    const { frontmatter, body } = this.extractFrontmatter(content);
+    const { frontmatter, body } = this.extractFrontmatter(markdown);
     const metadata = this.parseMetadata(frontmatter);
     if (!metadata) {
       throw new Error("Failed to parse metadata from frontmatter");
@@ -267,6 +267,7 @@ export class MarkdownToBloomHtml {
     };
   }
 
+  // todo this should be in its own file
   private expressMarkdownFormattingAsHtml(markdown: string): string {
     // Apply block transformations first (headings)
     let html = markdown

@@ -5,9 +5,10 @@ import * as path from "path";
 import {
   makeMarkdownFromPDF,
   enrichMarkdown,
-  mdToBloomHtml,
   logger,
   llmMarkdown,
+  Parser,
+  HtmlGenerator,
 } from "@pdf-to-bloom/lib"; // Assuming these functions are async and return/handle as described
 import {
   checkIfEnriched,
@@ -400,9 +401,14 @@ export async function processConversion(inputPathArg: string, options: any) {
         const enrichedMarkdownContent = await fs.readFile(
           currentProcessingFilePath,
           "utf-8"
-        ); // mdToBloomHtml returns the HTML content string
-        const bloomHtmlContent = await mdToBloomHtml(
-          enrichedMarkdownContent,
+        );
+        const p = new Parser();
+        const book = p.parseMarkdown(enrichedMarkdownContent, {
+          inputPath: currentProcessingFilePath,
+          validateImages: true,
+        });
+        const bloomHtmlContent = await HtmlGenerator.generateHtmlDocument(
+          book,
           logCallback
         );
 

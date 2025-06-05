@@ -8,7 +8,10 @@ import type { Book, BookMetadata, PageContent } from "../types.js";
 // just be overwritten.
 
 export class HtmlGenerator {
-  generateHtmlDocument(book: Book): string {
+  public static generateHtmlDocument(
+    book: Book,
+    _logCallback?: (message: string) => void
+  ): string {
     return `<!doctype html>
 <html>
   <head>
@@ -28,7 +31,7 @@ export class HtmlGenerator {
 </html>`;
   }
 
-  private generateBloomDataDiv(
+  private static generateBloomDataDiv(
     metadata: BookMetadata,
     pages: PageContent[]
   ): string {
@@ -90,7 +93,10 @@ export class HtmlGenerator {
     return elements.join("\n");
   }
 
-  private generatePage(page: PageContent, metadata: BookMetadata): string {
+  private static generatePage(
+    page: PageContent,
+    metadata: BookMetadata
+  ): string {
     switch (page.layout) {
       case "image-only":
         return this.generateImageOnlyPage(page);
@@ -109,7 +115,7 @@ export class HtmlGenerator {
         return this.generateTextOnlyPage(page, metadata);
     }
   }
-  private generateImageTopTextBottomPage(
+  private static generateImageTopTextBottomPage(
     page: PageContent,
     _metadata: BookMetadata
   ): string {
@@ -130,7 +136,7 @@ export class HtmlGenerator {
       </div>
     </div>`;
   }
-  private generateTextTopImageBottomPage(
+  private static generateTextTopImageBottomPage(
     page: PageContent,
     _metadata: BookMetadata
   ): string {
@@ -152,7 +158,7 @@ export class HtmlGenerator {
     </div>`;
   }
 
-  private generateTextOnlyPage(
+  private static generateTextOnlyPage(
     page: PageContent,
     metadata: BookMetadata
   ): string {
@@ -182,7 +188,7 @@ export class HtmlGenerator {
             </div>`;
   }
 
-  private generateImageOnlyPage(page: PageContent): string {
+  private static generateImageOnlyPage(page: PageContent): string {
     const imageElement = page.elements.find((el) => el.type === "image");
 
     return `<div class="bloom-page customPage ">
@@ -190,7 +196,7 @@ export class HtmlGenerator {
                   ${this.imageBlock(imageElement ? imageElement.src : "")}              </div>
             </div>`;
   }
-  private generateImageInMiddlePage(
+  private static generateImageInMiddlePage(
     page: PageContent,
     _metadata: BookMetadata,
     topLangPlaceholder: string, // "V" or "N1"
@@ -250,7 +256,7 @@ export class HtmlGenerator {
           </div>
         </div>`;
   }
-  private imageBlock(src: string | undefined): string {
+  private static imageBlock(src: string | undefined): string {
     return `<div class="split-pane-component-inner">
                 <div class="bloom-canvas bloom-leadingElement bloom-has-canvas-element">
                     <div class="bloom-canvas-element bloom-backgroundImage">
@@ -262,7 +268,7 @@ export class HtmlGenerator {
             </div>`;
   }
 
-  private textBlock(
+  private static textBlock(
     textBlocks: Record<string, string>,
     translationGroupDefaultLangVariables?: string[] // normally "V", or "N1"
   ): string {
