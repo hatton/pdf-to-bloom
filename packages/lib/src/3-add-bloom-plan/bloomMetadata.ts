@@ -1,8 +1,38 @@
 import * as yaml from "js-yaml";
-import type { BookMetadata, ValidationError } from "../types";
+import type { ValidationError } from "../types";
 
+export interface BookMetadata {
+  allTitles: Record<string, string>;
+  languages: Record<string, string>;
+  l1: string; // primary language
+  l2?: string; // secondary language
+  coverImage?: string;
+  isbn?: string;
+  license?: string;
+  copyright?: string;
+}
 export class BloomMetadataParser {
   private errors: ValidationError[] = [];
+
+  public parseOutMetadata(markdown: string): BookMetadata {
+    this.errors = [];
+    this.clearErrors();
+    const { frontmatter, body } = this.extractFrontmatter(markdown);
+    const metadata = this.parseMetadata(frontmatter);
+    if (!metadata) {
+      throw new Error("Failed to parse metadata from frontmatter");
+    }
+    // Merge metadata parser errors with our errors
+    this.errors.push(...this.getErrors());
+    if (this.errors.some((e) => e.type === "error")) {
+      throw new Error(
+        `Validation failed:\n${this.errors
+          .map((e) => `${e.type.toUpperCase()}: ${e.message}`)
+          .join("\n")}`
+      );
+    }
+    return metadata;
+  }
 
   /**
    * Extract frontmatter from markdown content

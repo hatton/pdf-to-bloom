@@ -11,13 +11,13 @@ You are given a Markdown file that may contain multiple languages. Your task is 
         - Publisher and location information (country, province, district)
     2. Format this metadata as YAML front matter and insert it at the very top of the Markdown file using `---` delimiters.
 
-    3. Annotate all blocks of text with a language comment. E.g. `<!-- lang=en --> This is my house. <!-- lang=fr --> C'est ma maison.`
+    3. Annotate all blocks of text with a language comment. E.g. `<!-- text lang="en" --> This is my house. <!-- text lang="fr" --> C'est ma maison.`
     - Use ISO 639-1 or 639-3 language codes (e.g., `es` for Spanish, `mxa` for Mixteco de Santa María Zacatepec, uz-CYRL for Uzbeck in cyrillic script).
     - Preserve Markdown formatting
     - Preserve all image references
-    - Use the same style to tag each metadata field. Place these comments in the body of the markdown, not in the YAML front matter. Example: `<!-- lang="fr" field="copyright" -->` or `<!-- lang="en" field="ISBN" -->`.
+    - Use the same style to tag each metadata field. Place these comments in the body of the markdown, not in the YAML front matter. Example: `<!-- text lang="fr" field="copyright" -->` or `<!-- text lang="en" field="ISBN" -->`.
 
-    4. Preserve all incoming comments. The input markdown may already have `<!-- start-page -->` comments.
+    4. Preserve all incoming comments. The input markdown may already have `<!-- page -->` comments.
     
     ```markdown
     ---
@@ -48,35 +48,35 @@ You are given a Markdown file that may contain multiple languages. Your task is 
     publisher: "Instituto de Grillo"
     originalPublisher: "Someone else that we derived from."
     ---
-
-    <!-- lang=en field="title" -->
+    <!-- page -->
+    <!-- text lang="en" field="title" -->
     The moon and the cap
 
-    <!-- start-page -->
-    <!-- lang=en field="copyright" -->
+    <!-- page -->
+    <!-- text lang="en" field="copyright" -->
     Copyright 1993, Instituto Lingüístico de Verano, A.C.
-    <!-- lang=en field="license" -->
+    <!-- text lang="en" field="license" -->
     CC-BY-NC
 
     ![](/myHouse.jpg)
     
-    <!-- lang=en -->
+    <!-- text lang="en" -->
     
     This is my house. 
     
-    <!-- lang=fr -->
+    <!-- text lang="fr" -->
     
     C'est ma maison. 
 
-    <!-- start-page -->
+    <!-- page -->
 
-    <!-- lang=en -->
+    <!-- text lang="en" -->
     
     We like it a lot.
 
     ![](/myFamily.jpg)
     
-    <!-- lang=fr -->
+    <!-- text lang="fr" -->
     
     Nous l'aimons beaucoup.
 

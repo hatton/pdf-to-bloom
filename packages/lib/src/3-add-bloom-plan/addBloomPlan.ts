@@ -9,12 +9,12 @@
 // -- decide if it is front matter or back matter page which we want to strip out
 // of the book we'll produce because the way Bloom works, all metadata is put in the book as such,
 // and it's a runtime thing to generate pages to show that metadata in whatever way the current settings want.
-// We then add that information to the <!-- start-page --> comment in the markdown.
+// We then add that information to the <!-- page --> comment in the markdown.
 
 export function addBloomPlanToMarkdown(markdown: string): string {
   let output = "";
-  // add everything up to the first <!-- start-page --> comment
-  output += markdown.split("<!-- start-page -->")[0] || "";
+  // add everything up to the first <!-- page --> comment
+  output += markdown.split("<!-- page -->")[0] || "";
 
   return output;
 }

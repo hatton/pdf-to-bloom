@@ -15,7 +15,7 @@ function wrapWithFrontmatter(body: string): string {
 
 describe("attemptCleanup", () => {
   it("strips code block wrappers", () => {
-    const wrapped = `\`\`\`\n${wrapWithFrontmatter("<!-- lang=en -->\nText")}\n\`\`\``;
+    const wrapped = `\`\`\`\n${wrapWithFrontmatter('<!-- text lang="en" -->\nText')}\n\`\`\``;
     const result = attemptCleanup(wrapped);
     expect(result.valid).toBe(true);
     expect(result.cleaned).not.toContain("```");
@@ -23,28 +23,34 @@ describe("attemptCleanup", () => {
   });
 
   it("fixes missing opening yaml delimiter", () => {
-    const input = `allTitles:\n  en: Book\nlanguages:\n  en: English\nl1: en\n<!-- lang=en -->\nText`;
+    const input = `allTitles:\n  en: Book\nlanguages:\n  en: English\nl1: en\n<!-- text lang=\"en\" -->\nText`;
     const result = attemptCleanup(input);
     expect(result.valid).toBe(true);
     expect(result.cleaned.startsWith("---")).toBe(true);
-    expect(result.cleaned).toContain("---\n<!-- lang=en -->");
+    expect(result.cleaned).toContain('---\n<!-- text lang="en" -->');
   });
 
   it("reorders language comments after images", () => {
-    const input = wrapWithFrontmatter(`<!-- lang=en -->\n![img](img.png){width=150}`);
+    const input = wrapWithFrontmatter(
+      `<!-- text lang="en" -->\n![img](img.png){width=150}`
+    );
     const result = attemptCleanup(input);
     expect(result.valid).toBe(true);
-    expect(result.cleaned).toMatch(/!\[img\]\(img.png\)\{width=150\}\n<!-- lang=en -->/);
+    expect(result.cleaned).toMatch(
+      /!\[img\]\(img.png\)\{width=150\}\n<!-- text lang="en" -->/
+    );
   });
 
   it("returns invalid when leftover code blocks remain", () => {
-    const input = wrapWithFrontmatter(`<!-- lang=en -->\nHere is code:\n\`\`\`js\nconsole.log('hi');\n\`\`\``);
+    const input = wrapWithFrontmatter(
+      `<!-- text lang="en" -->\nHere is code:\n\`\`\`js\nconsole.log('hi');\n\`\`\``
+    );
     const result = attemptCleanup(input);
     expect(result.valid).toBe(false);
   });
 
   it("returns invalid when required fields are missing", () => {
-    const bad = `---\nallTitles:\n  en: Book\n---\n<!-- lang=en -->\ntext`;
+    const bad = `---\nallTitles:\n  en: Book\n---\n<!-- text lang="en" -->\ntext`;
     const result = attemptCleanup(bad);
     expect(result.valid).toBe(false);
   });

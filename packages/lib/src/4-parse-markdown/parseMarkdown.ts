@@ -1,8 +1,10 @@
 import { determinePageLayout } from "../5-generate-html/layout-determiner";
-import { BloomMetadataParser } from "./bloomMetadata";
+import {
+  BloomMetadataParser,
+  BookMetadata,
+} from "../3-add-bloom-plan/bloomMetadata";
 import type {
   Book,
-  BookMetadata,
   PageContent,
   PageElement,
   TextBlockElement,
@@ -45,7 +47,7 @@ export class Parser {
     body: string,
     metadata: BookMetadata
   ): PageContent[] {
-    const pageBreaks = body.split("<!-- start-page -->");
+    const pageBreaks = body.split("<!-- page -->");
     const pages: PageContent[] = [];
 
     for (let i = 0; i < pageBreaks.length; i++) {
@@ -101,10 +103,10 @@ export class Parser {
         elements.push({ type: "image", src: imagePath });
 
         continue; // go to the next line in the markdown
-      }
-
-      // Check for language blocks
-      const langMatch = trimmedLine.match(/<!-- lang=([a-z]{2,3}) -->/);
+      } // Check for language blocks
+      const langMatch = trimmedLine.match(
+        /<!-- text lang=(?:"?([a-z]{2,3})"?) -->/
+      );
       if (langMatch) {
         // Finalize current text before switching languages
         if (currentTextBlock && currentLang && currentText.trim()) {

@@ -8,14 +8,14 @@ languages:
 l1: en
 ---
 ![Test Image](test-image.png)
-<!-- lang=en -->
+<!-- text lang="en" -->
 Text after image
-<!-- start-page -->
-<!-- lang=en -->
+<!-- page -->
+<!-- text lang="en" -->
 Text before image
 ![Test Image](test-image.png)
-<!-- start-page -->
-<!-- lang=en -->
+<!-- page -->
+<!-- text lang="en" -->
 Text only page`;
 
     // todo

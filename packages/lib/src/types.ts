@@ -1,13 +1,4 @@
-export interface BookMetadata {
-  allTitles: Record<string, string>;
-  languages: Record<string, string>;
-  l1: string; // primary language
-  l2?: string; // secondary language
-  coverImage?: string;
-  isbn?: string;
-  license?: string;
-  copyright?: string;
-}
+import { BookMetadata } from "./3-add-bloom-plan/bloomMetadata";
 
 export interface ImageElement {
   type: "image";

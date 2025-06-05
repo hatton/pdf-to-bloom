@@ -5,7 +5,10 @@ import { logger } from "../logger";
 /**
  * Clean up and validate markdown content returned from the LLM
  */
-export function attemptCleanup(content: string): { cleaned: string; valid: boolean } {
+export function attemptCleanup(content: string): {
+  cleaned: string;
+  valid: boolean;
+} {
   // Strip code block wrapper if present
   content = content.replace(/^```\w*\s*\n([\s\S]*?)\n```\s*$/g, "$1");
 
@@ -47,15 +50,15 @@ export function attemptCleanup(content: string): { cleaned: string; valid: boole
   }
   // Sometimes in the markdown, the LLM will have 2 lines like this:
   //
-  // <!-- lang=id -->
+  // <!-- text lang=id -->
   // ![img-0.jpeg](img-0.jpeg){width=150}
   // etc...
   //
   // But we need that comment to come after the img statement, not before it.
-  
+
   // Match and swap the order of language comment followed by image statement
   const langCommentFollowedImmediatelyByImageRegex =
-    /(<!--\s*lang=\w+\s*-->)\n\s*(!\[.*?\]\(.*?\)(\{.*?\})?)/g;
+    /(<!--\s*text\s+lang=(?:"?\w+"?)\s*-->)\n\s*(!\[.*?\](?:\(.*?\)|\[.*?\])(\{.*?\})?)/g;
   content = content.replace(
     langCommentFollowedImmediatelyByImageRegex,
     (_match, langComment, imageStatement) => {

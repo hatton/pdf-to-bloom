@@ -102,10 +102,10 @@ export async function pdfToMarkdownAndImageFiles(
 
     logger.info("✅ Received response from Mistral AI OCR API");
 
-    // Combine markdown from all pages. Each must start with a <!-- start-page {index:number} --> comment
+    // Combine markdown from all pages. Each must start with a <!-- page {index:number} --> comment
     let markdown = ocrResponse.pages
       .map((page: MistralOCRPage, index: number) => {
-        return `<!-- start-page {index:${index}} -->\n${page.markdown}`;
+        return `<!-- page {index:${index}} -->\n${page.markdown}`;
       })
       .join("\n\n");
 

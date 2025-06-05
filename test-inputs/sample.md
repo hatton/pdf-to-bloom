@@ -4,11 +4,11 @@
 
 ஹ்வ்லி (Gondi)
 
-<!-- start-page -->
+<!-- page -->
 
 .
 
-<!-- start-page -->
+<!-- page -->
 
 # test me
 
@@ -17,23 +17,23 @@
 India
 ![img-1.jpeg](img-1.jpeg){width=162}
 
-<!-- start-page -->
+<!-- page -->
 
 http://creativecommons.org/licenses/by/4.0/
 You are free to make commercial use of this work. You may adapt and add to this work. You must keep the copyright and credits for authors, illustrators, etc.
 
-<!-- start-page -->
+<!-- page -->
 
 ![img-2.jpeg](img-2.jpeg){width=995}
 
 This is a glass ceiling.
 Another paragraph about the ceiling.
 
-<!-- start-page -->
+<!-- page -->
 
 .
 
-<!-- start-page -->
+<!-- page -->
 
 This book was created with some Bloom Enterprise features enabled at no cost in order to support projects solely funded by the local community.
 

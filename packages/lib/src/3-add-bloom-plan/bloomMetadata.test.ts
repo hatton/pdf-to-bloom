@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { BloomMetadataParser } from "./bloomMetadata";
-import type { BookMetadata } from "../types";
+import { BloomMetadataParser, BookMetadata } from "./bloomMetadata";
 
 describe("BloomMetadataParser", () => {
   let parser: BloomMetadataParser;
@@ -18,19 +17,19 @@ languages:
   en: "English"
 l1: en
 ---
-<!-- lang=en -->
+<!-- text lang="en" -->
 Hello world`;
 
       const result = parser.extractFrontmatter(content);
 
       expect(result.frontmatter).toContain("allTitles:");
       expect(result.frontmatter).toContain('en: "Test Book"');
-      expect(result.body).toContain("<!-- lang=en -->");
+      expect(result.body).toContain(`<!-- text lang="en" -->`);
       expect(result.body).toContain("Hello world");
     });
 
     it("should handle content without frontmatter", () => {
-      const content = `<!-- lang=en -->
+      const content = `<!-- text lang="en" -->
 Hello world`;
 
       const result = parser.extractFrontmatter(content);
@@ -42,7 +41,7 @@ Hello world`;
     });
 
     it("should handle different line endings", () => {
-      const contentWithCRLF = `---\r\nallTitles:\r\n  en: "Test Book"\r\n---\r\n<!-- lang=en -->\r\nHello world`;
+      const contentWithCRLF = `---\r\nallTitles:\r\n  en: "Test Book"\r\n---\r\n<!-- text lang="en" -->\r\nHello world`;
 
       const result = parser.extractFrontmatter(contentWithCRLF);
 
@@ -229,9 +228,9 @@ l1: en
 l2: es
 coverImage: "cover.jpg"
 ---
-<!-- lang=en -->
+<!-- text lang="en" -->
 Hello world
-<!-- lang=es -->
+<!-- text lang=es -->
 Hola mundo`;
 
       const { frontmatter, body } = parser.extractFrontmatter(content);

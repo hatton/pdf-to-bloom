@@ -14,9 +14,9 @@ languages:
 l1: en
 l2: es
 ---
-<!-- lang=en -->
+<!-- text lang="en" -->
 Hello world
-<!-- lang=es -->
+<!-- text lang="es" -->
 Hola mundo`;
 
     const parser = new Parser();
@@ -43,14 +43,14 @@ languages:
 l1: en
 ---
 ![Test Image](test-image.png)
-<!-- lang=en -->
+<!-- text lang="en" -->
 Text after image
-<!-- start-page -->
-<!-- lang=en -->
+<!-- page -->
+<!-- text lang="en" -->
 Text before image
 ![Test Image](test-image.png)
-<!-- start-page -->
-<!-- lang=en -->
+<!-- page -->
+<!-- text lang="en" -->
 Text only page`;
 
     const parser = new Parser();
@@ -71,7 +71,7 @@ languages:
   en: "English"
 l1: en
 ---
-<!-- lang=en -->
+<!-- text lang="en" -->
 This is **bold** text and *italic* text.
 Here's a [link](https://example.com).
 Line one
@@ -93,7 +93,7 @@ allTitles:
   en: "Test Book"
 # Missing languages and l1
 ---
-<!-- lang=en -->
+<!-- text lang="en" -->
 Test content`;
 
     const parser = new Parser();
@@ -109,7 +109,7 @@ languages:
 l1: en
 ---
 ![Test Image](nonexistent-image.png)
-<!-- lang=en -->
+<!-- text lang="en" -->
 Text with image that doesn't exist on disk`;
 
     const parser = new Parser();
@@ -139,11 +139,11 @@ languages:
 l1: en
 l2: fr
 ---
-<!-- lang=en -->
+<!-- text lang="en" -->
 English text
-<!-- lang=fr -->
+<!-- text lang="fr" -->
 French text
-<!-- lang=es -->
+<!-- text lang=es -->
 Spanish text`;
 
     const parser = new Parser();
@@ -172,12 +172,13 @@ languages:
   en: "English"
 l1: en
 ---
-<!-- lang=en -->
+<!-- page -->
+<!-- text lang="en" -->
 First page
-<!-- start-page -->
+<!-- page -->
 <!-- Empty page with no content -->
-<!-- start-page -->
-<!-- lang=en -->
+<!-- page -->
+<!-- text lang="en" -->
 Third page`;
 
     const parser = new Parser();

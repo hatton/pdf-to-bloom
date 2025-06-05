@@ -1,6 +1,7 @@
 import escapeHtml from "escape-html";
 import { mapLicense } from "./licenses.js";
-import type { Book, BookMetadata, PageContent } from "../types.js";
+import type { Book, PageContent } from "../types.js";
+import { BookMetadata } from "../3-add-bloom-plan/bloomMetadata.js";
 
 // A note about bloom-monolingual, bloom-bilingual, and bloom-trilingual
 // Although they show up on page divs, they are put there at runtime, so
