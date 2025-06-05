@@ -23,7 +23,7 @@ echo "   Run 'yarn start:web' to start the development server"
 
 echo ""
 echo "📚 Package Information:"
-echo "   • Core library: packages/core/"
+echo "   • Core library: packages/lib/"
 echo "   • CLI tool: packages/cli/"
 echo "   • Web app: packages/web/"
 

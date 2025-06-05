@@ -6,7 +6,7 @@ A monorepo containing tools for converting PDF documents to Bloom-compatible HTM
 
 This monorepo contains three packages:
 
-### [@pdf-to-bloom/core](./packages/core)
+### [@pdf-to-bloom/lib](./packages/lib)
 
 The core Node.js library that provides the PDF to Bloom conversion functionality.
 
@@ -59,8 +59,8 @@ You can also run commands on specific packages:
 
 ```bash
 # Work with the core library
-yarn workspace @pdf-to-bloom/core build
-yarn workspace @pdf-to-bloom/core test
+yarn workspace @pdf-to-bloom/lib build
+yarn workspace @pdf-to-bloom/lib test
 
 # Work with the CLI
 yarn workspace @pdf-to-bloom/cli build
