@@ -4,12 +4,10 @@ import * as fs from "fs/promises"; // Use promises API for async file operations
 import * as path from "path";
 import {
   makeMarkdownFromPDF,
-  enrichMarkdown,
   logger,
   llmMarkdown,
   Parser,
   HtmlGenerator,
-  validateImages,
 } from "@pdf-to-bloom/lib"; // Assuming these functions are async and return/handle as described
 import {
   checkIfEnriched,
@@ -405,8 +403,7 @@ export async function processConversion(inputPathArg: string, options: any) {
         );
         const p = new Parser();
         const book = p.parseMarkdown(enrichedMarkdownContent);
-        const imageWarnings = validateImages(book, currentProcessingFilePath);
-        imageWarnings.forEach((w) => logCallback({ level: w.type, message: w.message }));
+
         const bloomHtmlContent = await HtmlGenerator.generateHtmlDocument(
           book,
           logCallback

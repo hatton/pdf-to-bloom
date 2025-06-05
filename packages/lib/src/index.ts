@@ -8,7 +8,7 @@ export { enrichMarkdown } from "./2-llm/enrichMarkdown";
 
 // Export additional types and classes for advanced usage
 export { Parser } from "./4-parse-markdown/parseMarkdown";
-export { validateImages } from "./4-parse-markdown/validateImages";
+
 export { HtmlGenerator } from "./5-generate-html/html-generator";
 export type {
   Book,
