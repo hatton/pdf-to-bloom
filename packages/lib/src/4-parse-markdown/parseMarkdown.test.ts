@@ -113,9 +113,7 @@ l1: en
 <!-- lang=en -->
 Text with image that doesn't exist on disk`;
 
-    const parser = new Parser(undefined, {
-      validateImages: false,
-    });
+    const parser = new Parser();
     const result = parser.parseMarkdown(content);
 
     expect(result.pages).toHaveLength(1);
