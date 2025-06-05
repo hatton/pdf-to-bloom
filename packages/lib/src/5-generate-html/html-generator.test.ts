@@ -3,6 +3,12 @@ import { Parser } from "../4-parse-markdown/parseMarkdown";
 import { HtmlGenerator } from "./html-generator";
 import type { TextBlockElement, ImageElement } from "../types";
 
+async function mdToBloomHtml(markdown: string) {
+  const parser = new Parser();
+  const book = parser.parseMarkdown(markdown);
+  return HtmlGenerator.generateHtmlDocument(book);
+}
+
 describe("mdToBloomHtml", () => {
   it("should convert simple markdown to Bloom HTML", async () => {
     const markdown = `---
@@ -164,9 +170,7 @@ l1: en
 <!-- lang=en -->
 Text with image that doesn't exist on disk`;
 
-    const parser = new Parser(undefined, {
-      validateImages: false,
-    });
+    const parser = new Parser();
     const result = parser.parseMarkdown(content);
 
     expect(result.pages).toHaveLength(1);
@@ -270,8 +274,7 @@ describe("HtmlGenerator", () => {
       ],
     };
 
-    const generator = new HtmlGenerator();
-    const html = generator.generateHtmlDocument(book);
+    const html = HtmlGenerator.generateHtmlDocument(book);
 
     expect(html).toContain("<!doctype html>");
     expect(html).toContain("<title>Test Book</title>");

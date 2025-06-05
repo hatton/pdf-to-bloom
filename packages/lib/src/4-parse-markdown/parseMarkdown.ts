@@ -1,6 +1,4 @@
-import { existsSync } from "fs";
 import * as yaml from "js-yaml";
-import { dirname, join } from "path";
 import { determinePageLayout } from "../5-generate-html/layout-determiner";
 import type {
   Book,
@@ -12,16 +10,9 @@ import type {
 } from "../types";
 
 export class Parser {
-  private inputPath?: string;
-  private validateImages: boolean = false;
   private errors: ValidationError[] = [];
 
-  public parseMarkdown(
-    markdown: string,
-    options: { inputPath?: string; validateImages?: boolean } = {}
-  ): Book {
-    this.inputPath = options.inputPath;
-    this.validateImages = options.validateImages ?? true;
+  public parseMarkdown(markdown: string): Book {
     this.errors = [];
 
     const { frontmatter, body } = this.extractFrontmatter(markdown);
@@ -157,14 +148,6 @@ export class Parser {
         const imagePath = imageMatch[1];
         elements.push({ type: "image", src: imagePath });
 
-        if (this.validateImages && this.inputPath) {
-          const fullImagePath = join(dirname(this.inputPath), imagePath);
-          if (!existsSync(fullImagePath)) {
-            this.addWarning(
-              `Image not found: ${imagePath} (page ${pageNumber})`
-            );
-          }
-        }
 
         continue; // go to the next line in the markdown
       }
