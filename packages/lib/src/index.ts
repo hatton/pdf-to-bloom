@@ -6,8 +6,8 @@ export {
 export { llmMarkdown } from "./2-llm-markdown/llmMarkdown";
 export { enrichMarkdown } from "./2-llm-markdown/enrichMarkdown";
 export {
-  enrichedMarkdownToBloomHtml as makeBloomHtml,
-  type MakeBloomHtmlOptions,
+  mdToBloomHtml,
+  type MdBloomHtmlOptions as MakeBloomHtmlOptions,
 } from "./4-make-bloom-html/makeBloomHtml";
 
 // Export additional types and classes for advanced usage

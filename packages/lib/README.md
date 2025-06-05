@@ -15,7 +15,7 @@ import {
   pdfToBloomFolder,
   makeMarkdownFromPDF,
   enrichMarkdown,
-  makeBloomHtml,
+  mdToBloomHtml,
 } from "@pdf-to-bloom/core";
 
 // Convert PDF directly to Bloom HTML
@@ -35,7 +35,7 @@ const enrichedMarkdown = await enrichMarkdown(
   markdown,
   "your-openrouter-api-key"
 );
-const bloomHtml = await makeBloomHtml(enrichedMarkdown);
+const bloomHtml = await mdToBloomHtml(enrichedMarkdown);
 ```
 
 ## API
@@ -52,6 +52,6 @@ Extract and convert PDF content to markdown using MistralAI.
 
 Enhance the markdown content using OpenRouter API.
 
-### `makeBloomHtml(markdown, options?)`
+### `mdToBloomHtml(markdown, options?)`
 
 Convert markdown to Bloom-compatible HTML format.

@@ -1,6 +1,6 @@
 # Test Document
 
-This is a simple test document to verify the makeBloomHtml function works correctly after removing the re-enrichment feature.
+This is a simple test document to verify the mdToBloomHtml function works correctly after removing the re-enrichment feature.
 
 ## Chapter 1
 

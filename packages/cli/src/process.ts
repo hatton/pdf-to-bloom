@@ -5,8 +5,9 @@ import * as path from "path";
 import {
   makeMarkdownFromPDF,
   enrichMarkdown,
-  makeBloomHtml,
+  mdToBloomHtml,
   logger,
+  llmMarkdown,
 } from "@pdf-to-bloom/lib"; // Assuming these functions are async and return/handle as described
 import {
   checkIfEnriched,
@@ -346,25 +347,18 @@ export async function processConversion(inputPathArg: string, options: any) {
       }
 
       // Enrich the markdown content using the enrichment function
-
-      const result = await enrichMarkdown(
-        markdownContentToEnrich,
-        openrouterKey,
-        { logCallback, l1: langs?.l1, l2: langs?.l2, l3: langs?.l3 }
-      );
+      const result = await llmMarkdown(markdownContentToEnrich, openrouterKey, {
+        logCallback,
+        l1: langs?.l1,
+        l2: langs?.l2,
+        l3: langs?.l3,
+      });
       logger.info(
         `Writing uncleaned enriched markdown to: ${enrichedMarkdownOutputLocation.replace(".enriched.", ".fromLLM.enriched.")}`
       );
       await fs.writeFile(
-        enrichedMarkdownOutputLocation.replace(
-          ".enriched.",
-          ".fromLLM.enriched."
-        ),
+        enrichedMarkdownOutputLocation.replace(".enriched.", ".fromLLM."),
         result.markdownResultFromEnrichmentLLM
-      );
-
-      logger.info(
-        `Writing cleaned enriched markdown to: ${enrichedMarkdownOutputLocation}`
       );
 
       await fs.writeFile(
@@ -406,8 +400,8 @@ export async function processConversion(inputPathArg: string, options: any) {
         const enrichedMarkdownContent = await fs.readFile(
           currentProcessingFilePath,
           "utf-8"
-        ); // makeBloomHtml returns the HTML content string
-        const bloomHtmlContent = await makeBloomHtml(
+        ); // mdToBloomHtml returns the HTML content string
+        const bloomHtmlContent = await mdToBloomHtml(
           enrichedMarkdownContent,
           logCallback
         );

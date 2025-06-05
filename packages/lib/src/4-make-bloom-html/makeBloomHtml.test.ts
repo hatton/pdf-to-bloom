@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { enrichedMarkdownToBloomHtml } from "./makeBloomHtml";
+import { mdToBloomHtml } from "./makeBloomHtml";
 import { MarkdownToBloomHtml } from "./md-to-bloom";
 import { HtmlGenerator } from "./html-generator";
 import type { TextBlockElement, ImageElement } from "../types";
@@ -16,7 +16,7 @@ l1: en
 <!-- lang=en -->
 Hello world`;
 
-    const result = await enrichedMarkdownToBloomHtml(markdown, () => {});
+    const result = await mdToBloomHtml(markdown, () => {});
 
     expect(result).toContain("<!doctype html>");
     expect(result).toContain("<title>Test Book</title>");
@@ -34,7 +34,7 @@ l1: en
 <!-- lang=en -->
 Hello world`;
 
-    const result = await enrichedMarkdownToBloomHtml(markdown, () => {});
+    const result = await mdToBloomHtml(markdown, () => {});
 
     // Note: Custom styles functionality may not be implemented yet
     expect(result).toContain("<!doctype html>");
@@ -49,9 +49,9 @@ allTitles:
 ---
 <!-- lang=en -->
 Test content`;
-    await expect(
-      enrichedMarkdownToBloomHtml(invalidMarkdown, () => {})
-    ).rejects.toThrow("Validation failed");
+    await expect(mdToBloomHtml(invalidMarkdown, () => {})).rejects.toThrow(
+      "Validation failed"
+    );
   });
 });
 

@@ -2,7 +2,7 @@ import { logger, LogEntry } from "../logger.js";
 import { MarkdownToBloomHtml } from "./md-to-bloom.js";
 import { HtmlGenerator } from "./html-generator.js";
 
-export interface MakeBloomHtmlOptions {
+export interface MdBloomHtmlOptions {
   logCallback?: (log: LogEntry) => void;
 }
 
@@ -12,7 +12,7 @@ export interface MakeBloomHtmlOptions {
  * @param options - Optional configuration options
  * @returns Promise resolving to HTML string formatted for Bloom
  */
-export async function enrichedMarkdownToBloomHtml(
+export async function mdToBloomHtml(
   enrichedMarkdown: string,
   logCallback: (log: LogEntry) => void
 ): Promise<string> {

@@ -127,10 +127,10 @@ pdf-to-bloom is a TypeScript library that provides a three-stage pipeline for co
    }
    ```
 
-3. **makeBloomHtml**: Convert the enriched markdown to Bloom-compatible HTML format
+3. **mdToBloomHtml**: Convert the enriched markdown to Bloom-compatible HTML format
 
    ```typescript
-   makeBloomHtml(
+   mdToBloomHtml(
      markdown: string,
      options?: MakeBloomHtmlOptions
    ): Promise<string>
