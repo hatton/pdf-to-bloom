@@ -1,23 +1,44 @@
+import { addBloomPlanToMarkdown } from "./addBloomPlan";
 describe("3-process-tagged-markdown", () => {
   it("should detect page layouts correctly", () => {
     const content = `---
 allTitles:
-  en: "Test Book"
+  en: "This is the title"
 languages:
   en: "English"
 l1: en
 ---
-![Test Image](test-image.png)
+<!-- page type="cover" -->
 <!-- text lang="en" -->
-Text after image
-<!-- page -->
+This is the title
+![](image0.png)
+
+<!-- page type="content" template="text"-->
+<!-- text lang="en" -->
+Just some text
+
+<!-- page type="content" template="text-image" -->
 <!-- text lang="en" -->
 Text before image
-![Test Image](test-image.png)
-<!-- page -->
+![](image1.png)
+`;
+    const output = `---
+allTitles:
+  en: "This is the title"
+languages:
+  en: "English"
+l1: en
+---
+<!-- page type="content" template="text"-->
 <!-- text lang="en" -->
-Text only page`;
+Just some text
 
-    // todo
+<!-- page type="content" template="text-image" -->
+<!-- text lang="en" -->
+Text before image
+![](image1.png)
+`;
+
+    const result = addBloomPlanToMarkdown(content);
   });
 });

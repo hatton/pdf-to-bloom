@@ -14,7 +14,7 @@ export type PageElement = ImageElement | TextBlockElement;
 
 export type Layout =
   | "image-top-text-bottom"
-  | "text-top-image-bottom"
+  | "text-image"
   | "text-only"
   | "image-only"
   | "text-image-text"

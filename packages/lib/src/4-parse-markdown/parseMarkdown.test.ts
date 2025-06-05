@@ -58,7 +58,7 @@ Text only page`;
 
     expect(result.pages).toHaveLength(3);
     expect(result.pages[0].layout).toBe("image-top-text-bottom");
-    expect(result.pages[1].layout).toBe("text-top-image-bottom");
+    expect(result.pages[1].layout).toBe("text-image");
     expect(result.pages[2].layout).toBe("text-only");
   });
 

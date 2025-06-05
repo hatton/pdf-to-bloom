@@ -103,7 +103,7 @@ export class HtmlGenerator {
         return this.generateImageOnlyPage(page);
       case "image-top-text-bottom":
         return this.generateImageTopTextBottomPage(page, metadata);
-      case "text-top-image-bottom":
+      case "text-image":
         return this.generateTextTopImageBottomPage(page, metadata);
       case "text-image-text":
         // "auto", "V", and "N1" are values that can go in the data-default-languages attribute of a translationGroup.

@@ -301,14 +301,14 @@ export async function processConversion(inputPathArg: string, options: any) {
           "OpenRouter API key is required for markdown enrichment. Provide --openrouter-key or set OPENROUTER_KEY environment variable."
         );
       } // Path for the enriched markdown output file (either temp or final)
-      let enrichedMarkdownOutputLocation: string;
+      let finalMarkdownOutputLocation: string;
       if (useTempForIntermediate) {
-        enrichedMarkdownOutputLocation = path.join(
+        finalMarkdownOutputLocation = path.join(
           tempDir!,
           `${currentProcessingBaseName}.enriched.md`
         );
       } else if (resolvedTargetType === TargetType.Enriched) {
-        enrichedMarkdownOutputLocation = finalOutputPath;
+        finalMarkdownOutputLocation = finalOutputPath;
       } else {
         // For intermediate enriched markdown when target is bloom
         if (
@@ -316,13 +316,13 @@ export async function processConversion(inputPathArg: string, options: any) {
           finalOutputPath.endsWith("_bloom")
         ) {
           // If finalOutputPath is a directory (PDF input or explicit bloom folder), create intermediate file inside it
-          enrichedMarkdownOutputLocation = path.join(
+          finalMarkdownOutputLocation = path.join(
             finalOutputPath,
             `${currentProcessingBaseName}.enriched.md`
           );
         } else {
           // If finalOutputPath is an HTML file (markdown input), create intermediate file in same directory
-          enrichedMarkdownOutputLocation = path.join(
+          finalMarkdownOutputLocation = path.join(
             path.dirname(finalOutputPath),
             `${currentProcessingBaseName}.enriched.md`
           );
@@ -358,34 +358,34 @@ export async function processConversion(inputPathArg: string, options: any) {
         }
       );
       logger.info(
-        `Writing raw markdown from llm to: ${enrichedMarkdownOutputLocation.replace(".enriched.", ".fromLLM.enriched.")}`
+        `Writing raw markdown from llm to: ${finalMarkdownOutputLocation.replace(".enriched.", ".fromLLM.enriched.")}`
       );
       await fs.writeFile(
-        enrichedMarkdownOutputLocation.replace(".enriched.", ".fromLLM."),
+        finalMarkdownOutputLocation.replace(".enriched.", ".fromLLM."),
         llmResult.markdownResultFromEnrichmentLLM
       );
       logger.info(
-        `Writing cleaned markdown to: ${enrichedMarkdownOutputLocation}`
+        `Writing cleaned markdown to: ${finalMarkdownOutputLocation}`
       );
       await fs.writeFile(
-        enrichedMarkdownOutputLocation,
+        finalMarkdownOutputLocation.replace(".enriched.", ".cleaned."),
         llmResult.cleanedUpMarkdown
       );
 
       if (!llmResult.valid) {
         throw new Error(
-          `Enrichment process returned invalid content. This can be a result of the mode/prompt. You may be able to see errors in the file "${enrichedMarkdownOutputLocation}" for details.`
+          `Enrichment process returned invalid content. This can be a result of the mode/prompt. You may be able to see errors in the file "${finalMarkdownOutputLocation}" for details.`
         );
       }
 
-      // Now we want to do the final bit of any logic work, still in markdown format solely so
-      // that it is easier for a human to inspect the plan. Later we're go to HTML and by then
+      // Now we want to do the final bit of any logic work, still in markdown format because
+      // then it is easier for a human to inspect the plan. Later we're going to HTML and by then
       // it's really hard to wade through what was done.
-      const plannedMarkdown = addBloomPlanToMarkdown(
-        llmResult.cleanedUpMarkdown
-      );
+      const finalMarkdown = addBloomPlanToMarkdown(llmResult.cleanedUpMarkdown);
+      logger.info(`Writing final markdown to: ${finalMarkdownOutputLocation}`);
+      await fs.writeFile(finalMarkdownOutputLocation, finalMarkdown);
 
-      currentProcessingFilePath = enrichedMarkdownOutputLocation; // Update current file path
+      currentProcessingFilePath = finalMarkdownOutputLocation; // Update current file path
       currentProcessingFileType = InputType.EnrichedMarkdown; // Update current file type
       currentProcessingBaseName = getFileNameWithoutExtension(
         currentProcessingFilePath

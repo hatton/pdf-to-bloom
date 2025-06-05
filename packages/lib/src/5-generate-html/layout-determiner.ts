@@ -22,10 +22,10 @@ export function determinePageLayout(
       pattern: ["image", "multiple-languages"],
       layout: "image-top-text-bottom",
     },
-    { pattern: ["l1-only", "image"], layout: "text-top-image-bottom" },
+    { pattern: ["l1-only", "image"], layout: "text-image" },
     {
       pattern: ["multiple-languages", "image"],
-      layout: "text-top-image-bottom",
+      layout: "text-image",
     },
     { pattern: ["l1-only", "image", "l1-only"], layout: "text-image-text" },
     { pattern: ["l2-only", "image", "l2-only"], layout: "text-image-text" },
