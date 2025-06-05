@@ -4,13 +4,13 @@ export {
   pdfToMarkdownAndImageFiles as makeMarkdownFromPDF,
 } from "./1-ocr/pdfToMarkdownAndImageFiles";
 export { llmMarkdown } from "./2-llm/llmMarkdown";
-export { addBloomPlanToMarkdown } from "./4-add-bloom-plan/addBloomPlan";
+export { addBloomPlanToMarkdown } from "./3-add-bloom-plan/addBloomPlan";
 
 // Export additional types and classes for advanced usage
-export { Parser } from "./3-parse-markdown/parseMarkdown";
-export { BloomMetadataParser } from "./4-add-bloom-plan/bloomMetadata";
+export { Parser } from "./parse-markdown/parseMarkdown";
+export { BloomMetadataParser } from "./3-add-bloom-plan/bloomMetadata";
 
-export { HtmlGenerator } from "./5-generate-html/html-generator";
+export { HtmlGenerator } from "./4-generate-html/html-generator";
 export type {
   Book,
   PageContent,
