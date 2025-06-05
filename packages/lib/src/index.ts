@@ -2,9 +2,9 @@
 export {
   pdfToMarkdownAndImageFiles,
   pdfToMarkdownAndImageFiles as makeMarkdownFromPDF,
-} from "./1-pdf-to-markdown-and-images/pdfToMarkdownAndImageFiles";
-export { llmMarkdown } from "./2-llm-markdown/llmMarkdown";
-export { enrichMarkdown } from "./2-llm-markdown/enrichMarkdown";
+} from "./1-ocr/pdfToMarkdownAndImageFiles";
+export { llmMarkdown } from "./2-llm/llmMarkdown";
+export { enrichMarkdown } from "./2-llm/enrichMarkdown";
 
 // Export additional types and classes for advanced usage
 export { Parser } from "./4-parse-markdown/parseMarkdown";

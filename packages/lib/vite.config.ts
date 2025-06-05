@@ -11,10 +11,7 @@ export default defineConfig({
       name: "copy-llm-prompt",
       apply: "build",
       generateBundle() {
-        const srcPath = path.resolve(
-          __dirname,
-          "src/2-llm-markdown/llmPrompt.txt"
-        );
+        const srcPath = path.resolve(__dirname, "src/2-llm/llmPrompt.txt");
         const content = fs.readFileSync(srcPath, "utf8");
         this.emitFile({
           type: "asset",

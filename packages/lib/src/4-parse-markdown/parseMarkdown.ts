@@ -148,7 +148,6 @@ export class Parser {
         const imagePath = imageMatch[1];
         elements.push({ type: "image", src: imagePath });
 
-
         continue; // go to the next line in the markdown
       }
 
@@ -213,11 +212,11 @@ export class Parser {
       return null; // No content for this page
     }
 
-    console.log(`Page ${pageNumber}`);
+    //console.log(`Page ${pageNumber}`);
 
     const pattern = elements.map((e, index) => {
       if (e.type === "image") {
-        console.log(`   ${index}: image`);
+        //  console.log(`   ${index}: image`);
         return "image";
       } else if (e.type === "text") {
         // determine if we want  "l1-only", "l2-only", or "multiple-languages"
@@ -225,19 +224,19 @@ export class Parser {
         const langs = Object.keys(textBlock.content);
         if (langs.length === 1) {
           const x = langs[0] === metadata.l1 ? "l1-only" : "l2-only";
-          console.log(`   ${index}: ${x}`);
+          //  console.log(`   ${index}: ${x}`);
           return x;
         } else if (langs.length > 1) {
-          console.log(`   ${index}: multiple-languages`);
+          //console.log(`   ${index}: multiple-languages`);
           return "multiple-languages";
         } else {
-          console.log(`   ${index}: PROBLEM`);
+          //console.log(`   ${index}: PROBLEM`);
           this.addError(
             `Text block without languages found on page ${pageNumber}`
           );
         }
       }
-      console.log(`   ${index}: FALLBACK TO l1-only`);
+      //console.log(`   ${index}: FALLBACK TO l1-only`);
       return "l1-only"; // Default fallback
     });
 
