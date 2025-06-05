@@ -1,5 +1,5 @@
-import * as yaml from "js-yaml";
 import { determinePageLayout } from "../5-generate-html/layout-determiner";
+import { BloomMetadataParser } from "./bloomMetadata";
 import type {
   Book,
   BookMetadata,
@@ -11,15 +11,22 @@ import type {
 
 export class Parser {
   private errors: ValidationError[] = [];
+  private metadataParser = new BloomMetadataParser();
 
   public parseMarkdown(markdown: string): Book {
     this.errors = [];
+    this.metadataParser.clearErrors();
 
-    const { frontmatter, body } = this.extractFrontmatter(markdown);
-    const metadata = this.parseMetadata(frontmatter);
+    const { frontmatter, body } =
+      this.metadataParser.extractFrontmatter(markdown);
+    const metadata = this.metadataParser.parseMetadata(frontmatter);
     if (!metadata) {
       throw new Error("Failed to parse metadata from frontmatter");
     }
+
+    // Merge metadata parser errors with our errors
+    this.errors.push(...this.metadataParser.getErrors());
+
     const pages = this.createPageObjects(body, metadata);
 
     if (this.errors.some((e) => e.type === "error")) {
@@ -30,63 +37,8 @@ export class Parser {
 
     return { metadata, pages };
   }
-
   getErrors(): ValidationError[] {
-    return this.errors;
-  }
-
-  private extractFrontmatter(content: string): {
-    frontmatter: string;
-    body: string;
-  } {
-    const frontmatterMatch = content.match(/^---\r?\n(.*?)\r?\n---\r?\n(.*)$/s);
-    if (!frontmatterMatch) {
-      this.addError("No YAML frontmatter found");
-      return { frontmatter: "", body: content };
-    }
-
-    return {
-      frontmatter: frontmatterMatch[1],
-      body: frontmatterMatch[2],
-    };
-  }
-
-  private parseMetadata(frontmatterText: string): BookMetadata {
-    try {
-      const metadata = yaml.load(frontmatterText) as BookMetadata;
-      this.validateMetadata(metadata);
-      return metadata;
-    } catch (error) {
-      this.addError(`Failed to parse YAML frontmatter: ${error}`);
-      return {} as BookMetadata;
-    }
-  }
-
-  private validateMetadata(metadata: BookMetadata): boolean {
-    if (!metadata.allTitles) {
-      this.addError("Missing required field: allTitles");
-    }
-    if (!metadata.languages) {
-      this.addError("Missing required field: languages");
-    }
-    if (!metadata.l1) {
-      this.addError("Missing required field: l1");
-    }
-
-    // Validate l1 exists in languages
-    if (metadata.l1 && metadata.languages && !metadata.languages[metadata.l1]) {
-      this.addError(`Primary language '${metadata.l1}' not found in languages`);
-    }
-
-    // Validate l2 exists in languages if specified
-    if (metadata.l2 && metadata.languages && !metadata.languages[metadata.l2]) {
-      this.addError(
-        `Secondary language '${metadata.l2}' not found in languages`
-      );
-    }
-
-    // return true if no errors
-    return this.errors.length === 0;
+    return [...this.errors, ...this.metadataParser.getErrors()];
   }
 
   private createPageObjects(
@@ -214,7 +166,7 @@ export class Parser {
 
     //console.log(`Page ${pageNumber}`);
 
-    const pattern = elements.map((e, index) => {
+    const pattern = elements.map((e) => {
       if (e.type === "image") {
         //  console.log(`   ${index}: image`);
         return "image";

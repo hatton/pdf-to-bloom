@@ -87,8 +87,7 @@ Line two`;
     expect(htmlText).toContain('<a href="https://example.com">link</a>');
     expect(htmlText).toContain("<p>");
   });
-
-  it("should validate required metadata fields", () => {
+  it("should integrate metadata parsing with page parsing", () => {
     const content = `---
 allTitles:
   en: "Test Book"

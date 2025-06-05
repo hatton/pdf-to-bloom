@@ -8,6 +8,7 @@ import {
   llmMarkdown,
   Parser,
   HtmlGenerator,
+  addBloomPlanToMarkdown,
 } from "@pdf-to-bloom/lib"; // Assuming these functions are async and return/handle as described
 import {
   checkIfEnriched,
@@ -346,31 +347,44 @@ export async function processConversion(inputPathArg: string, options: any) {
         console.log(chalk.red("No a priori language info found."));
       }
 
-      // Enrich the markdown content using the enrichment function
-      const result = await llmMarkdown(markdownContentToEnrich, openrouterKey, {
-        logCallback,
-        l1: langs?.l1,
-        l2: langs?.l2,
-        l3: langs?.l3,
-      });
+      const llmResult = await llmMarkdown(
+        markdownContentToEnrich,
+        openrouterKey,
+        {
+          logCallback,
+          l1: langs?.l1,
+          l2: langs?.l2,
+          l3: langs?.l3,
+        }
+      );
       logger.info(
-        `Writing uncleaned enriched markdown to: ${enrichedMarkdownOutputLocation.replace(".enriched.", ".fromLLM.enriched.")}`
+        `Writing raw markdown from llm to: ${enrichedMarkdownOutputLocation.replace(".enriched.", ".fromLLM.enriched.")}`
       );
       await fs.writeFile(
         enrichedMarkdownOutputLocation.replace(".enriched.", ".fromLLM."),
-        result.markdownResultFromEnrichmentLLM
+        llmResult.markdownResultFromEnrichmentLLM
       );
-
+      logger.info(
+        `Writing cleaned markdown to: ${enrichedMarkdownOutputLocation}`
+      );
       await fs.writeFile(
         enrichedMarkdownOutputLocation,
-        result.cleanedUpMarkdown
+        llmResult.cleanedUpMarkdown
       );
 
-      if (!result.valid) {
+      if (!llmResult.valid) {
         throw new Error(
           `Enrichment process returned invalid content. This can be a result of the mode/prompt. You may be able to see errors in the file "${enrichedMarkdownOutputLocation}" for details.`
         );
       }
+
+      // Now we want to do the final bit of any logic work, still in markdown format solely so
+      // that it is easier for a human to inspect the plan. Later we're go to HTML and by then
+      // it's really hard to wade through what was done.
+      const plannedMarkdown = addBloomPlanToMarkdown(
+        llmResult.cleanedUpMarkdown
+      );
+
       currentProcessingFilePath = enrichedMarkdownOutputLocation; // Update current file path
       currentProcessingFileType = InputType.EnrichedMarkdown; // Update current file type
       currentProcessingBaseName = getFileNameWithoutExtension(
@@ -401,8 +415,8 @@ export async function processConversion(inputPathArg: string, options: any) {
           currentProcessingFilePath,
           "utf-8"
         );
-        const p = new Parser();
-        const book = p.parseMarkdown(enrichedMarkdownContent);
+
+        const book = new Parser().parseMarkdown(enrichedMarkdownContent);
 
         const bloomHtmlContent = await HtmlGenerator.generateHtmlDocument(
           book,
