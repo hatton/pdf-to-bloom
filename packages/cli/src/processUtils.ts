@@ -25,11 +25,6 @@ export async function cleanUpTempDir(dirPath: string) {
   }
 }
 
-export async function copyFileToDest(src: string, dest: string) {
-  await fs.mkdir(path.dirname(dest), { recursive: true }); // Ensure target directory exists
-  await fs.copyFile(src, dest);
-}
-
 export function createLogCallback(showVerbose: boolean) {
   return (log: any) => {
     switch (log.level) {
@@ -50,14 +45,6 @@ export function createLogCallback(showVerbose: boolean) {
         break;
     }
   };
-}
-export async function isDirectory(inputPath: string): Promise<boolean> {
-  try {
-    const stats = await fs.stat(inputPath);
-    return stats.isDirectory();
-  } catch {
-    return false;
-  }
 }
 
 // More robust check for YAML front matter presence

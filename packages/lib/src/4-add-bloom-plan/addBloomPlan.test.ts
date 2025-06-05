@@ -22,6 +22,8 @@ Just some text
 Text before image
 ![](image1.png)
 `;
+
+    // the expected output will remove
     const output = `---
 allTitles:
   en: "This is the title"

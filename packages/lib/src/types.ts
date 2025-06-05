@@ -1,4 +1,4 @@
-import { BookMetadata } from "./3-add-bloom-plan/bloomMetadata";
+import { BookMetadata } from "./4-add-bloom-plan/bloomMetadata";
 
 export interface ImageElement {
   type: "image";

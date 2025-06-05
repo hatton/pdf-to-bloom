@@ -2,7 +2,7 @@ import { determinePageLayout } from "../5-generate-html/layout-determiner";
 import {
   BloomMetadataParser,
   BookMetadata,
-} from "../3-add-bloom-plan/bloomMetadata";
+} from "../4-add-bloom-plan/bloomMetadata";
 import type {
   Book,
   PageContent,

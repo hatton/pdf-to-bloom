@@ -2,66 +2,16 @@ import { Command } from "commander";
 import chalk from "chalk";
 import { existsSync } from "fs"; // Import the synchronous existsSync function
 import * as path from "path";
-import { spawn } from "child_process";
 import { fileURLToPath } from "url";
-import { processConversion } from "./process";
+import { Arguments, Artifact, processConversion } from "./process";
+import { A } from "vitest/dist/chunks/environment.LoooBwUu.js";
+import { get } from "http";
 
 // ES module equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const program = new Command();
-
-// Helper function to start web app
-function startWebApp() {
-  console.log(chalk.blue("🚀 Starting web application..."));
-
-  // Try to find the web package in common monorepo structures
-  const possibleWebPaths = [
-    path.resolve(__dirname, "../../../web"), // e.g., if cli/dist is inside cli/src
-    path.resolve(__dirname, "../../web"), // e.g., if cli/src
-    path.resolve(process.cwd(), "packages/web"), // Common monorepo pattern
-    path.resolve(process.cwd(), "web"), // If running from project root and web is direct child
-  ];
-  let webPath: string | null = null;
-  for (const webPathCandidate of possibleWebPaths) {
-    // existsSync is synchronous, which is acceptable for a startup check
-    if (existsSync(path.join(webPathCandidate, "package.json"))) {
-      webPath = webPathCandidate;
-      break;
-    }
-  }
-
-  if (webPath) {
-    console.log(chalk.gray(`Found web package at: ${webPath}`));
-    // Use yarn dev to start the web app
-    const child = spawn("yarn", ["dev"], {
-      cwd: webPath,
-      stdio: "inherit", // Pipe child process stdout/stderr to parent
-      shell: true, // Use shell to find 'yarn' command
-    });
-
-    child.on("error", (error) => {
-      console.error(
-        chalk.red("❌ Failed to start web application:"),
-        error.message
-      );
-      process.exit(1);
-    });
-  } else {
-    console.error(
-      chalk.red(
-        "❌ Web application not found. Please ensure you're running from a pdf-to-bloom workspace or that the 'web' package is installed."
-      )
-    );
-    console.log(
-      chalk.blue(
-        "💡 Tip: Run from the root of the pdf-to-bloom project (`yarn dev`), or install the web package (`yarn install` in its directory)."
-      )
-    );
-    process.exit(1);
-  }
-}
 
 // --- Commander.js Setup ---
 program
@@ -72,12 +22,12 @@ program
 // Main command: Handles both web app start and file conversions
 program
   .argument(
-    "[input]",
-    "Path to input file (PDF, markdown) or directory. Omit this argument to start the web app."
+    "<input>",
+    "Path to input file ending in .pdf,  .ocr.md, .llm.md, or .bloom.md."
   )
   .option(
     "-t, --target <target>",
-    "Target format: bloom, markdown, or enriched. Default is 'bloom'."
+    "Target format: markdown (just ocr of the PDF), tagged (run through LLM and other processing), or bloom. Default is bloom."
   )
   .option(
     "-o, --output <path>",
@@ -93,18 +43,19 @@ program
   )
   .option("--verbose", "Enable verbose logging to see detailed process steps")
   .action(async (input, options) => {
-    // If no input path is provided, and no conversion options are specified, start the web app
-    if (!input && !options.target && !options.output) {
-      startWebApp();
-      return;
-    }
-
-    // If an input path is provided, proceed with conversion
     if (input) {
-      await processConversion(input, options);
+      const args: Arguments = {
+        input,
+        target: getTarget(options.target),
+        output: options.output ? path.resolve(options.output) : process.cwd(),
+        mistralApiKey: options.mistralApiKey || process.env.MISTRAL_API_KEY,
+        openrouterKey: options.openrouterKey || process.env.OPENROUTER_KEY,
+        verbose: options.verbose || false,
+      };
+
+      await processConversion(input, args);
     } else {
-      // If no input path, but options like --target or --output are given, it's an error.
-      // E.g., `pdf-to-bloom --target=markdown` without an input file doesn't make sense.
+      // This should never happen now since input is required, but kept for robustness
       console.error(
         chalk.red(
           "❌ Error: Input path is required for file conversion operations."
@@ -139,3 +90,15 @@ program.on("command:*", () => {
 
 // Parse command line arguments and execute the appropriate action
 program.parse(process.argv);
+function getTarget(target: any): Artifact {
+  switch (target) {
+    case "markdown":
+      return Artifact.MarkdownFromOCR;
+    case "tagged":
+      return Artifact.MarkdownReadyForBloom;
+    case "bloom":
+      return Artifact.HTML;
+    default:
+      return Artifact.HTML;
+  }
+}

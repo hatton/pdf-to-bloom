@@ -1,5 +1,3 @@
-import chalk from "chalk";
-
 import * as fs from "fs/promises"; // Use promises API for async file operations
 import * as path from "path";
 import {
@@ -11,345 +9,108 @@ import {
   addBloomPlanToMarkdown,
 } from "@pdf-to-bloom/lib"; // Assuming these functions are async and return/handle as described
 import {
-  checkIfEnriched,
-  cleanUpTempDir,
-  copyFileToDest,
   createLogCallback,
-  createTempDir,
-  findMarkdownFileInDirectory,
   getApiKeys,
-  getFileExtension,
   getFileNameWithoutExtension,
-  isDirectory,
   readBloomCollectionSettingsIfFound,
 } from "./processUtils";
+import { b } from "vitest/dist/chunks/suite.B2jumIFP.js";
 
-enum InputType {
-  PDF = "pdf",
-  Markdown = "markdown", // unenriched
-  EnrichedMarkdown = "enrichedMarkdown",
+export enum Artifact {
+  PDF,
+  MarkdownFromOCR,
+  MarkdownFromLLM,
+  MarkdownReadyForBloom,
+  HTML,
 }
+export type Arguments = {
+  input: string; // Input file or directory path
+  output: string; // Optional output path
+  target: Artifact; // Target format (default is HTML)
+  verbose: boolean; // Verbose logging
+  mistralApiKey?: string; // Mistral API key for PDF to markdown conversion
+  openrouterKey?: string; // OpenRouter API key for LLM tagging of markdown
+};
 
-enum TargetType {
-  Markdown = "markdown",
-  Enriched = "enriched",
-  Bloom = "bloom",
-}
+type Plan = {
+  pdfPath?: string;
+  markdownFromOCRPath?: string;
+  markdownFromLLMPath?: string;
+  markdownCleanedAfterLLMPath?: string;
+  markdownForBloomPath?: string;
+  bookFolderPath?: string;
+  inputArtifact: Artifact;
+  targetArtifact: Artifact;
+  verbose: boolean;
+  mistralKey?: string;
+  openrouterKey?: string;
+};
 
-export async function processConversion(inputPathArg: string, options: any) {
-  let tempDir: string | null = null;
-  const { mistralKey, openrouterKey } = getApiKeys(options);
-  const logCallback = createLogCallback(options.verbose);
+// Convert numeric enum value to readable string
+const artifactNames = {
+  [Artifact.PDF]: "PDF",
+  [Artifact.MarkdownFromOCR]: "Markdown from OCR",
+  [Artifact.MarkdownFromLLM]: "Enriched Markdown from LLM",
+  [Artifact.MarkdownReadyForBloom]: "Bloom-ready Markdown",
+  [Artifact.HTML]: "Bloom HTML",
+};
+
+export async function processConversion(inputPath: string, options: Arguments) {
+  const logCallback = createLogCallback(!!options.verbose);
+  logger.subscribe(logCallback);
+
+  const plan = await makeThePlan(inputPath, options);
 
   try {
-    // 1. Resolve Input: Determine actual file path and its type
-    const resolvedInputPath = path.resolve(inputPathArg);
-    const isInputDirectory = await isDirectory(resolvedInputPath);
-    let actualFilePath: string; // The specific file (e.g., .md inside a directory or the direct input file)
-    let resolvedInputType: InputType;
-
-    if (isInputDirectory) {
-      const mdFile = await findMarkdownFileInDirectory(resolvedInputPath);
-      if (!mdFile) {
-        throw new Error(
-          `No .md file found in input directory: ${resolvedInputPath}`
-        );
-      }
-      actualFilePath = mdFile; // Set actualFilePath to the .md file found
-      resolvedInputType = (await checkIfEnriched(actualFilePath))
-        ? InputType.EnrichedMarkdown
-        : InputType.Markdown;
-      console.log(
-        chalk.blue(
-          `📄 Identified input as directory containing markdown file: ${path.basename(actualFilePath)}`
-        )
-      );
-    } else {
-      actualFilePath = resolvedInputPath; // Input is a direct file path
-      const ext = getFileExtension(actualFilePath);
-      if (ext === ".pdf") {
-        resolvedInputType = InputType.PDF;
-      } else if (ext === ".md") {
-        resolvedInputType = (await checkIfEnriched(actualFilePath))
-          ? InputType.EnrichedMarkdown
-          : InputType.Markdown;
-      } else {
-        throw new Error(
-          `Unsupported input file type: ${ext}. Supported types: .pdf, .md`
-        );
-      }
-    }
-    console.log(
-      chalk.gray(`Input file: "${actualFilePath}" (Type: ${resolvedInputType})`)
+    logger.info(
+      `Starting conversion from "${artifactNames[plan.inputArtifact]}" to "${artifactNames[plan.targetArtifact]}"`
     );
 
-    // 2. Resolve Target: Determine the desired output format
-    let resolvedTargetType: TargetType;
-    if (!options.target) {
-      // Default target if --target is not specified
-      // Requirement: pdf-to-bloom path-to-some/directory --output some/directory implies bloom target
-      // Requirement: pdf-to-bloom path-to-some/mybook.pdf (no target) implies bloom target
-      resolvedTargetType = TargetType.Bloom;
-      console.log(
-        chalk.gray(`No target specified. Defaulting to: ${resolvedTargetType}`)
-      );
-    } else {
-      switch (options.target.toLowerCase()) {
-        case "markdown":
-          resolvedTargetType = TargetType.Markdown;
-          break;
-        case "enriched":
-          resolvedTargetType = TargetType.Enriched;
-          break;
-        case "bloom":
-          resolvedTargetType = TargetType.Bloom;
-          break;
-        default:
-          throw new Error(
-            `Invalid target type: "${options.target}". Valid targets are: markdown, enriched, bloom.`
-          );
-      }
-    }
-    console.log(chalk.gray(`Target format: ${resolvedTargetType}`));
-
-    // 3. Calculate Final Output Path: Determine where the final result should be saved
-    let finalOutputPath: string;
-    const inputFileNameWithoutExt = getFileNameWithoutExtension(actualFilePath);
-    const inputBaseDir = path.dirname(actualFilePath);
-    if (options.output) {
-      // If --output is specified, create a subdirectory within it based on the input file name
-      const outputBaseDir = path.resolve(options.output);
-      switch (resolvedTargetType) {
-        case TargetType.Markdown:
-          finalOutputPath = path.join(
-            outputBaseDir,
-            `${inputFileNameWithoutExt}.md`
-          );
-          await fs.mkdir(path.dirname(finalOutputPath), { recursive: true });
-          break;
-        case TargetType.Enriched:
-          finalOutputPath = path.join(
-            outputBaseDir,
-            `${inputFileNameWithoutExt}.enriched.md`
-          );
-          await fs.mkdir(path.dirname(finalOutputPath), { recursive: true });
-          break;
-        case TargetType.Bloom:
-          finalOutputPath = path.join(
-            outputBaseDir,
-            `${inputFileNameWithoutExt}_bloom`
-          );
-          await fs.mkdir(finalOutputPath, { recursive: true });
-          break;
-      }
-    } else {
-      // If no --output is specified, derive it based on input type and target
-      // For PDF inputs: use current working directory (traditional behavior)
-      // For markdown inputs: use same directory as input, unless it contains "test-inputs/"
-      let outputBaseDir: string;
-
-      if (resolvedInputType === InputType.PDF) {
-        // PDF inputs create output in current working directory
-        outputBaseDir = process.cwd();
-      } else {
-        // Markdown inputs (plain or enriched) use same directory as input,
-        // unless the path contains "test-inputs/" to avoid polluting test directories
-        if (inputBaseDir.includes("test-inputs")) {
-          outputBaseDir = process.cwd();
-        } else {
-          outputBaseDir = inputBaseDir;
-        }
-      }
-
-      switch (resolvedTargetType) {
-        case TargetType.Markdown:
-          finalOutputPath = path.join(
-            outputBaseDir,
-            `${inputFileNameWithoutExt}.md`
-          );
-          break;
-        case TargetType.Enriched:
-          finalOutputPath = path.join(
-            outputBaseDir,
-            `${inputFileNameWithoutExt}.enriched.md`
-          );
-          break;
-        case TargetType.Bloom:
-          if (resolvedInputType === InputType.PDF) {
-            // For PDF inputs, create a bloom folder
-            finalOutputPath = path.join(
-              outputBaseDir,
-              `${inputFileNameWithoutExt}_bloom`
-            );
-            await fs.mkdir(finalOutputPath, { recursive: true });
-          } else {
-            // For markdown inputs, create HTML file directly in the same directory
-            finalOutputPath = path.join(
-              outputBaseDir,
-              `${inputFileNameWithoutExt}.html`
-            );
-          }
-          break;
-      }
-    }
-    console.log(chalk.gray(`Final output path: "${finalOutputPath}"`)); // --- Conversion Orchestration: Execute the necessary transformation steps ---
-    console.log(
-      chalk.blue(
-        `🔄 Starting conversion pipeline from ${resolvedInputType} to ${resolvedTargetType}...`
-      )
-    ); // Note: We always use the step-by-step pipeline approach instead of pdfToBloomFolder()
-    // to create intermediate files that can be inspected for debugging purposes
-
-    // Validate API keys early for PDF to Bloom conversion
-    if (
-      resolvedInputType === InputType.PDF &&
-      resolvedTargetType === TargetType.Bloom
-    ) {
-      if (!mistralKey) {
-        throw new Error(
-          "Mistral API key is required for PDF to Bloom conversion. Provide --mistral-api-key or set MISTRAL_API_KEY environment variable."
-        );
-      }
-      if (!openrouterKey) {
-        throw new Error(
-          "OpenRouter API key is required for PDF to Bloom conversion. Provide --openrouter-key or set OPENROUTER_KEY environment variable."
-        );
-      }
-    }
-
-    // For all other conversion paths, follow the staged pipeline:
-    // PDF -> Markdown -> Enriched Markdown -> Bloom HTML    // Determine if intermediate output files should be stored in a temporary directory.
-    // For debugging purposes, we'll always save intermediate files next to the input
-    // so they can be inspected.
-    const useTempForIntermediate = false;
-
-    if (useTempForIntermediate) {
-      tempDir = await createTempDir();
-      console.log(
-        chalk.gray(
-          `Using temporary directory for intermediate files: "${tempDir}"`
-        )
-      );
-    }
-
-    // Initialize current state of the file being processed
-    let currentProcessingFilePath = actualFilePath;
-    let currentProcessingFileType = resolvedInputType;
-    let currentProcessingBaseName = getFileNameWithoutExtension(
-      currentProcessingFilePath
-    ); // Step 1: Convert PDF to Markdown (if input is PDF)
-    if (currentProcessingFileType === InputType.PDF) {
-      if (!mistralKey) {
-        throw new Error(
-          "Mistral API key is required for PDF to Markdown conversion. Provide --mistral-api-key or set MISTRAL_API_KEY environment variable."
-        );
-      } // Path for the markdown output file (either temp or final)
-      let markdownOutputLocation: string;
-      if (useTempForIntermediate) {
-        markdownOutputLocation = path.join(
-          tempDir!,
-          `${currentProcessingBaseName}.md`
-        );
-      } else if (resolvedTargetType === TargetType.Markdown) {
-        markdownOutputLocation = finalOutputPath;
-      } else {
-        // create it in the bloom output directory
-        markdownOutputLocation = path.join(
-          finalOutputPath,
-          `${currentProcessingBaseName}.md`
-        );
-      }
-      console.log(chalk.blue(`-> Converting PDF to Markdown...`));
+    let latestArtifact = plan.inputArtifact; // Start with the input type    // ------------------------------------------------------------------------------
+    // Step 1: Convert PDF to Markdown
+    // ------------------------------------------------------------------------------
+    if (latestArtifact === Artifact.PDF) {
+      logger.info(`-> Converting PDF to Markdown...`);
       // makeMarkdownFromPDF returns the markdown content string and writes associated images
       const markdownContent = await makeMarkdownFromPDF(
-        currentProcessingFilePath,
-        path.dirname(markdownOutputLocation),
-        mistralKey,
+        plan.pdfPath!,
+        plan.bookFolderPath!,
+        plan.mistralKey!,
         logCallback
       );
-      logger.info(`Writing OCR'd markdown to: ${markdownOutputLocation}`);
-      console.log(
-        chalk.gray(
-          `📝 Creating intermediate markdown file: ${markdownOutputLocation}`
-        )
-      );
-      await fs.writeFile(markdownOutputLocation, markdownContent); // Write the markdown content to file
+      logger.info(`Writing OCR'd markdown to: ${plan.markdownFromOCRPath}`);
+      await fs.writeFile(plan.markdownFromOCRPath!, markdownContent); // Write the markdown content to file
 
-      currentProcessingFilePath = markdownOutputLocation; // Update current file path
-      currentProcessingFileType = InputType.Markdown; // Update current file type
-      currentProcessingBaseName = getFileNameWithoutExtension(
-        currentProcessingFilePath
-      ); // Update base name
-
+      latestArtifact = Artifact.MarkdownFromOCR;
       // If Markdown was the final target, we're done here
-      if (resolvedTargetType === TargetType.Markdown) {
-        if (useTempForIntermediate) {
-          // If it was written to temp, copy to final destination.
-          await copyFileToDest(currentProcessingFilePath, finalOutputPath);
-        }
-        console.log(
-          chalk.green("✅ PDF to Markdown conversion completed successfully!")
-        );
-        console.log(chalk.blue(`📄 Output saved to: "${finalOutputPath}"`));
+      if (plan.targetArtifact === Artifact.MarkdownFromOCR) {
         return;
       }
-    } // Step 2: Enrich Markdown (if current file is Markdown and needs enrichment)
-    // This step is skipped if the input was already EnrichedMarkdown
-    if (currentProcessingFileType === InputType.Markdown) {
-      if (!openrouterKey) {
-        throw new Error(
-          "OpenRouter API key is required for markdown enrichment. Provide --openrouter-key or set OPENROUTER_KEY environment variable."
-        );
-      } // Path for the enriched markdown output file (either temp or final)
-      let finalMarkdownOutputLocation: string;
-      if (useTempForIntermediate) {
-        finalMarkdownOutputLocation = path.join(
-          tempDir!,
-          `${currentProcessingBaseName}.enriched.md`
-        );
-      } else if (resolvedTargetType === TargetType.Enriched) {
-        finalMarkdownOutputLocation = finalOutputPath;
-      } else {
-        // For intermediate enriched markdown when target is bloom
-        if (
-          resolvedInputType === InputType.PDF ||
-          finalOutputPath.endsWith("_bloom")
-        ) {
-          // If finalOutputPath is a directory (PDF input or explicit bloom folder), create intermediate file inside it
-          finalMarkdownOutputLocation = path.join(
-            finalOutputPath,
-            `${currentProcessingBaseName}.enriched.md`
-          );
-        } else {
-          // If finalOutputPath is an HTML file (markdown input), create intermediate file in same directory
-          finalMarkdownOutputLocation = path.join(
-            path.dirname(finalOutputPath),
-            `${currentProcessingBaseName}.enriched.md`
-          );
-        }
-      }
-      console.log(chalk.blue(`-> Enriching Markdown...`));
+    } // ------------------------------------------------------------------------------
+    // Stage 2: Run LLM over Markdown
+    // ------------------------------------------------------------------------------
+    if (latestArtifact === Artifact.MarkdownFromOCR) {
+      logger.info(`-> Giving Markdown to LLM...`);
       const markdownContentToEnrich = await fs.readFile(
-        currentProcessingFilePath,
+        plan.markdownFromOCRPath!,
         "utf-8"
       );
       // For markdown enrichment, if the input is from a Bloom collection, try to get language info from collection settings
-      const inputFolder = path.dirname(currentProcessingFilePath);
+      const inputFolder = path.dirname(plan.bookFolderPath!);
       const langs = await readBloomCollectionSettingsIfFound(inputFolder);
-      // put to the console whether we found the languages
       if (langs) {
-        console.log(
-          chalk.blue(
-            `Supplying info from collection settings: L1: ${langs.l1}, L2: ${langs.l2}, L3: ${langs.l3}`
-          )
+        logger.info(
+          `Supplying info from Bloom Collection settings: L1: ${langs.l1}, L2: ${langs.l2}, L3: ${langs.l3}`
         );
       } else {
-        console.log(chalk.red("No a priori language info found."));
+        logger.warn(
+          `No Bloom Collection settings found in ${inputFolder} or parent directories, so LLM may not use the correct language codes.`
+        );
       }
 
       const llmResult = await llmMarkdown(
         markdownContentToEnrich,
-        openrouterKey,
+        plan.openrouterKey!,
         {
           logCallback,
           l1: langs?.l1,
@@ -357,109 +118,177 @@ export async function processConversion(inputPathArg: string, options: any) {
           l3: langs?.l3,
         }
       );
-      logger.info(
-        `Writing raw markdown from llm to: ${finalMarkdownOutputLocation.replace(".enriched.", ".fromLLM.enriched.")}`
-      );
       await fs.writeFile(
-        finalMarkdownOutputLocation.replace(".enriched.", ".fromLLM."),
+        plan.markdownFromLLMPath!,
         llmResult.markdownResultFromEnrichmentLLM
       );
-      logger.info(
-        `Writing cleaned markdown to: ${finalMarkdownOutputLocation}`
-      );
       await fs.writeFile(
-        finalMarkdownOutputLocation.replace(".enriched.", ".cleaned."),
+        plan.markdownCleanedAfterLLMPath!,
         llmResult.cleanedUpMarkdown
       );
 
       if (!llmResult.valid) {
         throw new Error(
-          `Enrichment process returned invalid content. This can be a result of the mode/prompt. You may be able to see errors in the file "${finalMarkdownOutputLocation}" for details.`
+          `Enrichment process returned invalid content. This can be a result of the mode/prompt. You may be able to see errors in the file "${plan.markdownCleanedAfterLLMPath!}" for details.`
         );
       }
 
+      latestArtifact = Artifact.MarkdownFromLLM;
+      if (plan.targetArtifact === Artifact.MarkdownFromLLM) {
+        return; // If Markdown was the final target, we're done here
+      }
+    }
+
+    // ------------------------------------------------------------------------------
+    // Stage 3: Make Markdown with all decisions made
+    // ------------------------------------------------------------------------------
+    if (latestArtifact === Artifact.MarkdownFromLLM) {
       // Now we want to do the final bit of any logic work, still in markdown format because
       // then it is easier for a human to inspect the plan. Later we're going to HTML and by then
       // it's really hard to wade through what was done.
-      const finalMarkdown = addBloomPlanToMarkdown(llmResult.cleanedUpMarkdown);
-      logger.info(`Writing final markdown to: ${finalMarkdownOutputLocation}`);
-      await fs.writeFile(finalMarkdownOutputLocation, finalMarkdown);
 
-      currentProcessingFilePath = finalMarkdownOutputLocation; // Update current file path
-      currentProcessingFileType = InputType.EnrichedMarkdown; // Update current file type
-      currentProcessingBaseName = getFileNameWithoutExtension(
-        currentProcessingFilePath
-      ); // Update base name
+      const input = await fs.readFile(
+        plan.markdownCleanedAfterLLMPath!,
+        "utf-8"
+      );
 
+      const finalMarkdown = addBloomPlanToMarkdown(input);
+      logger.info(
+        `Writing ready-for-bloom markdown to: ${plan.markdownForBloomPath!}`
+      );
+
+      await fs.writeFile(plan.markdownForBloomPath!, finalMarkdown);
+
+      latestArtifact = Artifact.MarkdownReadyForBloom;
       // If Enriched Markdown was the final target, we're done here
-      if (resolvedTargetType === TargetType.Enriched) {
-        if (useTempForIntermediate) {
-          // If it was written to temp, copy to final destination
-          await copyFileToDest(currentProcessingFilePath, finalOutputPath);
-        }
-        console.log(
-          chalk.green("✅ Markdown enrichment completed successfully!")
-        );
-        console.log(chalk.blue(`📄 Output saved to: "${finalOutputPath}"`));
+      if (plan.targetArtifact === Artifact.MarkdownReadyForBloom) {
         return;
       }
     }
-    // If the input was originally EnrichedMarkdown, this step is naturally skipped,
-    // and currentProcessingFileType remains InputType.EnrichedMarkdown.    // Step 3: Convert Enriched Markdown to Bloom HTML (if current file is Enriched Markdown)
-    if (currentProcessingFileType === InputType.EnrichedMarkdown) {
-      if (resolvedTargetType === TargetType.Bloom) {
-        console.log(
-          chalk.blue(`-> Converting Enriched Markdown to Bloom HTML...`)
-        );
-        const enrichedMarkdownContent = await fs.readFile(
-          currentProcessingFilePath,
-          "utf-8"
-        );
+    // ------------------------------------------------------------------------------
+    // Stage 4: Convert Enriched Markdown to Bloom HTML
+    // ------------------------------------------------------------------------------
+    if (latestArtifact === Artifact.MarkdownReadyForBloom) {
+      const enrichedMarkdownContent = await fs.readFile(
+        plan.markdownForBloomPath!,
+        "utf-8"
+      );
 
-        const book = new Parser().parseMarkdown(enrichedMarkdownContent);
+      const book = new Parser().parseMarkdown(enrichedMarkdownContent);
 
-        const bloomHtmlContent = await HtmlGenerator.generateHtmlDocument(
-          book,
-          logCallback
-        );
+      const bloomHtmlContent = await HtmlGenerator.generateHtmlDocument(
+        book,
+        logCallback
+      );
 
-        // Check if finalOutputPath is a directory or a file path
-        if (
-          resolvedInputType === InputType.PDF ||
-          finalOutputPath.endsWith("_bloom")
-        ) {
-          // For PDF inputs or when explicitly creating a bloom folder, save as index.html in the directory
-          await fs.writeFile(
-            path.join(finalOutputPath, "index.html"),
-            bloomHtmlContent
-          );
-        } else {
-          // For markdown inputs, save directly as the HTML file
-          await fs.writeFile(finalOutputPath, bloomHtmlContent);
-        }
-
-        console.log(
-          chalk.green("✅ Conversion to Bloom HTML completed successfully!")
-        );
-        console.log(chalk.blue(`📄 Output saved to: "${finalOutputPath}"`));
-        return;
-      }
+      // Ensure the output directory exists
+      await fs.mkdir(plan.bookFolderPath!, { recursive: true });
+      await fs.writeFile(
+        path.join(plan.bookFolderPath!, "index.html"),
+        bloomHtmlContent
+      );
+      logger.info(`Bloom book should be at: ${plan.bookFolderPath}`);
+      logger.info("✅ Conversion to Bloom HTML completed successfully!");
+      return;
     }
-
-    // If execution reaches this point, it means an unsupported or unhandled conversion path was requested.
-    throw new Error(
-      `Unhandled conversion scenario: Input "${resolvedInputType}", Target "${resolvedTargetType}".`
-    );
   } catch (error: any) {
-    console.error(chalk.red("❌ Error during conversion:"));
-    console.error(
-      chalk.red(error instanceof Error ? error.message : String(error))
-    );
+    logger.error("❌ Error during conversion:");
+    logger.error(error instanceof Error ? error.message : String(error));
     process.exit(1); // Exit with an error code
-  } finally {
-    // Ensure temporary directory is cleaned up regardless of success or failure
-    if (tempDir) {
-      await cleanUpTempDir(tempDir);
-    }
   }
+}
+
+async function makeThePlan(
+  inputPath: string,
+  cliArguments: Arguments
+): Promise<Plan> {
+  const fullInputPath = path.resolve(inputPath);
+  // use a regex to figure out the input type (as an Artifact) by looking at its last two file extensions, e.g. ".pdf" or ".ocr.md"
+  const regex = /^(.*?)(\.[^.]+)?(\.[^.]+)?$/; // Matches the last two extensions
+  const match = fullInputPath.match(regex);
+  if (!match) {
+    throw new Error(`Failed to parse input file path: ${fullInputPath}`);
+  }
+
+  const [, , firstExt, secondExt] = match;
+  // want ".pdf" or ".ocr.md" or ".llm.md" or ".bloom.md" by combining the last two extensions with a dot
+
+  const ext = [firstExt, secondExt].filter(Boolean).join("");
+
+  let inputType: Artifact;
+  switch (ext) {
+    case ".pdf":
+      inputType = Artifact.PDF;
+      break;
+    case "md":
+    case ".ocr.md":
+      inputType = Artifact.MarkdownFromOCR;
+      break;
+    case ".llm.md":
+      inputType = Artifact.MarkdownFromLLM;
+      break;
+    case ".bloom.md":
+      inputType = Artifact.MarkdownReadyForBloom;
+      break;
+    default:
+      throw new Error(
+        `Unsupported input file type: ${ext}. Supported types: .pdf, .md, .ocr.md, .llm.md, .bloom.md`
+      );
+  }
+
+  logger.info(`Input file: "${fullInputPath}" (Type: ${inputType})`);
+
+  const targetType = cliArguments.target ?? Artifact.HTML;
+
+  logger.info(`Target format: ${artifactNames[targetType]}`);
+
+  const { mistralKey, openrouterKey } = getApiKeys(cliArguments);
+
+  if (inputType === Artifact.PDF && !mistralKey) {
+    // we are going to have to do OCR, need the key
+    throw new Error(
+      "Mistral API key is required for PDF to Bloom conversion. Provide --mistral-api-key or set MISTRAL_API_KEY environment variable."
+    );
+  }
+
+  if (
+    inputType < Artifact.MarkdownFromLLM &&
+    inputType >= Artifact.MarkdownFromLLM &&
+    !openrouterKey
+  ) {
+    // we are going to have to do call the LLM, need the key
+    throw new Error(
+      "OpenRouter API key is required for PDF to Bloom conversion. Provide --openrouter-key or set OPENROUTER_KEY environment variable."
+    );
+  }
+
+  logger.verbose(
+    `fullInputPath: ${fullInputPath} cliOutput: ${cliArguments.output}`
+  );
+
+  const baseOutputDir = cliArguments.output;
+
+  logger.verbose(`Output directory: ${baseOutputDir}`);
+  const baseName = getFileNameWithoutExtension(
+    getFileNameWithoutExtension(fullInputPath)
+  );
+  const bookDir = path.join(baseOutputDir, baseName);
+  return {
+    pdfPath: inputType === Artifact.PDF ? fullInputPath : undefined,
+    markdownFromOCRPath: path.join(baseOutputDir, baseName + ".ocr.md"),
+    markdownFromLLMPath: path.join(baseOutputDir, baseName + ".llm.md"),
+    markdownCleanedAfterLLMPath: path.join(
+      baseOutputDir,
+      baseName + ".cleaned.md"
+    ),
+    markdownForBloomPath: path.join(baseOutputDir, baseName + ".bloom.md"),
+
+    bookFolderPath: bookDir,
+
+    inputArtifact: inputType,
+    targetArtifact: targetType,
+    verbose: cliArguments.verbose ?? false,
+    mistralKey,
+    openrouterKey,
+  };
 }

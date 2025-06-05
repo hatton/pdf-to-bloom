@@ -21,3 +21,5 @@ collections/
 bilingual-sample_bloom/
 
 bilingual-sample.enriched_bloom/
+
+test-output/

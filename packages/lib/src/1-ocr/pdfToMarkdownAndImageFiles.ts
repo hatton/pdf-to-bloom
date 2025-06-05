@@ -45,14 +45,14 @@ interface OCRImage {
 /**
  * Converts a PDF file to markdown format using Mistral AI OCR
  * @param pdfPath - Path to the PDF file
- * @param outputDir - Directory where extracted images will be saved
+ * @param imageOutputDir - Directory where extracted images will be saved
  * @param mistralApiKey - MistralAI API key for processing
  * @param logCallback - Optional callback to receive log messages
  * @returns Promise resolving to markdown string
  */
 export async function pdfToMarkdownAndImageFiles(
   pdfPath: string,
-  outputDir: string,
+  imageOutputDir: string,
   mistralApiKey: string,
   logCallback?: (log: LogEntry) => void
 ): Promise<string> {
@@ -111,8 +111,8 @@ export async function pdfToMarkdownAndImageFiles(
 
     // Ensure output directory exists
     logger.verbose("Creating output directory for images...");
-    if (!fs.existsSync(outputDir)) {
-      fs.mkdirSync(outputDir, { recursive: true });
+    if (!fs.existsSync(imageOutputDir)) {
+      fs.mkdirSync(imageOutputDir, { recursive: true });
     }
 
     // Process and save images
@@ -122,7 +122,7 @@ export async function pdfToMarkdownAndImageFiles(
     for (const page of ocrResponse.pages) {
       for (const img of page.images) {
         try {
-          const imagePath = path.join(outputDir, img.id);
+          const imagePath = path.join(imageOutputDir, img.id);
 
           // Save the image file
           await saveBase64Image(img.imageBase64, imagePath);
