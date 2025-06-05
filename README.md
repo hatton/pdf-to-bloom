@@ -14,10 +14,6 @@ The core Node.js library that provides the PDF to Bloom conversion functionality
 
 A command-line interface for converting PDFs to Bloom format.
 
-### [@pdf-to-bloom/web](./packages/web)
-
-A React-based web application for PDF to Bloom conversion with a user-friendly interface.
-
 ## Quick Start
 
 1. **Install dependencies:**
@@ -32,15 +28,7 @@ A React-based web application for PDF to Bloom conversion with a user-friendly i
    yarn build
    ```
 
-3. **Run the web application:**
-
-   ```bash
-   yarn start:web
-   ```
-
-   The web app will be available at http://localhost:3000
-
-4. **Use the CLI:**
+3. **Use the CLI:**
    ```bash
    yarn start:cli convert --input example.pdf --output ./output --mistral-key YOUR_KEY
    ```
@@ -51,7 +39,6 @@ A React-based web application for PDF to Bloom conversion with a user-friendly i
 - `yarn test` - Run tests for all packages
 - `yarn build` - Build all packages
 - `yarn start:cli` - Run the CLI tool
-- `yarn start:web` - Start the web development server
 
 ## Individual Package Commands
 
@@ -66,31 +53,25 @@ yarn workspace @pdf-to-bloom/lib test
 yarn workspace @pdf-to-bloom/cli build
 yarn workspace @pdf-to-bloom/cli start
 
-# Work with the web app
-yarn workspace @pdf-to-bloom/web dev
-yarn workspace @pdf-to-bloom/web build
-```
 
 ## Project Structure
 
 ```
+
 pdf-to-bloom/
-├── package.json              # Root workspace configuration
+├── package.json # Root workspace configuration
 ├── packages/
-│   ├── core/                 # Core Node.js library
-│   │   ├── src/              # TypeScript source files
-│   │   ├── dist/             # Built library files
-│   │   └── package.json      # Core package config
-│   ├── cli/                  # Command-line interface
-│   │   ├── src/              # CLI source files
-│   │   ├── dist/             # Built CLI files
-│   │   └── package.json      # CLI package config
-│   └── web/                  # React web application
-│       ├── src/              # React components
-│       ├── dist/             # Built web files
-│       └── package.json      # Web package config
-└── README.md                 # This file
-```
+│ ├── core/ # Core Node.js library
+│ │ ├── src/ # TypeScript source files
+│ │ ├── dist/ # Built library files
+│ │ └── package.json # Core package config
+│ ├── cli/ # Command-line interface
+│ ├── src/ # CLI source files
+│ ├── dist/ # Built CLI files
+│ └── package.json # CLI package config
+└── README.md # This file
+
+````
 
 ## Core Library Overview
 
@@ -105,7 +86,7 @@ pdf-to-bloom is a TypeScript library that provides a three-stage pipeline for co
      mistralApiKey: string,
      logCallback?: (log: LogEntry) => void
    ): Promise<string>
-   ```
+````
 
 2. **enrichMarkdown**: Enhance the markdown content using OpenRouter API
 
