@@ -1,4 +1,3 @@
-import { determinePageLayout } from "../4-generate-html/layout-determiner";
 import {
   BloomMetadataParser,
   BookMetadata,
@@ -99,9 +98,9 @@ export class BloomMarkdown {
       .map((page, index) => {
         // first, emit the <!-- page --> comment with attributes
         let pageComment = `<!-- page ${index + 1} `;
-        if (page.layout) {
-          pageComment += `layout="${page.layout}" `;
-        }
+        // if (page.layout) {
+        //   pageComment += `layout="${page.layout}" `;
+        // }
         if (page.appearsToBeBilingualPage) {
           pageComment += `bilingual="true" `;
         }
@@ -112,16 +111,30 @@ export class BloomMarkdown {
 
     return `----\n${frontmatter}----\n\n${body}`;
   }
-
   private createPageObjects(body: string, metadata: BookMetadata): Page[] {
-    const pageBreaks = body.split("<!-- page -->");
+    // Use regex to split on page comments with or without attributes
+    const pageRegex = /<!--\s*page\s*(?:[^>]*)-->/g;
+    const parts = body.split(pageRegex);
     const pages: Page[] = [];
 
-    for (let i = 0; i < pageBreaks.length; i++) {
-      const pageContent = pageBreaks[i].trim();
+    // Find all page comments to extract their attributes
+    const pageComments = [...body.matchAll(pageRegex)];
+
+    // Skip the first part if it's empty (before the first page comment)
+    let startIndex = 0;
+    if (parts[0].trim() === "") {
+      startIndex = 1;
+    }
+
+    for (let i = startIndex; i < parts.length; i++) {
+      const pageContent = parts[i].trim();
       if (!pageContent) continue;
 
-      const page = this.parsePage(pageContent, metadata, i + 1);
+      // Get the corresponding page comment (adjust index for empty first part)
+      const pageCommentIndex = startIndex === 1 ? i - 1 : i;
+      const pageComment = pageComments[pageCommentIndex]?.[0] || "";
+
+      const page = this.parsePage(pageContent, metadata, i, pageComment);
       if (page) {
         pages.push(page);
       }
@@ -129,17 +142,20 @@ export class BloomMarkdown {
 
     return pages;
   }
-
   private parsePage(
     content: string,
     metadata: BookMetadata,
-    pageNumber: number
+    pageNumber: number,
+    pageComment?: string
   ): Page | null {
     const lines = content.split("\n");
     const elements: PageElement[] = [];
     let currentTextBlock: TextBlockElement | null = null;
     let currentLang = "";
     let currentText = "";
+
+    // Parse page attributes from the comment
+    const pageAttributes = this.parsePageAttributes(pageComment || "");
 
     for (const line of lines) {
       const trimmedLine = line.trim();
@@ -260,13 +276,11 @@ export class BloomMarkdown {
       //console.log(`   ${index}: FALLBACK TO l1-only`);
       return "l1-only"; // Default fallback
     });
-
-    const layout = determinePageLayout(pattern);
-
     return {
-      layout,
       elements,
-      appearsToBeBilingualPage: pattern.includes("multiple-languages"),
+      appearsToBeBilingualPage:
+        pageAttributes.bilingual ?? pattern.includes("multiple-languages"),
+      type: (pageAttributes.type as any) || "content", // Default to content type
     };
   }
 
@@ -313,8 +327,29 @@ export class BloomMarkdown {
   private addError(message: string): void {
     this.errors.push({ type: "error", message });
   }
-
   private addWarning(message: string): void {
     this.errors.push({ type: "warning", message });
+  }
+  private parsePageAttributes(pageComment: string): {
+    type?: string;
+    bilingual?: boolean;
+  } {
+    const attributes: { type?: string; bilingual?: boolean } = {};
+
+    // Extract type attribute
+    const typeMatch = pageComment.match(/type=["']?([^"'\s>]+)["']?/);
+    if (typeMatch) {
+      attributes.type = typeMatch[1];
+    }
+
+    // Extract bilingual attribute
+    const bilingualMatch = pageComment.match(
+      /bilingual=["']?(true|false)["']?/
+    );
+    if (bilingualMatch) {
+      attributes.bilingual = bilingualMatch[1] === "true";
+    }
+
+    return attributes;
   }
 }

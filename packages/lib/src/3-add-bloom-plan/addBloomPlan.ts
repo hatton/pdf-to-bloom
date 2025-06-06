@@ -24,17 +24,17 @@ export function addBloomPlanToMarkdown(markdown: string): string {
     if (isBilingualPage(page)) {
       page.appearsToBeBilingualPage = true;
     }
-    page.layout = choosePageLayout(page);
+    //page.layout = choosePageLayout(page);
   }
 
   // TODO: go through each page looking for any metadata that we didn't pick up to the front-matter somewhere so that it isn't lost
   return getMarkdownFromBook(book);
 }
 
-function choosePageLayout(page: Page): Layout {
-  // TODO: look at the patterns of text and images in the page and choose a layout
-  return "text"; // Placeholder for actual logic to determine layout
-}
+// function choosePageLayout(page: Page): Layout {
+//   // TODO: look at the patterns of text and images in the page and choose a layout
+//   return "text"; // Placeholder for actual logic to determine layout
+// }
 
 function isBilingualPage(page: Page): boolean {
   // When a page has two or more consecutive text blocks in two different languages, without any intervening images,

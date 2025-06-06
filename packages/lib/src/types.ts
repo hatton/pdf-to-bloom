@@ -29,7 +29,7 @@ export interface ImageElement {
 
 export interface TextBlockElement {
   type: "text";
-  field:
+  field?:
     | "l1"
     | "l2"
     | "isbn"
@@ -54,16 +54,7 @@ export interface TextBlockElement {
 
 export type PageElement = ImageElement | TextBlockElement;
 
-export type Layout =
-  | "image,text"
-  | "text,image"
-  | "text"
-  | "image"
-  | "text,image,text"
-  | "bilingual-text,image,text";
-
 export interface Page {
-  layout: Layout;
   appearsToBeBilingualPage: boolean;
   elements: PageElement[];
   type: "front-matter" | "back-matter" | "content" | "empty";
