@@ -47,7 +47,7 @@ program
       const args: Arguments = {
         input,
         target: getTarget(options.target),
-        output: options.output ? path.resolve(options.output) : process.cwd(),
+        output: options.output,
         mistralApiKey: options.mistralApiKey || process.env.MISTRAL_API_KEY,
         openrouterKey: options.openrouterKey || process.env.OPENROUTER_KEY,
         verbose: options.verbose || false,

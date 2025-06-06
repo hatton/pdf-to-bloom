@@ -118,9 +118,16 @@ export async function processConversion(inputPath: string, options: Arguments) {
           l3: langs?.l3,
         }
       );
+      logger.info(
+        `Writing llm-enriched markdown to: ${plan.markdownFromLLMPath}`
+      );
+
       await fs.writeFile(
         plan.markdownFromLLMPath!,
         llmResult.markdownResultFromEnrichmentLLM
+      );
+      logger.info(
+        `Writing cleaned up markdown to: ${plan.markdownCleanedAfterLLMPath}`
       );
       await fs.writeFile(
         plan.markdownCleanedAfterLLMPath!,
@@ -250,10 +257,9 @@ async function makeThePlan(
       "Mistral API key is required for PDF to Bloom conversion. Provide --mistral-api-key or set MISTRAL_API_KEY environment variable."
     );
   }
-
   if (
     inputType < Artifact.MarkdownFromLLM &&
-    inputType >= Artifact.MarkdownFromLLM &&
+    targetType >= Artifact.MarkdownFromLLM &&
     !openrouterKey
   ) {
     // we are going to have to do call the LLM, need the key
@@ -266,21 +272,30 @@ async function makeThePlan(
     `fullInputPath: ${fullInputPath} cliOutput: ${cliArguments.output}`
   );
 
-  const baseOutputDir = cliArguments.output;
+  // - If output directory is specified, use it. If a book directory will be created, it will be inside this directory.
+  // - If no output directory specified and inputType = PDF, create the book directory in the current working directory
+  // - If no output directory specified and inputType != PDF, send all output to the same directory as the input file
+  let baseOutputDir =
+    cliArguments.output ||
+    (inputType === Artifact.PDF ? process.cwd() : path.dirname(fullInputPath));
 
   logger.verbose(`Output directory: ${baseOutputDir}`);
   const baseName = getFileNameWithoutExtension(
     getFileNameWithoutExtension(fullInputPath)
   );
   const bookDir = path.join(baseOutputDir, baseName);
-  return {
+  // if inputType is PDF, set the baseOutputDir to the book directory so that all results go in there
+  if (inputType === Artifact.PDF) {
+    logger.info(`Creating book directory: ${bookDir}`);
+    // Ensure the book directory exists
+    await fs.mkdir(bookDir, { recursive: true });
+    baseOutputDir = bookDir; // All outputs will go into the book directory
+  }
+  const plan = {
     pdfPath: inputType === Artifact.PDF ? fullInputPath : undefined,
     markdownFromOCRPath: path.join(baseOutputDir, baseName + ".ocr.md"),
-    markdownFromLLMPath: path.join(baseOutputDir, baseName + ".llm.md"),
-    markdownCleanedAfterLLMPath: path.join(
-      baseOutputDir,
-      baseName + ".cleaned.md"
-    ),
+    markdownFromLLMPath: path.join(baseOutputDir, baseName + ".raw-llm.md"),
+    markdownCleanedAfterLLMPath: path.join(baseOutputDir, baseName + ".llm.md"),
     markdownForBloomPath: path.join(baseOutputDir, baseName + ".bloom.md"),
 
     bookFolderPath: bookDir,
@@ -291,4 +306,7 @@ async function makeThePlan(
     mistralKey,
     openrouterKey,
   };
+  console.log(`Plan created:`, JSON.stringify(plan, null, 2));
+
+  return plan;
 }
