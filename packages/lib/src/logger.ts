@@ -12,6 +12,7 @@ export interface LogEntry {
 class Logger {
   private static instance: Logger;
   private subscribers: Set<(log: LogEntry) => void> = new Set();
+  private subscriptionCounts: Map<(log: LogEntry) => void, number> = new Map();
 
   private constructor() {}
 
@@ -24,19 +25,29 @@ class Logger {
     }
     return Logger.instance;
   }
-
   /**
    * Subscribe to log messages
    */
   public subscribe(callback: (log: LogEntry) => void): void {
     this.subscribers.add(callback);
+    // Increment the subscription count for this callback
+    const currentCount = this.subscriptionCounts.get(callback) || 0;
+    this.subscriptionCounts.set(callback, currentCount + 1);
   }
 
   /**
    * Unsubscribe from log messages
    */
   public unsubscribe(callback: (log: LogEntry) => void): void {
-    this.subscribers.delete(callback);
+    const currentCount = this.subscriptionCounts.get(callback) || 0;
+    if (currentCount <= 1) {
+      // Only actually unsubscribe when count reaches zero
+      this.subscribers.delete(callback);
+      this.subscriptionCounts.delete(callback);
+    } else {
+      // Decrement the count but keep the subscription active
+      this.subscriptionCounts.set(callback, currentCount - 1);
+    }
   }
 
   /**

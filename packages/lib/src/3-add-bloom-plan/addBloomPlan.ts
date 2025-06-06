@@ -16,8 +16,11 @@ import { Page } from "../types";
 // We then add that information to the <!-- page --> comment in the markdown.
 
 export function addBloomPlanToMarkdown(markdown: string): string {
+  console.log("parsing");
   const book = new BloomMarkdown().parseMarkdown(markdown);
+  console.log("adding page types");
   AddPageTypes(book.pages);
+  console.log("adding bilinguals");
   // foreach page
   for (const page of book.pages) {
     if (isBilingualPage(page)) {
@@ -25,6 +28,7 @@ export function addBloomPlanToMarkdown(markdown: string): string {
     }
     //page.layout = choosePageLayout(page);
   }
+  console.log("getting markdown again");
 
   // TODO: go through each page looking for any metadata that we didn't pick up to the front-matter somewhere so that it isn't lost
   return getMarkdownFromBook(book);
@@ -37,6 +41,7 @@ export function addBloomPlanToMarkdown(markdown: string): string {
 
 function isBilingualPage(page: Page): boolean {
   // When a page has two or more consecutive text blocks in two different languages, without any intervening images,
+  // we consider it bilingual. Also if something has combined multiple languages in a single text block,
   // we consider it bilingual.
 
   let previousLang = "";
@@ -46,6 +51,10 @@ function isBilingualPage(page: Page): boolean {
       previousLang = ""; // Reset search for consecutive languages if we hit a non-text element
     } else {
       const currentLang = element.content.lang || ""; // Assuming content has a lang property
+
+      if (Object.keys(element.content).length > 1) {
+        return true; // Found multiple languages in the same text block, so it's bilingual
+      }
       if (currentLang && currentLang !== previousLang) {
         if (previousLang) {
           return true; // Found a different language after a previous one, so it's bilingual
@@ -65,18 +74,33 @@ function AddPageTypes(pages: Page[]): void {
   // and <!-- text lang="en" field="copyright" -->.
   // Once we identify our first content page, all pages are content pages until we hit a back-matter page.
 
+  let haveSeenContentPage = false;
+
   for (const page of pages) {
     if (page.elements.length === 0) {
       page.type = "empty"; // No elements, treat as empty
+      continue;
     }
-    let haveSeenContentPage = false;
+
+    page.type = "content" as const; // Default to content
+
     for (const element of page.elements) {
-      if (element.type === "text" && element.field) {
-        page.type = haveSeenContentPage ? "back-matter" : "front-matter";
-      } else {
-        haveSeenContentPage = true;
-        page.type = "content";
+      if (element.type === "text") {
+        // This comes from a run (from a Bloom book!) that gave us a page with a single "." as the page content (an OCR error maybe?).
+        // For now we're just leaving it there but making sure it doesn't switch us into "content" mode.
+        const hasOnlyUnknownLang =
+          element.content["unk"] && Object.keys(element.content).length === 1;
+        if (element.field || hasOnlyUnknownLang) {
+          page.type = haveSeenContentPage
+            ? ("back-matter" as const)
+            : ("front-matter" as const);
+          break; // Found a field element, so this determines the page type
+        }
       }
+    }
+
+    if (page.type === "content") {
+      haveSeenContentPage = true;
     }
   }
 }

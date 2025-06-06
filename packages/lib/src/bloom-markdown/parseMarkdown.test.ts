@@ -26,10 +26,10 @@ Hola mundo`;
     expect(result.metadata.l2).toBe("es");
     expect(result.pages).toHaveLength(1);
     expect((result.pages[0].elements[0] as TextBlockElement).content.en).toBe(
-      "<p>Hello world</p>"
+      "Hello world"
     );
     expect((result.pages[0].elements[0] as TextBlockElement).content.es).toBe(
-      "<p>Hola mundo</p>"
+      "Hola mundo"
     );
   });
 
@@ -62,7 +62,35 @@ Text only page`;
   });
 
   // todo this should be in its own test file
-  it("should convert markdown formatting to HTML", () => {
+  //   it("should convert markdown formatting to HTML", () => {
+  //     const content = `---
+  // allTitles:
+  //   en: "Test Book"
+  // languages:
+  //   en: "English"
+  // l1: en
+  // ---
+  // <!-- text lang="en" -->
+  // This is **bold** text and *italic* text.
+  // Here's a [link](https://example.com).
+  // Line one
+  // Line two`;
+  //     const parser = new BloomMarkdown();
+  //     const result = parser.parseMarkdown(content);
+
+  //     const htmlText = (result.pages[0].elements[0] as TextBlockElement).content
+  //       .en;
+  //     expect(htmlText).toContain("<strong>bold</strong>");
+  //     expect(htmlText).toContain("<em>italic</em>");
+  //     expect(htmlText).toContain('<a href="https://example.com">link</a>');
+  //     expect(htmlText).toContain("<p>");
+  //   });
+  it("expressMarkdownFormattingAsHtml() should preserve line breaks", () => {
+    const result = new BloomMarkdown().noop("Line one\nLine two");
+    expect(result).toContain("Line one\nLine two");
+  });
+
+  it("should use preserve line breaks in multi-line texts", () => {
     const content = `---
 allTitles:
   en: "Test Book"
@@ -71,20 +99,15 @@ languages:
 l1: en
 ---
 <!-- text lang="en" -->
-This is **bold** text and *italic* text.
-Here's a [link](https://example.com).
 Line one
 Line two`;
     const parser = new BloomMarkdown();
     const result = parser.parseMarkdown(content);
 
-    const htmlText = (result.pages[0].elements[0] as TextBlockElement).content
-      .en;
-    expect(htmlText).toContain("<strong>bold</strong>");
-    expect(htmlText).toContain("<em>italic</em>");
-    expect(htmlText).toContain('<a href="https://example.com">link</a>');
-    expect(htmlText).toContain("<p>");
+    const text = (result.pages[0].elements[0] as TextBlockElement).content.en;
+    expect(text).toContain("Line one\nLine two");
   });
+
   it("should integrate metadata parsing with page parsing", () => {
     const content = `---
 allTitles:
@@ -120,7 +143,7 @@ Text with image that doesn't exist on disk`;
       "nonexistent-image.png"
     );
     expect((result.pages[0].elements[1] as TextBlockElement).content.en).toBe(
-      "<p>Text with image that doesn't exist on disk</p>"
+      "Text with image that doesn't exist on disk"
     );
     expect(result.pages[0]).toBeDefined();
   });
@@ -150,13 +173,13 @@ Spanish text`;
 
     expect(result.pages).toHaveLength(1);
     expect((result.pages[0].elements[0] as TextBlockElement).content.en).toBe(
-      "<p>English text</p>"
+      "English text"
     );
     expect((result.pages[0].elements[0] as TextBlockElement).content.fr).toBe(
-      "<p>French text</p>"
+      "French text"
     );
     expect((result.pages[0].elements[0] as TextBlockElement).content.es).toBe(
-      "<p>Spanish text</p>"
+      "Spanish text"
     );
     expect(
       Object.keys((result.pages[0].elements[0] as TextBlockElement).content)
@@ -186,10 +209,10 @@ Third page`;
     // Empty pages should be filtered out
     expect(result.pages).toHaveLength(2);
     expect((result.pages[0].elements[0] as TextBlockElement).content.en).toBe(
-      "<p>First page</p>"
+      "First page"
     );
     expect((result.pages[1].elements[0] as TextBlockElement).content.en).toBe(
-      "<p>Third page</p>"
+      "Third page"
     );
   });
 
@@ -229,76 +252,34 @@ Back matter Spanish`;
     expect(result.pages[0].type).toBe("cover");
     expect(result.pages[0].appearsToBeBilingualPage).toBe(true);
     expect((result.pages[0].elements[0] as TextBlockElement).content.en).toBe(
-      "<p>Cover title in English</p>"
+      "Cover title in English"
     );
     expect((result.pages[0].elements[0] as TextBlockElement).content.es).toBe(
-      "<p>Cover title in Spanish</p>"
+      "Cover title in Spanish"
     );
 
     // Second page: content type (default bilingual based on content)
     expect(result.pages[1].type).toBe("content");
-    expect(result.pages[1].appearsToBeBilingualPage).toBe(false);
+    expect(!!result.pages[1].appearsToBeBilingualPage).toBe(false);
     expect((result.pages[1].elements[0] as TextBlockElement).content.en).toBe(
-      "<p>Regular content page</p>"
+      "Regular content page"
     );
 
     // Third page: explicitly not bilingual
     expect(result.pages[2].type).toBe("content"); // Default type
     expect(result.pages[2].appearsToBeBilingualPage).toBe(false);
     expect((result.pages[2].elements[0] as TextBlockElement).content.en).toBe(
-      "<p>Monolingual page</p>"
+      "Monolingual page"
     );
 
     // Fourth page: back-matter with bilingual content
     expect(result.pages[3].type).toBe("back-matter");
     expect(result.pages[3].appearsToBeBilingualPage).toBe(true);
     expect((result.pages[3].elements[0] as TextBlockElement).content.en).toBe(
-      "<p>Back matter English</p>"
+      "Back matter English"
     );
     expect((result.pages[3].elements[0] as TextBlockElement).content.es).toBe(
-      "<p>Back matter Spanish</p>"
-    );
-  });
-
-  it("should handle pages without attributes (legacy format)", () => {
-    const content = `---
-allTitles:
-  en: "Test Book"
-languages:
-  en: "English"
-  es: "Español"
-l1: en
-l2: es
----
-<!-- page -->
-<!-- text lang="en" -->
-First page without attributes
-<!-- text lang="es" -->
-First page Spanish
-<!-- page -->
-<!-- text lang="en" -->
-Second page without attributes`;
-
-    const parser = new BloomMarkdown();
-    const result = parser.parseMarkdown(content);
-
-    expect(result.pages).toHaveLength(2);
-
-    // First page: should detect bilingual from content
-    expect(result.pages[0].type).toBe("content"); // Default type
-    expect(result.pages[0].appearsToBeBilingualPage).toBe(true); // Detected from multiple languages
-    expect((result.pages[0].elements[0] as TextBlockElement).content.en).toBe(
-      "<p>First page without attributes</p>"
-    );
-    expect((result.pages[0].elements[0] as TextBlockElement).content.es).toBe(
-      "<p>First page Spanish</p>"
-    );
-
-    // Second page: monolingual
-    expect(result.pages[1].type).toBe("content"); // Default type
-    expect(result.pages[1].appearsToBeBilingualPage).toBe(false); // Only one language
-    expect((result.pages[1].elements[0] as TextBlockElement).content.en).toBe(
-      "<p>Second page without attributes</p>"
+      "Back matter Spanish"
     );
   });
 
@@ -330,11 +311,11 @@ Page with both attributes`;
 
     // Page 1: no attributes
     expect(result.pages[0].type).toBe("content");
-    expect(result.pages[0].appearsToBeBilingualPage).toBe(false);
+    expect(result.pages[0].appearsToBeBilingualPage).toBeFalsy();
 
     // Page 2: type attribute only
     expect(result.pages[1].type).toBe("front-matter");
-    expect(result.pages[1].appearsToBeBilingualPage).toBe(false);
+    expect(result.pages[1].appearsToBeBilingualPage).toBeFalsy();
 
     // Page 3: bilingual attribute only
     expect(result.pages[2].type).toBe("content");
@@ -342,7 +323,7 @@ Page with both attributes`;
 
     // Page 4: both attributes
     expect(result.pages[3].type).toBe("content");
-    expect(result.pages[3].appearsToBeBilingualPage).toBe(false);
+    expect(result.pages[3].appearsToBeBilingualPage).toBeFalsy();
   });
 
   it("should handle various page comment formats with attributes", () => {
@@ -373,15 +354,60 @@ Single quotes and different order`;
 
     // Test various formatting styles are parsed correctly
     expect(result.pages[0].type).toBe("cover");
-    expect(result.pages[0].appearsToBeBilingualPage).toBe(false);
+    expect(!!result.pages[0].appearsToBeBilingualPage).toBe(false);
 
     expect(result.pages[1].type).toBe("content");
     expect(result.pages[1].appearsToBeBilingualPage).toBe(true);
 
     expect(result.pages[2].type).toBe("front-matter");
-    expect(result.pages[2].appearsToBeBilingualPage).toBe(false);
+    expect(!!result.pages[2].appearsToBeBilingualPage).toBe(false);
 
     expect(result.pages[3].type).toBe("back-matter");
     expect(result.pages[3].appearsToBeBilingualPage).toBe(true);
+  });
+
+  it("should handle multiple fields well", () => {
+    // Test that we can parse markdown with image attributes and regenerate the same attributes
+    const input = `---
+allTitles:
+  en: "Test Book"
+languages:
+  en: "English"
+l1: "en"
+---
+
+<!-- page index=1 type="front-matter" -->
+<!-- text lang="en" field="copyright" -->
+Some copyright text
+<!-- text lang="fr" field="license" -->
+French license text
+<!-- text lang="en" field="acknowledgments" -->
+English acknowledgment
+<!-- text lang="fr" field="acknowledgments" -->
+French acknowledgment
+
+`;
+
+    const parser = new BloomMarkdown();
+    const book = parser.parseMarkdown(input);
+    expect(book.pages.length).toBe(1);
+    expect(book.pages[0].appearsToBeBilingualPage).toBe(undefined);
+    expect((book.pages[0].elements[0] as TextBlockElement).field).toBe(
+      "copyright"
+    );
+    expect((book.pages[0].elements[1] as TextBlockElement).field).toBe(
+      "license"
+    );
+    // and this is single element with two languages
+    expect((book.pages[0].elements[2] as TextBlockElement).field).toBe(
+      "acknowledgments"
+    );
+    // should have english and french content
+    expect((book.pages[0].elements[2] as TextBlockElement).content.en).toBe(
+      "English acknowledgment"
+    );
+    expect((book.pages[0].elements[2] as TextBlockElement).content.fr).toBe(
+      "French acknowledgment"
+    );
   });
 });

@@ -46,6 +46,7 @@ export default defineConfig({
       ],
     },
     sourcemap: true,
+    minify: false,
   },
 
   test: {

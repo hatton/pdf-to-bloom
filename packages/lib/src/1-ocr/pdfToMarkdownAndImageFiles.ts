@@ -105,7 +105,7 @@ export async function pdfToMarkdownAndImageFiles(
     // Combine markdown from all pages. Each must start with a <!-- page {index:number} --> comment
     let markdown = ocrResponse.pages
       .map((page: MistralOCRPage, index: number) => {
-        return `<!-- page {index:${index}} -->\n${page.markdown}`;
+        return `<!-- page index=${1 + index} -->\n${page.markdown}`;
       })
       .join("\n\n");
 

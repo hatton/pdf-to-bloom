@@ -141,6 +141,9 @@ export async function processConversion(inputPath: string, options: Arguments) {
       }
 
       latestArtifact = Artifact.MarkdownFromLLM;
+      console.log(
+        `latestArtifact is now MarkdownFromLLM. target is ${artifactNames[plan.targetArtifact]}`
+      );
       if (plan.targetArtifact === Artifact.MarkdownFromLLM) {
         return; // If Markdown was the final target, we're done here
       }
@@ -150,16 +153,22 @@ export async function processConversion(inputPath: string, options: Arguments) {
     // Stage 3: Make Markdown with all decisions made
     // ------------------------------------------------------------------------------
     if (latestArtifact === Artifact.MarkdownFromLLM) {
+      logger.info(`-> Adding Bloom plan to Markdown...`);
       // Now we want to do the final bit of any logic work, still in markdown format because
       // then it is easier for a human to inspect the plan. Later we're going to HTML and by then
       // it's really hard to wade through what was done.
 
+      console.log("reading in markdown from LLM");
       const input = await fs.readFile(
         plan.markdownCleanedAfterLLMPath!,
         "utf-8"
       );
-
+      console.log("calling addBloomPlanToMarkdown");
       const finalMarkdown = addBloomPlanToMarkdown(input);
+      console.log("returned;");
+      console.log(
+        `finalMarkdown length: ${finalMarkdown?.length || "undefined"}`
+      );
       logger.info(
         `Writing ready-for-bloom markdown to: ${plan.markdownForBloomPath!}`
       );
@@ -176,6 +185,7 @@ export async function processConversion(inputPath: string, options: Arguments) {
     // Stage 4: Convert Enriched Markdown to Bloom HTML
     // ------------------------------------------------------------------------------
     if (latestArtifact === Artifact.MarkdownReadyForBloom) {
+      logger.info(`-> Converting Markdown to Bloom HTML...`);
       const enrichedMarkdownContent = await fs.readFile(
         plan.markdownForBloomPath!,
         "utf-8"
@@ -200,7 +210,18 @@ export async function processConversion(inputPath: string, options: Arguments) {
     }
   } catch (error: any) {
     logger.error("❌ Error during conversion:");
-    logger.error(error instanceof Error ? error.message : String(error));
+
+    if (error instanceof Error) {
+      logger.error(error.message);
+      // Log the stack trace which contains file paths and line numbers
+      if (error.stack) {
+        logger.error("Stack trace:");
+        logger.error(error.stack);
+      }
+    } else {
+      logger.error(String(error));
+    }
+
     process.exit(1); // Exit with an error code
   }
 }
@@ -283,7 +304,14 @@ async function makeThePlan(
   const baseName = getFileNameWithoutExtension(
     getFileNameWithoutExtension(fullInputPath)
   );
-  const bookDir = path.join(baseOutputDir, baseName);
+
+  // when testing, we often don't want to OCR all over again, so we start with one of the md files, which
+  // is already in the book directory, and we just want to write everything into there.
+  const bookDir =
+    inputType === Artifact.PDF
+      ? path.join(baseOutputDir, baseName)
+      : baseOutputDir;
+
   // if inputType is PDF, set the baseOutputDir to the book directory so that all results go in there
   if (inputType === Artifact.PDF) {
     logger.info(`Creating book directory: ${bookDir}`);
@@ -306,7 +334,7 @@ async function makeThePlan(
     mistralKey,
     openrouterKey,
   };
-  console.log(`Plan created:`, JSON.stringify(plan, null, 2));
+  //console.log(`Plan created:`, JSON.stringify(plan, null, 2));
 
   return plan;
 }

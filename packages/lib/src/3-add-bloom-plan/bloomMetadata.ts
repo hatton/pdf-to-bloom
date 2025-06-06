@@ -10,6 +10,18 @@ export interface BookMetadata {
   isbn?: string;
   license?: string;
   copyright?: string;
+  credits?: Record<string, string>;
+  tags?: Record<string, string[]>;
+  publisher?: string;
+  country?: string;
+  province?: string;
+  district?: string;
+  author?: string;
+  illustrator?: string;
+  originalPublisher?: string;
+  acknowledgements?: string;
+  fundingInfo?: string;
+  [key: string]: any; // Allow additional fields
 }
 export class BloomMetadataParser {
   private errors: ValidationError[] = [];

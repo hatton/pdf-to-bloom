@@ -37,7 +37,8 @@ export class BloomMarkdown {
     }
 
     return { metadata, pages };
-  }  getErrors(): ValidationError[] {
+  }
+  getErrors(): ValidationError[] {
     return [...this.errors, ...this.metadataParser.getErrors()];
   }
   private createPageObjects(body: string, metadata: BookMetadata): Page[] {
@@ -86,8 +87,102 @@ export class BloomMarkdown {
     // Parse page attributes from the comment
     const pageAttributes = this.parsePageAttributes(pageComment || "");
 
+    // Sometimes the llm sees something that it can't identify and doesn't tag it.
+    // Collect up everything that comes before the first comment or image (![...) and
+    // add a text block for it with lang="unk". If it's just whitespace, skip it.
+    const indexOfFirstCommentOrImage = content.search(
+      /<!--|!\[([^\]]*)\]\(([^)]+)\)/
+    );
+    const materialBeforeFirstComment =
+      indexOfFirstCommentOrImage >= 0
+        ? content.substring(0, indexOfFirstCommentOrImage).trim()
+        : content.trim();
+    if (materialBeforeFirstComment) {
+      const unknownTextBlock: TextBlockElement = {
+        type: "text",
+        content: {
+          unk: materialBeforeFirstComment,
+        },
+      };
+      elements.push(unknownTextBlock);
+      this.addWarning(
+        `page ${pageNumber}: Found untagged text in unknown language`
+      );
+    }
+
     for (const line of lines) {
       const trimmedLine = line.trim();
+
+      // Handle inline comments by splitting the line
+      const commentMatches = [
+        ...line.matchAll(
+          /<!-- text lang=(?:"?([a-z]{2,3})"?)(?:\s+[^>]*)? -->/g
+        ),
+      ];
+
+      if (commentMatches.length > 0) {
+        // Split line by comments and process each part
+        let lastIndex = 0;
+
+        for (const match of commentMatches) {
+          const matchStart = match.index!;
+          const matchEnd = matchStart + match[0].length;
+
+          // Process text before the comment
+          const textBefore = line.substring(lastIndex, matchStart).trim();
+          if (textBefore && currentTextBlock && currentLang) {
+            currentText += textBefore + "\n";
+          }
+
+          // Finalize current text block if we have accumulated text
+          if (currentTextBlock && currentLang && currentText.trim()) {
+            currentTextBlock.content[currentLang] = this.noop(
+              currentText.trim()
+            );
+          }
+
+          // Extract field attribute from the comment
+          const fieldMatch = match[0].match(/field=["']?([^"'\s>]+)["']?/);
+          const field = fieldMatch ? fieldMatch[1] : undefined;
+
+          // Set new language
+          currentLang = match[1];
+
+          // If our currentTextBlock is a different field or
+          // if it already has text in this language,
+          // create new text block or finalize existing one.
+          if (
+            currentTextBlock &&
+            (currentTextBlock.field !== field ||
+              currentTextBlock.content[currentLang])
+          ) {
+            elements.push(currentTextBlock);
+            currentTextBlock = null;
+          }
+
+          if (!currentTextBlock) {
+            currentTextBlock = {
+              type: "text",
+              content: {},
+              field: field as TextBlockElement["field"],
+            };
+          }
+
+          currentTextBlock.content[currentLang] = "";
+          currentText = "";
+
+          // Process text after the comment
+          lastIndex = matchEnd;
+        }
+
+        // Process any remaining text after the last comment
+        const textAfter = line.substring(lastIndex).trim();
+        if (textAfter && currentTextBlock && currentLang) {
+          currentText += textAfter + "\n";
+        }
+
+        continue; // Skip the normal processing for this line
+      }
 
       /* The algorithm:
        Go through each line:
@@ -100,10 +195,10 @@ export class BloomMarkdown {
             If the line is some text
             1) set the currentTextBlock's entry for currentLanguage to the convertMarkdownToHtml(currentText.trim()).
       When we are done with lines, if we have a currentTextBlock, push it to elements.
-      */
-
-      // Check for images
-      const imageMatch = trimmedLine.match(/!\[.*?\]\(([^)]+)\)/);
+      */ // Check for images - preserve full markdown format
+      const imageMatch = trimmedLine.match(
+        /!\[([^\]]*)\]\(([^)]+)\)(\{[^}]*\})?/
+      );
       if (imageMatch) {
         // Finalize current text block before adding image
         if (currentTextBlock) {
@@ -111,32 +206,52 @@ export class BloomMarkdown {
           currentTextBlock = null;
         }
 
-        const imagePath = imageMatch[1];
-        elements.push({ type: "image", src: imagePath });
+        const alt = imageMatch[1];
+        const src = imageMatch[2];
+        const attributes = imageMatch[3];
+
+        elements.push({
+          type: "image",
+          src,
+          alt: alt || undefined,
+          attributes: attributes || undefined,
+        });
 
         continue; // go to the next line in the markdown
       } // Check for language blocks
       const langMatch = trimmedLine.match(
-        /<!-- text lang=(?:"?([a-z]{2,3})"?) -->/
+        /<!-- text lang=(?:"?([a-z]{2,3})"?)(?:\s+[^>]*)?(?:\s*)-->/
       );
       if (langMatch) {
+        // Extract field attribute if present
+        const fieldMatch = trimmedLine.match(/field=["']?([^"'\s>]+)["']?/);
+        const field = fieldMatch ? fieldMatch[1] : undefined;
+
         // Finalize current text before switching languages
         if (currentTextBlock && currentLang && currentText.trim()) {
-          currentTextBlock.content[currentLang] =
-            this.expressMarkdownFormattingAsHtml(currentText.trim());
+          currentTextBlock.content[currentLang] = this.noop(currentText.trim());
         }
-
         currentLang = langMatch[1];
 
-        // 1) if currentTextBlock not null and already has a currentLang for this lang comment, push it to elements and set it to null.
-        if (currentTextBlock && currentTextBlock.content[currentLang]) {
+        // Check if we need to create a new text block due to field mismatch
+        const shouldCreateNewBlock =
+          !currentTextBlock ||
+          currentTextBlock.content[currentLang] ||
+          currentTextBlock.field !== field;
+
+        // Finalize current text block if needed
+        if (currentTextBlock && shouldCreateNewBlock) {
           elements.push(currentTextBlock);
           currentTextBlock = null;
         }
 
-        // 2) if currentTextBlock is null, create a new one.
+        // Create new text block if needed
         if (!currentTextBlock) {
-          currentTextBlock = { type: "text", content: {} };
+          currentTextBlock = {
+            type: "text",
+            content: {},
+            field: field as TextBlockElement["field"],
+          };
         }
 
         currentTextBlock.content[currentLang] = "";
@@ -167,8 +282,7 @@ export class BloomMarkdown {
 
     // Finalize any remaining text block
     if (currentTextBlock && currentLang && currentText.trim()) {
-      currentTextBlock.content[currentLang] =
-        this.expressMarkdownFormattingAsHtml(currentText.trim());
+      currentTextBlock.content[currentLang] = this.noop(currentText.trim());
     }
     if (currentTextBlock) {
       elements.push(currentTextBlock);
@@ -178,43 +292,16 @@ export class BloomMarkdown {
       return null; // No content for this page
     }
 
-    //console.log(`Page ${pageNumber}`);
-
-    const pattern = elements.map((e) => {
-      if (e.type === "image") {
-        //  console.log(`   ${index}: image`);
-        return "image";
-      } else if (e.type === "text") {
-        // determine if we want  "l1-only", "l2-only", or "multiple-languages"
-        const textBlock = e as TextBlockElement;
-        const langs = Object.keys(textBlock.content);
-        if (langs.length === 1) {
-          const x = langs[0] === metadata.l1 ? "l1-only" : "l2-only";
-          //  console.log(`   ${index}: ${x}`);
-          return x;
-        } else if (langs.length > 1) {
-          //console.log(`   ${index}: multiple-languages`);
-          return "multiple-languages";
-        } else {
-          //console.log(`   ${index}: PROBLEM`);
-          this.addError(
-            `Text block without languages found on page ${pageNumber}`
-          );
-        }
-      }
-      //console.log(`   ${index}: FALLBACK TO l1-only`);
-      return "l1-only"; // Default fallback
-    });
     return {
       elements,
-      appearsToBeBilingualPage:
-        pageAttributes.bilingual ?? pattern.includes("multiple-languages"),
       type: (pageAttributes.type as any) || "content", // Default to content type
+      appearsToBeBilingualPage: pageAttributes.bilingual,
     };
   }
 
-  // todo this should be in its own file
-  private expressMarkdownFormattingAsHtml(markdown: string): string {
+  // todo remove? Was expressMarkdownFormattingAsHtml()
+  public noop(markdown: string): string {
+    return markdown;
     // Apply block transformations first (headings)
     let html = markdown
       .replace(/^# (.*?)$/gm, "<h1>$1</h1>")
@@ -225,11 +312,14 @@ export class BloomMarkdown {
     html = html
       .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
       .replace(/\*([^*]+?)\*/g, "<em>$1</em>")
-      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>'); // Now, split into paragraphs and wrap appropriately
+    const blocks = html.split(/\n\s*\n/);
 
-    // Now, split into paragraphs and wrap appropriately
-    return html
-      .split(/\n\s*\n/)
+    // If we only have one block and the original markdown had no double line breaks,
+    // treat it as simple text that doesn't need paragraph wrapping
+    const isSimpleText = blocks.length === 1 && !markdown.includes("\n\n");
+
+    return blocks
       .map((paraBlock) => {
         const trimmedParaBlock = paraBlock.replace(/\n/g, " ").trim();
         if (!trimmedParaBlock) {
@@ -243,6 +333,11 @@ export class BloomMarkdown {
             trimmedParaBlock
           )
         ) {
+          return trimmedParaBlock;
+        }
+
+        // If it's simple text (no line breaks in original), don't wrap in <p>
+        if (isSimpleText) {
           return trimmedParaBlock;
         }
 

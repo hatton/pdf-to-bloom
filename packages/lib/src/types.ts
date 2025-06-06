@@ -3,6 +3,8 @@ import { BookMetadata } from "./3-add-bloom-plan/bloomMetadata";
 export interface ImageElement {
   type: "image";
   src: string;
+  alt?: string; // Alt text from ![alt](src)
+  attributes?: string; // Attributes like {width=993}
 }
 
 /*     l1: "bo" # the primary language
@@ -48,14 +50,16 @@ export interface TextBlockElement {
     | "author"
     | "illustrator"
     | "publisher"
-    | "originalPublisher";
+    | "originalPublisher"
+    | "title"
+    | "coverImage";
   content: Record<string, string>; // lang -> text
 }
 
 export type PageElement = ImageElement | TextBlockElement;
 
 export interface Page {
-  appearsToBeBilingualPage: boolean;
+  appearsToBeBilingualPage?: boolean;
   elements: PageElement[];
   type: "front-matter" | "back-matter" | "content" | "empty";
 }
