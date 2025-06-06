@@ -7,7 +7,7 @@ export { llmMarkdown } from "./2-llm/llmMarkdown";
 export { addBloomPlanToMarkdown } from "./3-add-bloom-plan/addBloomPlan";
 
 // Export additional types and classes for advanced usage
-export { BloomMarkdown as Parser } from "./parse-markdown/parseMarkdown";
+export { BloomMarkdown as Parser } from "./bloom-markdown/parseMarkdown";
 export { BloomMetadataParser } from "./3-add-bloom-plan/bloomMetadata";
 
 export { HtmlGenerator } from "./4-generate-html/html-generator";
@@ -17,7 +17,6 @@ export type {
   PageElement,
   TextBlockElement,
   ImageElement,
-  Layout,
   ValidationError,
   ConversionStats,
 } from "./types";

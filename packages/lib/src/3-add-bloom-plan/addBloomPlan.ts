@@ -1,7 +1,6 @@
-import { BloomMarkdown } from "../parse-markdown/parseMarkdown";
-import { Book, Layout, Page } from "../types";
-import { addPageAttributes } from "./enrichPageComments";
-import { finalMetadataPlan } from "./finalMetadataPlan";
+import { BloomMarkdown } from "../bloom-markdown/parseMarkdown";
+import { getMarkdownFromBook } from "../bloom-markdown/generateMarkdown";
+import { Page } from "../types";
 
 // Here we want to do the final bit of any logic work and add that to the markdown.
 // We do this still in the format so that it is easier for a human to inspect the plan.
@@ -80,7 +79,4 @@ function AddPageTypes(pages: Page[]): void {
       }
     }
   }
-}
-function getMarkdownFromBook(book: Book): string {
-  throw new Error("Function not implemented.");
 }

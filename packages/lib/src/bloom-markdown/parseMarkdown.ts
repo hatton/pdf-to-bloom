@@ -37,8 +37,7 @@ export class BloomMarkdown {
     }
 
     return { metadata, pages };
-  }
-  getErrors(): ValidationError[] {
+  }  getErrors(): ValidationError[] {
     return [...this.errors, ...this.metadataParser.getErrors()];
   }
   private createPageObjects(body: string, metadata: BookMetadata): Page[] {

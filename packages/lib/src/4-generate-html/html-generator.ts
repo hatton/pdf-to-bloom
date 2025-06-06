@@ -237,14 +237,14 @@ export class HtmlGenerator {
                 <div class="split-pane-divider horizontal-divider"></div>
                 <div class="split-pane-component position-middle">
                     <div class="split-pane-component-inner">
-                <div class="bloom-canvas bloom-leadingElement bloom-has-canvas-element">
-                    <div class="bloom-canvas-element bloom-backgroundImage">
-                        <div class="bloom-leadingElement bloom-imageContainer">
-                          <img src="${escapeHtml(imageElement?.src || "")}" />
-                        </div>
-                    </div>
-                </div>
-            </div>
+                      <div class="bloom-canvas bloom-leadingElement bloom-has-canvas-element">
+                          <div class="bloom-canvas-element bloom-backgroundImage">
+                              <div class="bloom-leadingElement bloom-imageContainer">
+                                <img src="${escapeHtml(imageElement?.src || "")}" />
+                              </div>
+                          </div>
+                      </div>
+                  </div>
                 </div>
                 <div class="split-pane-divider horizontal-divider"></div>
                 <div class="split-pane-component position-bottom">
