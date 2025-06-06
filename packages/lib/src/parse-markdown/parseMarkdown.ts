@@ -5,13 +5,13 @@ import {
 } from "../3-add-bloom-plan/bloomMetadata";
 import type {
   Book,
-  PageContent,
+  Page,
   PageElement,
   TextBlockElement,
   ValidationError,
 } from "../types";
 
-export class Parser {
+export class BloomMarkdown {
   private errors: ValidationError[] = [];
   private metadataParser = new BloomMetadataParser();
 
@@ -43,12 +43,79 @@ export class Parser {
     return [...this.errors, ...this.metadataParser.getErrors()];
   }
 
-  private createPageObjects(
-    body: string,
-    metadata: BookMetadata
-  ): PageContent[] {
+  public getMarkdownFromBook(book: Book): string {
+    let frontmatter = "";
+
+    /* example
+    allTitles:
+      en: "test me"
+      unk-x-gondi: "ஹ்வ்லி"
+    languages:
+      en: "English"
+      unk-x-gondi: "Gondi"
+    l1: "en"
+    l2: "unk-x-gondi"
+    coverImage: "img-0.jpeg"
+    license: "CC-BY-4.0"
+    copyright: "Copyright © [Year], [Author/Publisher]"
+    credits:
+      author: "A Happy Group of Devs"
+    tags:
+      topic: []
+    publisher: "A Happy Group of Devs"
+    country: "India"
+    */
+    for (const [key, value] of Object.entries(book.metadata)) {
+      switch (key) {
+        case "languages":
+          frontmatter += `languages:\n`;
+          for (const lang in value) {
+            frontmatter += `  ${lang}: ${value[lang]}\n`;
+          }
+          break;
+        case "allTitles":
+          frontmatter += `allTitles:\n`;
+          for (const lang in value) {
+            frontmatter += `  ${lang}: ${value[lang]}\n`;
+          }
+          break;
+        case "tags":
+          frontmatter += `tags:\n`;
+          for (const tag in value) {
+            frontmatter += `  ${tag}: ${value[tag].join(", ")}\n`;
+          }
+          break;
+        case "credits":
+          frontmatter += `credits:\n`;
+          for (const field in value) {
+            frontmatter += `  ${field}: ${value[field]}\n`;
+          }
+          break;
+        default:
+          frontmatter += `${key}: ${value}\n`;
+      }
+    }
+    const body = book.pages
+      .map((page, index) => {
+        // first, emit the <!-- page --> comment with attributes
+        let pageComment = `<!-- page ${index + 1} `;
+        if (page.layout) {
+          pageComment += `layout="${page.layout}" `;
+        }
+        if (page.appearsToBeBilingualPage) {
+          pageComment += `bilingual="true" `;
+        }
+        pageComment += `type="${page.type || "content"}" -->\n`;
+        return pageComment;
+      })
+      .join("\n\n");
+
+    return `----\n${frontmatter}----\n\n${body}`;
+  }
+
+  private createPageObjects(body: string, metadata: BookMetadata): Page[] {
     const pageBreaks = body.split("<!-- page -->");
-    const pages: PageContent[] = [];
+    const pages: Page[] = [];
 
     for (let i = 0; i < pageBreaks.length; i++) {
       const pageContent = pageBreaks[i].trim();
@@ -67,7 +134,7 @@ export class Parser {
     content: string,
     metadata: BookMetadata,
     pageNumber: number
-  ): PageContent | null {
+  ): Page | null {
     const lines = content.split("\n");
     const elements: PageElement[] = [];
     let currentTextBlock: TextBlockElement | null = null;

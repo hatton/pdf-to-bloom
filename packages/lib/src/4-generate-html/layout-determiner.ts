@@ -1,4 +1,4 @@
-import type { Layout, PageContent } from "../types.js";
+import type { Layout, Page } from "../types.js";
 
 export type ElementFlavor =
   | "image"
@@ -8,7 +8,7 @@ export type ElementFlavor =
 
 export function determinePageLayout(
   items: Array<ElementFlavor>
-): PageContent["layout"] {
+): Page["layout"] {
   const patterns: Array<{ pattern: Array<string>; layout: Layout }> = [
     { pattern: ["image"], layout: "image-only" },
     { pattern: ["l1-only"], layout: "text-only" },

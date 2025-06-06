@@ -1,3 +1,5 @@
+import { BloomMarkdown } from "../parse-markdown/parseMarkdown";
+import { Book, Layout, Page } from "../types";
 import { addPageAttributes } from "./enrichPageComments";
 import { finalMetadataPlan } from "./finalMetadataPlan";
 
@@ -15,46 +17,70 @@ import { finalMetadataPlan } from "./finalMetadataPlan";
 // We then add that information to the <!-- page --> comment in the markdown.
 
 export function addBloomPlanToMarkdown(markdown: string): string {
-  /* TODO:
-   1) Use addPageAttributes() to enrich the page comments with the necessary attributes
-   2) Use finalMetadataPlan() to finalize the metadata
-   3) return the enriched markdown
-   */
+  const book = new BloomMarkdown().parseMarkdown(markdown);
+  AddPageTypes(book.pages);
+  // foreach page
+  for (const page of book.pages) {
+    if (isBilingualPage(page)) {
+      page.appearsToBeBilingualPage = true;
+    }
+    page.layout = choosePageLayout(page);
+  }
 
-  return markdown;
+  // TODO: go through each page looking for any metadata that we didn't pick up to the front-matter somewhere so that it isn't lost
+  return getMarkdownFromBook(book);
 }
 
-function choosePageLayout(pageContent: string) {
-  // TODO: see layout-determiner.ts for the logic to determine the layout
-  // TODO: we want to move that logic here so that we can use it in the addBloomPlan.ts
+function choosePageLayout(page: Page): Layout {
+  // TODO: look at the patterns of text and images in the page and choose a layout
   return "text"; // Placeholder for actual logic to determine layout
 }
 
-function isBilingualPage(pageContent: string): boolean {
+function isBilingualPage(page: Page): boolean {
   // When a page has two or more consecutive text blocks in two different languages, without any intervening images,
   // we consider it bilingual.
-  const textBlocks = pageContent.match(/<!-- text lang="([a-z]{2,3})" -->/g);
-  if (!textBlocks) return false;
 
-  const uniqueLangs = new Set(
-    textBlocks
-      .map((block) => {
-        const match = block.match(/lang="([a-z]{2,3})"/);
-        return match ? match[1] : "";
-      })
-      .filter((lang) => lang !== "")
-  );
-  return uniqueLangs.size > 1;
+  let previousLang = "";
+  for (let i = 0; i < page.elements.length; i++) {
+    const element = page.elements[i];
+    if (element.type !== "text") {
+      previousLang = ""; // Reset search for consecutive languages if we hit a non-text element
+    } else {
+      const currentLang = element.content.lang || ""; // Assuming content has a lang property
+      if (currentLang && currentLang !== previousLang) {
+        if (previousLang) {
+          return true; // Found a different language after a previous one, so it's bilingual
+        }
+        previousLang = currentLang; // Update previous language to current
+      }
+    }
+  }
+  return false; // No bilingual pattern found
 }
 
-function getPageType(
-  pageContent: string
-): "front-matter" | "back-matter" | "content" {
+function AddPageTypes(pages: Page[]): void {
   // We consider front-matter to be a cover, title page, and credits page. (We do not consider TOC, dedication, etc. to be front matter).
   // Some books then include back matter.
   // Here we want to identify front-matter, back-matter, and content pages using some heuristics.
   // E.g. non-content pages should have <!-- text --> blocks that have a "field" attribute, e.g. <!-- text lang="en" field="title" -->
   // and <!-- text lang="en" field="copyright" -->.
   // Once we identify our first content page, all pages are content pages until we hit a back-matter page.
-  return "content";
+
+  for (const page of pages) {
+    if (page.elements.length === 0) {
+      page.type = "empty"; // No elements, treat as empty
+    }
+    let haveSeenContentPage = false;
+    for (const element of page.elements) {
+      if (element.type === "text" && element.field) {
+        page.type = haveSeenContentPage ? "back-matter" : "front-matter";
+      } else {
+        haveSeenContentPage = true;
+        page.type = "content";
+      }
+    }
+  }
+}
+function getMarkdownFromBook(book: Book): string {
+  throw new Error("Function not implemented.");
 }

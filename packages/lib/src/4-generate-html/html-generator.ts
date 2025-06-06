@@ -1,6 +1,6 @@
 import escapeHtml from "escape-html";
 import { mapLicense } from "./licenses.js";
-import type { Book, PageContent } from "../types.js";
+import type { Book, Page } from "../types.js";
 import { BookMetadata } from "../3-add-bloom-plan/bloomMetadata.js";
 
 // A note about bloom-monolingual, bloom-bilingual, and bloom-trilingual
@@ -34,7 +34,7 @@ export class HtmlGenerator {
 
   private static generateBloomDataDiv(
     metadata: BookMetadata,
-    pages: PageContent[]
+    pages: Page[]
   ): string {
     const elements: string[] = [];
 
@@ -94,10 +94,7 @@ export class HtmlGenerator {
     return elements.join("\n");
   }
 
-  private static generatePage(
-    page: PageContent,
-    metadata: BookMetadata
-  ): string {
+  private static generatePage(page: Page, metadata: BookMetadata): string {
     switch (page.layout) {
       case "image-only":
         return this.generateImageOnlyPage(page);
@@ -117,7 +114,7 @@ export class HtmlGenerator {
     }
   }
   private static generateImageTopTextBottomPage(
-    page: PageContent,
+    page: Page,
     _metadata: BookMetadata
   ): string {
     const imageElement = page.elements.find((el) => el.type === "image");
@@ -138,7 +135,7 @@ export class HtmlGenerator {
     </div>`;
   }
   private static generateTextTopImageBottomPage(
-    page: PageContent,
+    page: Page,
     _metadata: BookMetadata
   ): string {
     const imageElement = page.elements.find((el) => el.type === "image");
@@ -160,7 +157,7 @@ export class HtmlGenerator {
   }
 
   private static generateTextOnlyPage(
-    page: PageContent,
+    page: Page,
     metadata: BookMetadata
   ): string {
     const textGroup = page.elements.find((el) => el.type === "text");
@@ -189,7 +186,7 @@ export class HtmlGenerator {
             </div>`;
   }
 
-  private static generateImageOnlyPage(page: PageContent): string {
+  private static generateImageOnlyPage(page: Page): string {
     const imageElement = page.elements.find((el) => el.type === "image");
 
     return `<div class="bloom-page customPage ">
@@ -198,7 +195,7 @@ export class HtmlGenerator {
             </div>`;
   }
   private static generateImageInMiddlePage(
-    page: PageContent,
+    page: Page,
     _metadata: BookMetadata,
     topLangPlaceholder: string, // "V" or "N1"
     bottomLangPlaceholder: string // "V" or "N1"
