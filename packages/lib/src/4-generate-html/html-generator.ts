@@ -1,7 +1,19 @@
 import escapeHtml from "escape-html";
 import { mapLicense } from "./licenses.js";
-import type { Book, Page } from "../types.js";
+import type {
+  Book,
+  Page,
+  PageElement,
+  TextBlockElement,
+  ImageElement,
+} from "../types.js";
 import { BookMetadata } from "../3-add-bloom-plan/bloomMetadata.js";
+import {
+  generateOrigamiHtml,
+  Orientation,
+  type OrigamiItem,
+  type TextOrigamiItem,
+} from "./origami.js";
 
 // A note about bloom-monolingual, bloom-bilingual, and bloom-trilingual
 // Although they show up on page divs, they are put there at runtime, so
@@ -38,12 +50,10 @@ export class HtmlGenerator {
   ): string {
     const elements: string[] = [];
 
-    // Content languages
     elements.push(`<div id="bloomDataDiv">
       <div data-book="contentLanguage1" lang="*">${metadata.l1}</div>`);
 
     if (metadata.l2) {
-      // hack only do this if we have a the majority of pages marked as multilingual
       const bilingualContentPages = pages.filter(
         (page) => page.appearsToBeBilingualPage
       ).length;
@@ -54,35 +64,30 @@ export class HtmlGenerator {
       }
     }
 
-    // Cover image
     if (metadata.coverImage) {
       elements.push(
         `      <div data-book="coverImage" lang="*">${escapeHtml(metadata.coverImage)}</div>`
       );
     }
 
-    // Book titles
     for (const [lang, title] of Object.entries(metadata.allTitles)) {
       elements.push(
         `      <div data-book="bookTitle" lang="${lang}">${escapeHtml(title)}</div>`
       );
     }
 
-    // ISBN
     if (metadata.isbn) {
       elements.push(
         `      <div data-book="ISBN" lang="*">${escapeHtml(metadata.isbn)}</div>`
       );
     }
 
-    // Copyright
     if (metadata.copyright) {
       elements.push(
         `      <div data-book="copyright" lang="*">${escapeHtml(metadata.copyright)}</div>`
       );
     }
 
-    // License URL
     if (metadata.license) {
       const licenseUrl = mapLicense(metadata.license);
       elements.push(
@@ -95,212 +100,78 @@ export class HtmlGenerator {
   }
 
   private static generatePage(page: Page, metadata: BookMetadata): string {
-    switch (page.layout) {
-      case "image-only":
-        return this.generateImageOnlyPage(page);
-      case "image-top-text-bottom":
-        return this.generateImageTopTextBottomPage(page, metadata);
-      case "text-image":
-        return this.generateTextTopImageBottomPage(page, metadata);
-      case "text-image-text":
-        // "auto", "V", and "N1" are values that can go in the data-default-languages attribute of a translationGroup.
-        // We normally use these instead of actual language codes
-        return this.generateImageInMiddlePage(page, metadata, "auto", "auto");
-      case "bilingual-text-image-text":
-        return this.generateImageInMiddlePage(page, metadata, "V", "N1");
-      case "text-only":
-      default:
-        return this.generateTextOnlyPage(page, metadata);
-    }
-  }
-  private static generateImageTopTextBottomPage(
-    page: Page,
-    _metadata: BookMetadata
-  ): string {
-    const imageElement = page.elements.find((el) => el.type === "image");
-    const textElement = page.elements.find((el) => el.type === "text");
+    const origamiItems: OrigamiItem[] = [];
 
-    return `    <div class="bloom-page customPage">
-      <div class="marginBox">
-        <div class="split-pane horizontal-percent">
-          <div class="split-pane-component position-top">
-            ${this.imageBlock(imageElement ? imageElement.src : "")}
-          </div>
-          <div class="split-pane-divider horizontal-divider"></div>
-          <div class="split-pane-component position-bottom">
-              ${this.textBlock(textElement ? (textElement as any).content : {})}
-          </div>
-        </div>
-      </div>
-    </div>`;
-  }
-  private static generateTextTopImageBottomPage(
-    page: Page,
-    _metadata: BookMetadata
-  ): string {
-    const imageElement = page.elements.find((el) => el.type === "image");
-    const textElement = page.elements.find((el) => el.type === "text");
+    // Determine if the page structure matches a [Text, Image, Text] sequence
+    // This is relevant for assigning "V" and "N1" for bilingual T-I-T pages.
+    const isTITSequence =
+      page.elements.length === 3 &&
+      page.elements[0].type === "text" &&
+      page.elements[1].type === "image" &&
+      page.elements[2].type === "text";
 
-    return `    <div class="bloom-page customPage ">
-      <div class="marginBox">
-        <div class="split-pane horizontal-percent">
-          <div class="split-pane-component position-top">
-            ${this.textBlock(textElement ? (textElement as any).content : {})}
-          </div>
-          <div class="split-pane-divider horizontal-divider"></div>
-          <div class="split-pane-component position-bottom">
-            ${this.imageBlock(imageElement ? imageElement.src : "")}
-          </div>
-        </div>
-      </div>
-    </div>`;
-  }
+    page.elements.forEach((element: PageElement, index: number) => {
+      if (element.type === "text") {
+        const textElement = element as TextBlockElement;
+        const textItem: TextOrigamiItem = {
+          type: "text",
+          content: textElement.content,
+        };
 
-  private static generateTextOnlyPage(
-    page: Page,
-    metadata: BookMetadata
-  ): string {
-    const textGroup = page.elements.find((el) => el.type === "text");
-
-    // if the textGroup has only the L2 content, we can use a special class
-    if (
-      textGroup &&
-      Object.keys((textGroup as any).content).length === 1 &&
-      metadata.l2 !== undefined &&
-      (textGroup as any).content[metadata.l2] !== undefined
-    ) {
-      return `<div class="bloom-page customPage ">
-              <div class="marginBox">
-                ${
-                  this.textBlock(textGroup ? (textGroup as any).content : {}, [
-                    "N1",
-                  ]) // for some historical reason, N1 is used for the second language
-                }
-              </div>
-            </div>`;
-    } else
-      return `<div class="bloom-page customPage ">
-              <div class="marginBox">
-                ${this.textBlock(textGroup ? (textGroup as any).content : {})}
-              </div>
-            </div>`;
-  }
-
-  private static generateImageOnlyPage(page: Page): string {
-    const imageElement = page.elements.find((el) => el.type === "image");
-
-    return `<div class="bloom-page customPage ">
-              <div class="marginBox">
-                  ${this.imageBlock(imageElement ? imageElement.src : "")}              </div>
-            </div>`;
-  }
-  private static generateImageInMiddlePage(
-    page: Page,
-    _metadata: BookMetadata,
-    topLangPlaceholder: string, // "V" or "N1"
-    bottomLangPlaceholder: string // "V" or "N1"
-  ): string {
-    const imageElement = page.elements.find((el) => el.type === "image");
-    const textElements = page.elements.filter((el) => el.type === "text");
-
-    // Combine all text content for each section
-    const topTextContent: Record<string, string> = {};
-    const bottomTextContent: Record<string, string> = {};
-
-    // For text-image-text layout, we need to distribute text elements
-    if (textElements.length > 0) {
-      // First text element goes to top
-      if (textElements[0]) {
-        Object.assign(topTextContent, (textElements[0] as any).content);
+        // Condition for a page that is solely L2 text
+        if (
+          page.elements.length === 1 && // Only one element on the page
+          metadata.l2 &&
+          Object.keys(textElement.content).length === 1 && // Text element has content for only one language
+          textElement.content[metadata.l2] // And that language is L2
+        ) {
+          textItem.translationGroupDefaultLangVariables = ["N1"];
+        }
+        // Condition for bilingual Text-Image-Text pages
+        else if (page.appearsToBeBilingualPage && isTITSequence) {
+          if (index === 0) {
+            // First text element in T-I-T
+            textItem.translationGroupDefaultLangVariables = ["V"];
+          } else if (index === 2) {
+            // Second text element in T-I-T (at element index 2)
+            textItem.translationGroupDefaultLangVariables = ["N1"];
+          }
+        }
+        origamiItems.push(textItem);
+      } else if (element.type === "image") {
+        const imageElement = element as ImageElement;
+        origamiItems.push({ type: "image", src: imageElement.src });
       }
+    });
 
-      // If there's a second text element, it goes to bottom
-      if (textElements.length > 1 && textElements[1]) {
-        Object.assign(bottomTextContent, (textElements[1] as any).content);
-      }
-      // If only one text element, it goes to both top and bottom (for text-image-text)
-      else if (textElements.length === 1) {
-        Object.assign(bottomTextContent, (textElements[0] as any).content);
-      }
-    } // const topLangs = this._getLangsForPlaceholder(topLangPlaceholder, metadata);
-    // const bottomLangs = this._getLangsForPlaceholder(
-    //   bottomLangPlaceholder,
-    //   metadata
-    // );
-
-    return `<div class="bloom-page customPage ">
-          <div class="marginBox">
-            <div class="split-pane horizontal-percent">
-                <div class="split-pane-component position-top" >
-                   ${this.textBlock(topTextContent, [topLangPlaceholder])}
-                </div>
-                <div class="split-pane-divider horizontal-divider"></div>
-                <div class="split-pane-component position-middle">
-                    <div class="split-pane-component-inner">
-                      <div class="bloom-canvas bloom-leadingElement bloom-has-canvas-element">
-                          <div class="bloom-canvas-element bloom-backgroundImage">
-                              <div class="bloom-leadingElement bloom-imageContainer">
-                                <img src="${escapeHtml(imageElement?.src || "")}" />
-                              </div>
-                          </div>
-                      </div>
-                  </div>
-                </div>
-                <div class="split-pane-divider horizontal-divider"></div>
-                <div class="split-pane-component position-bottom">
-                    ${this.textBlock(bottomTextContent, [bottomLangPlaceholder])}
-                </div>
-            </div>
-          </div>
-        </div>`;
-  }
-  private static imageBlock(src: string | undefined): string {
-    return `<div class="split-pane-component-inner">
-                <div class="bloom-canvas bloom-leadingElement bloom-has-canvas-element">
-                    <div class="bloom-canvas-element bloom-backgroundImage">
-                        <div class="bloom-leadingElement bloom-imageContainer">
-                          <img src="${escapeHtml(src || "")}" />
-                        </div>
-                    </div>
-                </div>
-            </div>`;
-  }
-
-  private static textBlock(
-    textBlocks: Record<string, string>,
-    translationGroupDefaultLangVariables?: string[] // normally "V", or "N1"
-  ): string {
-    const bloomEditableDivs: string[] = [];
-
-    // iterate over the languages and create a bloom-editable div for each
-    for (const lang of Object.keys(textBlocks)) {
-      const paragraphs: string[] = [];
-      const content = textBlocks[lang];
-
-      // Don't wrap in <p> if content already contains block-level HTML tags
-      const shouldWrapInParagraph =
-        !/<(h[1-6]|p|div|ul|ol|li|blockquote|hr|table|figure|figcaption)/i.test(
-          content
-        );
-
-      paragraphs.push(shouldWrapInParagraph ? `<p>${content}</p>` : content);
-
-      bloomEditableDivs.push(
-        `<div class="bloom-editable" lang="${lang}">
-                ${paragraphs.join("\n")}
-          </div>`
-      );
+    // If, after processing, no origami items were created (e.g., page.elements was empty),
+    // default to a single empty text block.
+    if (origamiItems.length === 0) {
+      origamiItems.push({ type: "text", content: {} });
     }
 
-    // note this starts with a space so we can cram it against the class attr
-    const defLangsAttr = translationGroupDefaultLangVariables
-      ? ` data-default-languages="${translationGroupDefaultLangVariables.join(",")}"`
-      : "";
+    // All current Bloom top-level page layouts are vertical stacks,
+    // which means the splits are horizontal.
+    // In origami.ts, Orientation.Portrait leads to horizontal splits.
+    const orientation = Orientation.Portrait;
+    const origamiContent = generateOrigamiHtml(origamiItems, orientation);
 
-    return `<div class="split-pane-component-inner">
-              <div class="bloom-translationGroup"${defLangsAttr}>
-                ${bloomEditableDivs.join("\n")}
-              </div>
-            </div>`;
+    // TODO: Add classes like 'numberedPage', 'bloom-frontMatter', 'rightPage', 'leftPage'
+    // to 'bloom-page' div based on page properties (e.g., page.type) if available/needed.
+    // For now, 'customPage' is used as a general class.
+    // The `page.type` property could be used here.
+    let pageClasses = "bloom-page customPage";
+    if (page.type === "front-matter") {
+      pageClasses += " bloom-frontMatter";
+    } else if (page.type === "back-matter") {
+      pageClasses += " bloom-backMatter";
+    }
+    // Consider adding 'numberedPage' if it's a content page, etc.
+
+    return `    <div class="${pageClasses.trim()}">
+      <div class="marginBox">
+        ${origamiContent}
+      </div>
+    </div>`;
   }
 }
