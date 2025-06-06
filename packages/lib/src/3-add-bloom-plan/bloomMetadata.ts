@@ -17,7 +17,7 @@ export class BloomMetadataParser {
   public parseOutMetadata(markdown: string): BookMetadata {
     this.errors = [];
     this.clearErrors();
-    const { frontmatter, body } = this.extractFrontmatter(markdown);
+    const { frontmatter } = this.extractFrontmatter(markdown);
     const metadata = this.parseMetadata(frontmatter);
     if (!metadata) {
       throw new Error("Failed to parse metadata from frontmatter");

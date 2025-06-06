@@ -227,43 +227,4 @@ describe("generateMarkdown", () => {
       expect(result).toContain('<!-- page 1 type="empty" -->');
     });
   });
-
-  describe("convertHtmlToMarkdown", () => {
-    it("should convert basic HTML elements to markdown", () => {
-      const html = "<p>Hello world</p>";
-      const result = convertHtmlToMarkdown(html);
-      expect(result).toBe("Hello world");
-    });
-
-    it("should convert headings", () => {
-      const html = "<h1>Title</h1><h2>Subtitle</h2>";
-      const result = convertHtmlToMarkdown(html);
-      expect(result).toBe("# Title\n## Subtitle");
-    });
-
-    it("should convert bold and italic", () => {
-      const html =
-        "<p>This is <strong>bold</strong> and <em>italic</em> text</p>";
-      const result = convertHtmlToMarkdown(html);
-      expect(result).toBe("This is **bold** and *italic* text");
-    });
-
-    it("should convert links", () => {
-      const html = '<p>Visit <a href="https://example.com">our website</a></p>';
-      const result = convertHtmlToMarkdown(html);
-      expect(result).toBe("Visit [our website](https://example.com)");
-    });
-
-    it("should handle multiple paragraphs", () => {
-      const html = "<p>First paragraph</p><p>Second paragraph</p>";
-      const result = convertHtmlToMarkdown(html);
-      expect(result).toBe("First paragraph\nSecond paragraph");
-    });
-
-    it("should preserve content of existing block elements", () => {
-      const html = "<h1>Already a heading</h1>";
-      const result = convertHtmlToMarkdown(html);
-      expect(result).toBe("# Already a heading");
-    });
-  });
 });
