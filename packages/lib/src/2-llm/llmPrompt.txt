@@ -3,10 +3,12 @@ You are given a Markdown file that may contain multiple languages. Your task is 
     1. Extract all available metadata from the text, including:
         - Title(s) in all languages
         - Cover Image (the first image you encounter in the incoming MD)
+        - smallCoverCredits are for whatever credits are found on the front cover. Even if the line contains colons, just preserve this verbatim, do not try and interpret it.
         - ISBN
         - License (For Creative commons use uppercase abbreviations like "CC-BY-NC")
         - Copyright (write in this form: "Copyright © 2017, Some Special People")
-        - Credits (author, illustrator, researchers)
+        - Credits (author, illustrator, researchers). Keep this a single sentence or paragraph as found in the input. Do not interpret it, do not make it hierarchical, etc. Keep it verbatim.
+        - Topic (usually found on the front cover)
         - Tags (e.g., topic, language)
         - Publisher and location information (country, province, district)
     2. Format this metadata as YAML front matter and insert it at the very top of the Markdown file using `---` delimiters.
@@ -20,68 +22,80 @@ You are given a Markdown file that may contain multiple languages. Your task is 
     4. Preserve all incoming comments. The input markdown may already have `<!-- page -->` comments.
     
     ```markdown
-    ---
-    allTitles:
-      bo: "ཟླ་དཀར་དང་ཞྭ་མོ།།"
-      en: "The moon and the cap"
-    languages:
-      bo: "Tibetan"
-      en: "English"
-    l1: "bo" # the primary language
-    l2: "en" # often a major language used for metadata, but may also be used in bilingual pages
-    isbn: "968-31-0276-X"
-    license: "CC-BY-NC"
-    licenseNotes: "Ask us before you translate this"
-    copyright: "Copyright © 1993, Instituto Lingüístico de Verano, A.C."
-    credits: "the authors, the illustrator"
-    acknowledgements-original-version: "may thank funders, editors, etc."
-    acknowledgements-localized-version: "often the translator"
-    other-credits-on-cover: ""
-    funding-info: "funded by a grant from the Foo dept of literacy"
-    tags:
-      topic: "Folktale"
-    country: "Mexico"
-    province: "Oaxaca"
-    district: "Santa María Zacatepec"
-    author: "Virginia López Lucas"
-    illustrator: "Jose Foo"
-    publisher: "Instituto de Grillo"
-    originalPublisher: "Someone else that we derived from."
-    ---
-    <!-- page -->
-    <!-- text lang="en" field="title" -->
-    The moon and the cap
+---
+allTitles:
+  bo: "ངའི་ཁང་པ་།"
+  en: "My House"
+languages:
+  bo: "Tibetan"
+  en: "English"
+l1: "bo" # the primary language
+l2: "en" # often a major language used for metadata, but may also be used in bilingual pages
+isbn: "968-31-0276-X"
+license: "CC-BY"
+licenseUrl: "http://creativecommons.org/licenses/by/4.0/"
+licenseNotes: "Ask us before you translate this"
+copyright: "Copyright © 1993, Instituto Lingüístico de Verano, A.C."
+smallCoverCredits: "Authored by Cassidy, Illustrated by Sundance"
+topic: Traditional Story
+credits: "the authors, the illustrator"
+acknowledgements-original-version: "may thank funders, editors, etc."
+acknowledgements-localized-version: "often the translator"
+other-credits-on-cover: ""
+funding-info: "funded by a grant from the Foo dept of literacy"
+country: "Mexico"
+province: "Oaxaca"
+district: "Santa María Zacatepec"
+author: "Virginia López Lucas"
+illustrator: "Jose Foo"
+publisher: "Instituto de Grillo"
+originalPublisher: "Someone else that we derived from."
+---
+<!-- page index=1 -->
 
-    <!-- page -->
-    <!-- text lang="en" field="copyright" -->
-    Copyright 1993, Instituto Lingüístico de Verano, A.C.
-    <!-- text lang="en" field="license" -->
-    CC-BY-NC
+<!-- text lang="bo" field="title" -->
+ངའི་ཁང་པ་།
 
-    ![](/myHouse.jpg)
-    
-    <!-- text lang="en" -->
-    
-    This is my house. 
-    
-    <!-- text lang="fr" -->
-    
-    C'est ma maison. 
+<!-- text lang="en" field="title" -->
+My House
 
-    <!-- page -->
+![](myHouse.jpg)
 
-    <!-- text lang="en" -->
-    
-    We like it a lot.
+<!-- text lang="en" field="smallCoverCredits" -->
+Authored by Cassidy, Illustrated by Sundance
 
-    ![](/myFamily.jpg)
-    
-    <!-- text lang="fr" -->
-    
-    Nous l'aimons beaucoup.
+<!-- text lang="en" field="topic" -->
+Traditional Story
 
-    ```
-    
+<!-- page index=2 -->
+
+<!-- text lang="en" field="copyright" -->
+Copyright 1993, Instituto Lingüístico de Verano, A.C.
+
+<!-- text lang="en" field="license" -->
+CC-BY-NC
+
+<!-- text lang="en" field="licenseUrl" -->
+http://creativecommons.org/licenses/by-nc/4.0/
+
+
+<!-- page index=3 -->
+
+<!-- text lang="bo" -->
+
+འདི་ངའི་ཁང་པ་ཡིན།
+
+<!-- page index=3 -->
+
+<!-- text lang="bo" -->
+
+ང་ཚོ་ཧ་ཅང་དགའ།
+
+![](/myFamily.jpg)
+
+<!-- text lang="en" -->
+
+We like it a lot.```    
     
     
     The final output should be a single Markdown file containing:
@@ -99,4 +113,8 @@ You are given a Markdown file that may contain multiple languages. Your task is 
 
     If you see a number all alone in a text area at the end of a page, it is a page number. Drop it from the output, do not output a text comment for it.
 
-    If on the page with license info, you se `# (cc)`, that's an OCR error, just drop it from the output.
+    If on the page with license info, you see `# (cc)`, that's an OCR error, just drop it from the output.
+    
+    Do not mislabel the licenseUrl field as "license". The licenseUrl field will look like a url. If you see a creativecommons.org license url an don't have a license, you can infer the license from the url. A proper CC license does not end in a version number, e.g. if you just see http://creativecommons.org/licenses/by/4.0/, then is license "CC-BY".
+
+    Note that the cover will often have the name of the L1 on the cover. You can just drop that line, don't make a mistake like adding it to the topic.

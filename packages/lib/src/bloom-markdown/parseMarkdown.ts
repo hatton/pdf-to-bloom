@@ -280,10 +280,6 @@ export class BloomMarkdown {
       }
     }
 
-    // Finalize any remaining text block
-    if (currentTextBlock && currentLang && currentText.trim()) {
-      currentTextBlock.content[currentLang] = this.noop(currentText.trim());
-    }
     if (currentTextBlock) {
       elements.push(currentTextBlock);
     }
@@ -297,55 +293,6 @@ export class BloomMarkdown {
       type: (pageAttributes.type as any) || "content", // Default to content type
       appearsToBeBilingualPage: pageAttributes.bilingual,
     };
-  }
-
-  // todo remove? Was expressMarkdownFormattingAsHtml()
-  public noop(markdown: string): string {
-    return markdown;
-    // Apply block transformations first (headings)
-    let html = markdown
-      .replace(/^# (.*?)$/gm, "<h1>$1</h1>")
-      .replace(/^## (.*?)$/gm, "<h2>$1</h2>");
-    // Add other heading levels if needed H3-H6: .replace(/^### (.*?)$/gm, "<h3>$1</h3>") etc.
-
-    // Then apply inline transformations to the whole result
-    html = html
-      .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-      .replace(/\*([^*]+?)\*/g, "<em>$1</em>")
-      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>'); // Now, split into paragraphs and wrap appropriately
-    const blocks = html.split(/\n\s*\n/);
-
-    // If we only have one block and the original markdown had no double line breaks,
-    // treat it as simple text that doesn't need paragraph wrapping
-    const isSimpleText = blocks.length === 1 && !markdown.includes("\n\n");
-
-    return blocks
-      .map((paraBlock) => {
-        const trimmedParaBlock = paraBlock.replace(/\n/g, " ").trim();
-        if (!trimmedParaBlock) {
-          return ""; // Skip empty blocks
-        }
-
-        // If the block is already an h-tag or p-tag (or other block tags), don't wrap it in another <p>
-        // Regex checks if the string STARTS with a common block tag.
-        if (
-          /^<(h[1-6]|p|div|ul|ol|li|blockquote|hr|table|figure|figcaption)/i.test(
-            trimmedParaBlock
-          )
-        ) {
-          return trimmedParaBlock;
-        }
-
-        // If it's simple text (no line breaks in original), don't wrap in <p>
-        if (isSimpleText) {
-          return trimmedParaBlock;
-        }
-
-        // Otherwise, it's content that needs to be wrapped in a <p> tag
-        return `<p>${trimmedParaBlock}</p>`;
-      })
-      .filter((block) => block !== "") // Remove empty strings
-      .join("");
   }
 
   private addWarning(message: string): void {

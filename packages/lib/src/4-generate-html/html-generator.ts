@@ -70,6 +70,20 @@ export class HtmlGenerator {
       );
     }
 
+    // TODO: we need to preserve the language we found this in
+    if (metadata.smallCoverCredits) {
+      elements.push(
+        `      <div data-book="smallCoverCredits" lang="*">${escapeHtml(metadata.smallCoverCredits)}</div>`
+      );
+    }
+
+    // TODO: we need to preserve the language we found this in
+    if (metadata.topic) {
+      elements.push(
+        `      <div data-book="topic" lang="*">${escapeHtml(metadata.topic)}</div>`
+      );
+    }
+
     for (const [lang, title] of Object.entries(metadata.allTitles)) {
       elements.push(
         `      <div data-book="bookTitle" lang="${lang}">${escapeHtml(title)}</div>`

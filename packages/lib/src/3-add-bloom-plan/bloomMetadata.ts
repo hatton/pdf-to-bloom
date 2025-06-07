@@ -10,8 +10,8 @@ export interface BookMetadata {
   isbn?: string;
   license?: string;
   copyright?: string;
-  credits?: Record<string, string>;
-  tags?: Record<string, string[]>;
+  // TODO: we need to preserve the language(s) for the rest of these
+  credits?: string;
   publisher?: string;
   country?: string;
   province?: string;
