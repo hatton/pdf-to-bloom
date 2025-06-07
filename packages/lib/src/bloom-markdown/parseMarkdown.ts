@@ -348,9 +348,6 @@ export class BloomMarkdown {
       .join("");
   }
 
-  private addError(message: string): void {
-    this.errors.push({ type: "error", message });
-  }
   private addWarning(message: string): void {
     this.errors.push({ type: "warning", message });
   }
