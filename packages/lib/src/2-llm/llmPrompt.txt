@@ -1,27 +1,86 @@
 You are given a Markdown file that may contain multiple languages. Your task is to enrich this file by identifying metadata and languages.
     
-    1. Extract all available metadata from the text, including:
-        - Title(s) in all languages
-        - Cover Image (the first image you encounter in the incoming MD)
-        - smallCoverCredits are for whatever credits are found on the front cover. Even if the line contains colons, just preserve this verbatim, do not try and interpret it.
-        - ISBN
-        - License (For Creative commons use uppercase abbreviations like "CC-BY-NC")
-        - Copyright (write in this form: "Copyright © 2017, Some Special People")
-        - Credits (author, illustrator, researchers). Keep this a single sentence or paragraph as found in the input. Do not interpret it, do not make it hierarchical, etc. Keep it verbatim.
-        - Topic (usually found on the front cover)
-        - Tags (e.g., topic, language)
-        - Publisher and location information (country, province, district)
-    2. Format this metadata as YAML front matter and insert it at the very top of the Markdown file using `---` delimiters.
+# YAML Front Matter
+At the very top of your output, emit "---" followed by some metadata, and end that section with "---".
+Include information on the languages of the document here. Example:
 
-    3. Annotate all blocks of text with a language comment. E.g. `<!-- text lang="en" --> This is my house. <!-- text lang="fr" --> C'est ma maison.`
-    - Use ISO 639-1 or 639-3 language codes (e.g., `es` for Spanish, `mxa` for Mixteco de Santa María Zacatepec, uz-CYRL for Uzbeck in cyrillic script).
-    - Preserve Markdown formatting
-    - Preserve all image references
-    - Use the same style to tag each metadata field. Place these comments in the body of the markdown, not in the YAML front matter. Example: `<!-- text lang="fr" field="copyright" -->` or `<!-- text lang="en" field="ISBN" -->`.
+---
+languages:
+  fr: "française"
+  en: "English"
+l1: "fr"
+l2: "en"
+---
 
-    4. Preserve all incoming comments. The input markdown may already have `<!-- page -->` comments.
-    
-    ```markdown
+# Content
+
+Next, repeat all of the markdown in the input file, but annotated.
+
+
+Preserve all incoming comments. The input markdown will already have `<!-- page -->` comments.
+
+Example:
+
+<!-- page index=1 --->
+
+... stuff on the cover...
+
+<!-- page index=2 --->
+
+... stuff from the title page ...
+
+
+## Image blocks
+- Preserve all markdown image references without changes
+
+## Text blocks
+Annotate all blocks of text with a language comment. E.g. `<!-- text lang="en" --> This is my house. <!-- text lang="fr" --> C'est ma maison.`
+- Use ISO 639-1 or 639-3 language codes (e.g., `es` for Spanish, `mxa` for Mixteco de Santa María Zacatepec, uz-CYRL for Uzbeck in cyrillic script).
+- Preserve Markdown formatting
+- Books have front matter for the first 1 to 4 pages, and back matter for the last 1 or 2 pages. For each of these pages, look at every text block and determine a good label for the metadata. Then add `field="the data"` attribute to the text block. 
+Examples:
+<!-- text lang="fr" field="title" -->
+Ma maison
+<!-- text lang="en" field="title" -->
+My House
+<!-- text lang="fr" field="smallCoverCredits" -->
+Author: John, Illustrator Suzanne
+<!-- text lang="fr" field="country" -->
+United States
+<!-- text lang="en" field="copyright" -->
+Copyright 1993, Instituto Lingüístico de Verano, A.C.
+`<!-- text lang="*" field="ISBN" -->
+968-31-0276`
+
+
+The following are fields that you should look for and tag:
+bookTitle
+isbn
+license (e.g. "CC-BY")
+licenseUrl (e.g. "http://creativecommons.org/licenses/by/4.0/")
+licenseDescription (If the book is CC-license, this is often a description of what the license means.)
+licenseNotes  (Something that goes beyond describing the legalities of the license, often this is ued to add a condition or permit use. Example "Ask us before you translate this." or "It is ok to translate this, just send us a copy")
+copyright  (e.g. "Copyright © 1993, Instituto Lingüístico de Verano, A.C.")
+originalCopyright (when the book is a derivative, it may have text like "Based on the original, Copyright 1991, Generous Publishing")
+smallCoverCredits  (e.g "Authored by Cassidy, Illustrated by Sundance")
+topic  (e.g. Traditional Story)
+credits  (e.g. "the authors, the illustrator")
+versionAcknowledgments  (Normally this is all you will use, unless the version is a derivative, in which case this may say something like "this version translated by foo bar")
+originalContributions
+originalAcknowledgments  (This would be acknowledgements of the original that we don't want to lose, e.g. "Based on the original by Joe.")
+funding  (e.g. "funded by a grant from the Foo dept of literacy")
+country  (e.g. "Mexico")
+province  (e.g. "Oaxaca")
+district  (e.g. "Santa María Zacatepec")
+author  (e.g. "Virginia López Lucas")
+illustrator  (e.g. "Jose Foo")
+publisher  (e.g. "Instituto de Grillo")
+originalPublisher  (e.g. "Originally published by Acme Publishers")
+
+
+Here is an example of what you will output
+
+```
 ---
 allTitles:
   bo: "ངའི་ཁང་པ་།"
@@ -31,32 +90,13 @@ languages:
   en: "English"
 l1: "bo" # the primary language
 l2: "en" # often a major language used for metadata, but may also be used in bilingual pages
-isbn: "968-31-0276-X"
-license: "CC-BY"
-licenseUrl: "http://creativecommons.org/licenses/by/4.0/"
-licenseNotes: "Ask us before you translate this"
-copyright: "Copyright © 1993, Instituto Lingüístico de Verano, A.C."
-smallCoverCredits: "Authored by Cassidy, Illustrated by Sundance"
-topic: Traditional Story
-credits: "the authors, the illustrator"
-acknowledgements-original-version: "may thank funders, editors, etc."
-acknowledgements-localized-version: "often the translator"
-other-credits-on-cover: ""
-funding-info: "funded by a grant from the Foo dept of literacy"
-country: "Mexico"
-province: "Oaxaca"
-district: "Santa María Zacatepec"
-author: "Virginia López Lucas"
-illustrator: "Jose Foo"
-publisher: "Instituto de Grillo"
-originalPublisher: "Someone else that we derived from."
 ---
 <!-- page index=1 -->
 
-<!-- text lang="bo" field="title" -->
+<!-- text lang="bo" field="bookTitle" -->
 ངའི་ཁང་པ་།
 
-<!-- text lang="en" field="title" -->
+<!-- text lang="en" field="bookTitle" -->
 My House
 
 ![](myHouse.jpg)
@@ -97,24 +137,27 @@ http://creativecommons.org/licenses/by-nc/4.0/
 
 We like it a lot.```    
     
-    
-    The final output should be a single Markdown file containing:
-    
-    - Frontmatter using a YAML for metadata
-    - The original content with all text annotated for language and all the images referenced.
-    
-    Ensure the document remains readable and structurally intact, and that no content is lost or misclassified. 
-    
-    Never truncate anything. You must preserve it all.
 
-    If you aren't sure about the lang tag, do not hallucinate it. Just put in unk-x-languageName, e.g. if you don't know what langtag "northern foobar" uses, you can say "unk-x-northern_foobar".
+# Rules
+The final output should be a single Markdown file containing:
 
-    The following metadata fields are required: allTitles, languages, l1. Normally you can also provide l2 if there is a second language.
+- Front matter using a YAML for metadata
+- The original content with all text annotated for language and all the images referenced.
 
-    If you see a number all alone in a text area at the end of a page, it is a page number. Drop it from the output, do not output a text comment for it.
+Ensure the document remains readable and structurally intact, and that no content is lost or misclassified. 
 
-    If on the page with license info, you see `# (cc)`, that's an OCR error, just drop it from the output.
-    
-    Do not mislabel the licenseUrl field as "license". The licenseUrl field will look like a url. If you see a creativecommons.org license url an don't have a license, you can infer the license from the url. A proper CC license does not end in a version number, e.g. if you just see http://creativecommons.org/licenses/by/4.0/, then is license "CC-BY".
+Never truncate anything. You must preserve it all.
 
-    Note that the cover will often have the name of the L1 on the cover. You can just drop that line, don't make a mistake like adding it to the topic.
+If you aren't sure about the lang tag, do not hallucinate it. Just put in unk-x-languageName, e.g. if you don't know what langtag "northern foobar" uses, you can say "unk-x-northern_foobar".
+
+If you don't even know what language it is, you can use "unk".
+
+The following metadata fields are required: allTitles, languages, l1. Normally you can also provide l2 if there is a second language. Sometimes a book will even have an L3.
+
+If you see a number all alone in a text area at the end of a page, it is a page number. Drop it from the output, do not output a text comment for it.
+
+If on the page with license info, you see `# (cc)`, that's an OCR error, just drop it from the output.
+
+Do not mislabel the licenseUrl field as "license". The licenseUrl field will look like a url. If you see a creativecommons.org license url an don't have a license, you can infer the license from the url. A proper CC license does not end in a version number, e.g. if you just see http://creativecommons.org/licenses/by/4.0/, then is license "CC-BY".
+
+Note that the cover will often have the name of the L1 on the cover. You can just drop that line, don't make a mistake like adding it to the topic.

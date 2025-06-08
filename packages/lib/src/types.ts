@@ -1,4 +1,4 @@
-import { BookMetadata } from "./3-add-bloom-plan/bloomMetadata";
+import { FrontMatterMetadata } from "./3-add-bloom-plan/bloomMetadata";
 
 export interface ImageElement {
   type: "image";
@@ -31,28 +31,29 @@ export interface ImageElement {
 
 export interface TextBlockElement {
   type: "text";
-  field?:
-    | "l1"
-    | "l2"
-    | "isbn"
-    | "license"
-    | "licenseNotes"
-    | "copyright"
-    | "credits"
-    | "acknowledgements-original-version"
-    | "acknowledgements-localized-version"
-    | "other-credits-on-cover"
-    | "funding-info"
-    | "tags"
-    | "country"
-    | "province"
-    | "district"
-    | "author"
-    | "illustrator"
-    | "publisher"
-    | "originalPublisher"
-    | "title"
-    | "coverImage";
+  field?: string; // e.g., "title", "author", "credits", etc.
+  // field?:
+  //   | "l1"
+  //   | "l2"
+  //   | "isbn"
+  //   | "license"
+  //   | "licenseNotes"
+  //   | "copyright"
+  //   | "credits"
+  //   | "acknowledgements-original-version"
+  //   | "acknowledgements-localized-version"
+  //   | "smallCoverCredits"
+  //   | "funding"
+  //   | "tags"
+  //   | "country"
+  //   | "province"
+  //   | "district"
+  //   | "author"
+  //   | "illustrator"
+  //   | "publisher"
+  //   | "originalPublisher"
+  //   | "title"
+  //   | "coverImage";
   content: Record<string, string>; // lang -> text
 }
 
@@ -65,7 +66,9 @@ export interface Page {
 }
 
 export interface Book {
-  metadata: BookMetadata;
+  // most metadata is actually in the context of the markdown, but things that
+  // the llm needs to figure out for us are in the front matter
+  frontMatterMetadata: FrontMatterMetadata;
 
   pages: Page[];
 }

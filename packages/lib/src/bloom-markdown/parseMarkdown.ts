@@ -1,6 +1,6 @@
 import {
   BloomMetadataParser,
-  BookMetadata,
+  FrontMatterMetadata,
 } from "../3-add-bloom-plan/bloomMetadata";
 import type {
   Book,
@@ -36,12 +36,26 @@ export class BloomMarkdown {
       );
     }
 
-    return { metadata, pages };
+    // Go through each page, find every text block that has a field attribute, and add it to the metadata.
+    // Overwrite existing metadata fields if they already exist.
+    // for (const page of pages) {
+    //   for (const element of page.elements) {
+    //     if (element.type === "text" && element.field) {
+    //       // If the field already exists, we overwrite it.
+    //       metadata[element.field] = element.content;
+    //     }
+    //   }
+    // }
+
+    return { frontMatterMetadata: metadata, pages };
   }
   getErrors(): ValidationError[] {
     return [...this.errors, ...this.metadataParser.getErrors()];
   }
-  private createPageObjects(body: string, metadata: BookMetadata): Page[] {
+  private createPageObjects(
+    body: string,
+    metadata: FrontMatterMetadata
+  ): Page[] {
     // Use regex to split on page comments with or without attributes
     const pageRegex = /<!--\s*page\s*(?:[^>]*)-->/g;
     const parts = body.split(pageRegex);
@@ -74,7 +88,7 @@ export class BloomMarkdown {
   }
   private parsePage(
     content: string,
-    metadata: BookMetadata,
+    metadata: FrontMatterMetadata,
     pageNumber: number,
     pageComment?: string
   ): Page | null {
@@ -128,6 +142,7 @@ export class BloomMarkdown {
           const matchStart = match.index!;
           const matchEnd = matchStart + match[0].length;
 
+          // REVIEW what's this about?
           // Process text before the comment
           const textBefore = line.substring(lastIndex, matchStart).trim();
           if (textBefore && currentTextBlock && currentLang) {
@@ -136,18 +151,15 @@ export class BloomMarkdown {
 
           // Finalize current text block if we have accumulated text
           if (currentTextBlock && currentLang && currentText.trim()) {
-            currentTextBlock.content[currentLang] = this.noop(
-              currentText.trim()
-            );
+            currentTextBlock.content[currentLang] = currentText.trim();
           }
 
-          // Extract field attribute from the comment
+          // Extract the optional field attribute from the comment
           const fieldMatch = match[0].match(/field=["']?([^"'\s>]+)["']?/);
           const field = fieldMatch ? fieldMatch[1] : undefined;
 
           // Set new language
           currentLang = match[1];
-
           // If our currentTextBlock is a different field or
           // if it already has text in this language,
           // create new text block or finalize existing one.
@@ -168,7 +180,11 @@ export class BloomMarkdown {
             };
           }
 
-          currentTextBlock.content[currentLang] = "";
+          // Initialize the content for this language if it doesn't exist
+          if (!currentTextBlock.content[currentLang]) {
+            currentTextBlock.content[currentLang] = "";
+          }
+
           currentText = "";
 
           // Process text after the comment
@@ -192,8 +208,7 @@ export class BloomMarkdown {
             If the line is a lang comment:
             1) if currentTextBlock not null and already has a currentLang for this lang comment, push it to elements and set it to null.
             2) if currentTextBlock is null, create a new one.
-            If the line is some text
-            1) set the currentTextBlock's entry for currentLanguage to the convertMarkdownToHtml(currentText.trim()).
+           
       When we are done with lines, if we have a currentTextBlock, push it to elements.
       */ // Check for images - preserve full markdown format
       const imageMatch = trimmedLine.match(
@@ -218,7 +233,9 @@ export class BloomMarkdown {
         });
 
         continue; // go to the next line in the markdown
-      } // Check for language blocks
+      }
+
+      // Check for language blocks
       const langMatch = trimmedLine.match(
         /<!-- text lang=(?:"?([a-z]{2,3})"?)(?:\s+[^>]*)?(?:\s*)-->/
       );
@@ -229,7 +246,7 @@ export class BloomMarkdown {
 
         // Finalize current text before switching languages
         if (currentTextBlock && currentLang && currentText.trim()) {
-          currentTextBlock.content[currentLang] = this.noop(currentText.trim());
+          currentTextBlock.content[currentLang] = currentText.trim();
         }
         currentLang = langMatch[1];
 
@@ -279,7 +296,10 @@ export class BloomMarkdown {
         }
       }
     }
-
+    // Transfer any remaining accumulated text before finalizing
+    if (currentTextBlock && currentLang && currentText.trim()) {
+      currentTextBlock.content[currentLang] = currentText.trim();
+    }
     if (currentTextBlock) {
       elements.push(currentTextBlock);
     }

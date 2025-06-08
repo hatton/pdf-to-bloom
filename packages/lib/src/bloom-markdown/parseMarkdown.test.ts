@@ -21,9 +21,9 @@ Hola mundo`;
     const parser = new BloomMarkdown();
     const result = parser.parseMarkdown(content);
 
-    expect(result.metadata.allTitles.en).toBe("Test Book");
-    expect(result.metadata.l1).toBe("en");
-    expect(result.metadata.l2).toBe("es");
+    expect(result.frontMatterMetadata.allTitles.en).toBe("Test Book");
+    expect(result.frontMatterMetadata.l1).toBe("en");
+    expect(result.frontMatterMetadata.l2).toBe("es");
     expect(result.pages).toHaveLength(1);
     expect((result.pages[0].elements[0] as TextBlockElement).content.en).toBe(
       "Hello world"
@@ -85,10 +85,6 @@ Text only page`;
   //     expect(htmlText).toContain('<a href="https://example.com">link</a>');
   //     expect(htmlText).toContain("<p>");
   //   });
-  it("expressMarkdownFormattingAsHtml() should preserve line breaks", () => {
-    const result = new BloomMarkdown().noop("Line one\nLine two");
-    expect(result).toContain("Line one\nLine two");
-  });
 
   it("should use preserve line breaks in multi-line texts", () => {
     const content = `---

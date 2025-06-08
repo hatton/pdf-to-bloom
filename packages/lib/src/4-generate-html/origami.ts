@@ -109,6 +109,11 @@ function generateTextBlock(
   textBlocks: Record<string, string>,
   translationGroupDefaultLangVariables?: string[]
 ): string {
+  console.log(
+    "Generating text block with languages:",
+    JSON.stringify(textBlocks, null, 2)
+  );
+
   const bloomEditableDivs: string[] = [];
 
   // iterate over the languages and create a bloom-editable div for each

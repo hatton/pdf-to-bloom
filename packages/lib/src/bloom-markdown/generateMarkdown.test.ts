@@ -8,7 +8,7 @@ describe("generateMarkdown", () => {
   describe("getMarkdownFromBook", () => {
     it("should generate basic markdown with frontmatter", () => {
       const book: Book = {
-        metadata: {
+        frontMatterMetadata: {
           allTitles: { en: "Test Book" },
           languages: { en: "English" },
           l1: "en",
@@ -26,7 +26,7 @@ describe("generateMarkdown", () => {
 
     it("should handle complex metadata structures", () => {
       const book: Book = {
-        metadata: {
+        frontMatterMetadata: {
           allTitles: {
             en: "English Title",
             fr: "Titre Français",
@@ -70,7 +70,7 @@ describe("generateMarkdown", () => {
       };
 
       const book: Book = {
-        metadata: {
+        frontMatterMetadata: {
           allTitles: { en: "Test" },
           languages: { en: "English" },
           l1: "en",
@@ -101,7 +101,7 @@ describe("generateMarkdown", () => {
       };
 
       const book: Book = {
-        metadata: {
+        frontMatterMetadata: {
           allTitles: { en: "Test" },
           languages: { en: "English", es: "Spanish" },
           l1: "en",
@@ -132,7 +132,7 @@ describe("generateMarkdown", () => {
       };
 
       const book: Book = {
-        metadata: {
+        frontMatterMetadata: {
           allTitles: { en: "Test" },
           languages: { en: "English" },
           l1: "en",
@@ -159,7 +159,7 @@ describe("generateMarkdown", () => {
       };
 
       const book: Book = {
-        metadata: {
+        frontMatterMetadata: {
           allTitles: { en: "Test" },
           languages: { en: "English" },
           l1: "en",
@@ -199,7 +199,7 @@ describe("generateMarkdown", () => {
       };
 
       const book: Book = {
-        metadata: {
+        frontMatterMetadata: {
           allTitles: { en: "Test" },
           languages: { en: "English" },
           l1: "en",
@@ -222,7 +222,7 @@ describe("generateMarkdown", () => {
       };
 
       const book: Book = {
-        metadata: {
+        frontMatterMetadata: {
           allTitles: { en: "Test" },
           languages: { en: "English" },
           l1: "en",
@@ -243,7 +243,7 @@ describe("generateMarkdown", () => {
       };
 
       const book: Book = {
-        metadata: {
+        frontMatterMetadata: {
           allTitles: { en: "Test" },
           languages: { en: "English" },
           l1: "en",

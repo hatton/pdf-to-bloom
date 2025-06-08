@@ -17,7 +17,7 @@ export function attemptCleanup(content: string): {
 
   // Fix malformed YAML frontmatter if it's missing the opening delimiter
   // Check if content starts with YAML-like content but is missing the opening ---
-  if (!content.startsWith("---") && content.includes("allTitles:")) {
+  if (!content.startsWith("---") && content.includes("languages:")) {
     const lines = content.split("\n");
     let yamlEndIndex = -1;
 
@@ -40,6 +40,7 @@ export function attemptCleanup(content: string): {
       const yamlContent = lines.slice(0, yamlEndIndex).join("\n");
       const markdownContent = lines.slice(yamlEndIndex).join("\n");
       content = `---\n${yamlContent.trim()}\n---\n${markdownContent}`;
+      content = content.replace(/---\n---/g, "---\n"); // remove any double dashes that might have been created
       logger.verbose(
         "Fixed malformed YAML frontmatter by adding missing delimiters"
       );

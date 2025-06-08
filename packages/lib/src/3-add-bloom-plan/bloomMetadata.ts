@@ -1,32 +1,34 @@
 import * as yaml from "js-yaml";
 import type { ValidationError } from "../types";
 
-export interface BookMetadata {
-  allTitles: Record<string, string>;
+// most metadata is actually in the context of the markdown, but things that
+// the llm needs to figure out for us are in the front matter
+export interface FrontMatterMetadata {
+  //allTitles: Record<string, string>;
   languages: Record<string, string>;
   l1: string; // primary language
   l2?: string; // secondary language
-  coverImage?: string;
-  isbn?: string;
-  license?: string;
-  copyright?: string;
-  // TODO: we need to preserve the language(s) for the rest of these
-  credits?: string;
-  publisher?: string;
-  country?: string;
-  province?: string;
-  district?: string;
-  author?: string;
-  illustrator?: string;
-  originalPublisher?: string;
-  acknowledgements?: string;
-  fundingInfo?: string;
-  [key: string]: any; // Allow additional fields
+  //coverImage?: string;
+  // isbn?: string;
+  // license?: string;
+  // copyright?: string;
+  // // TODO: we need to preserve the language(s) for the rest of these
+  // credits?: string;
+  // publisher?: string;
+  // country?: string;
+  // province?: string;
+  // district?: string;
+  // author?: string;
+  // illustrator?: string;
+  // originalPublisher?: string;
+  // acknowledgements?: string;
+  // fundingInfo?: string;
+  // [key: string]: any; // Allow additional fields
 }
 export class BloomMetadataParser {
   private errors: ValidationError[] = [];
 
-  public parseOutMetadata(markdown: string): BookMetadata {
+  public parseOutMetadata(markdown: string): FrontMatterMetadata {
     this.errors = [];
     this.clearErrors();
     const { frontmatter } = this.extractFrontmatter(markdown);
@@ -68,24 +70,25 @@ export class BloomMetadataParser {
   /**
    * Parse YAML frontmatter text into BookMetadata
    */
-  public parseMetadata(frontmatterText: string): BookMetadata {
+  public parseMetadata(frontmatterText: string): FrontMatterMetadata {
     try {
-      const metadata = yaml.load(frontmatterText) as BookMetadata;
+      const metadata = yaml.load(frontmatterText) as FrontMatterMetadata;
+
       this.validateMetadata(metadata);
       return metadata;
     } catch (error) {
       this.addError(`Failed to parse YAML frontmatter: ${error}`);
-      return {} as BookMetadata;
+      return {} as FrontMatterMetadata;
     }
   }
 
   /**
    * Validate that required metadata fields are present and valid
    */
-  public validateMetadata(metadata: BookMetadata): boolean {
-    if (!metadata.allTitles) {
-      this.addError("Missing required field: allTitles");
-    }
+  public validateMetadata(metadata: FrontMatterMetadata): boolean {
+    // if (!metadata.allTitles) {
+    //   this.addError("Missing required field: allTitles");
+    // }
     if (!metadata.languages) {
       this.addError("Missing required field: languages");
     }

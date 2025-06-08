@@ -27,7 +27,7 @@ export function getMarkdownFromBook(book: Book): string {
   publisher: "A Happy Group of Devs"
   country: "India"
   */
-  for (const [key, value] of Object.entries(book.metadata)) {
+  for (const [key, value] of Object.entries(book.frontMatterMetadata)) {
     switch (key) {
       case "languages":
         frontmatter += `languages:\n`;
@@ -79,6 +79,10 @@ export function getMarkdownFromBook(book: Book): string {
         if (element.type === "image") {
           pageContent += `\n![${element.alt || ""}](${element.src})${element.attributes || ""}`;
         } else if (element.type === "text") {
+          console.log(
+            `regen text: ${JSON.stringify(element.content, null, 2)}`
+          );
+
           // Generate text content for each language
           for (const [lang, content] of Object.entries(element.content)) {
             let textComment = `<!-- text lang="${lang}"`;
