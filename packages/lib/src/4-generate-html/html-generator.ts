@@ -31,19 +31,42 @@ export class HtmlGenerator {
     // use console.log to give me a bunch of info to see why this line is failing:
     // this.getField("bookTitle", book)?.content[book.frontMatterMetadata.l1]
 
-    const titleRecord = this.getFieldContent("bookTitle", book);
-    const title =
-      titleRecord && book.frontMatterMetadata.l1 in titleRecord
-        ? titleRecord[book.frontMatterMetadata.l1]
-        : "Untitled";
+    let titleRecord = this.getFieldContent("bookTitle", book);
 
+    if (!titleRecord) {
+      logger.warn("Book title not found in book metadata.");
+      // set the l1 of the titleRecord to "untitlled"
+      titleRecord = {
+        [book.frontMatterMetadata.l1]: "untitled",
+      };
+      logger.warn("Setting book title to 'untitled'.");
+    }
+    // verify that we have an l1
+    if (
+      !Object.entries(book.frontMatterMetadata).find(([key]) => key === "l1")
+    ) {
+      logger.error("Book metadata does not contain a primary language (l1).");
+      throw new Error(
+        "Book metadata does not contain a primary language (l1)."
+      );
+    }
+    // verify that the titleRecord has an entry for l1
+    if (!titleRecord[book.frontMatterMetadata.l1]) {
+      logger.error(
+        `Book title does not contain an entry for the primary language (${book.frontMatterMetadata.l1}).`
+      );
+      throw new Error(
+        `Book title does not contain an entry for the primary language (${book.frontMatterMetadata.l1}).`
+      );
+    }
+    const l1Lang = book.frontMatterMetadata.l1;
     return `<!doctype html>
   <html>
     <head>
     <meta charset="UTF-8" />
     <meta name="Generator" content="PDF-to-Bloom Converter" />
     <meta name="BloomFormatVersion" content="2.1" />
-    <title>${escapeHtml(title)}</title>
+    <title>${escapeHtml(titleRecord![l1Lang])}</title>
     </head>
     <body>
     ${this.generateBloomDataDiv(book)}

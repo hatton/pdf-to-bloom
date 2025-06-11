@@ -124,10 +124,7 @@ copyright: "Copyright 2023, Test Publisher"`;
       const isValid = parser.validateMetadata(invalidMetadata);
 
       expect(isValid).toBe(false);
-      expect(parser.getErrors()).toHaveLength(3);
-      expect(parser.getErrors().map((e) => e.message)).toContain(
-        "Missing required field: allTitles"
-      );
+
       expect(parser.getErrors().map((e) => e.message)).toContain(
         "Missing required field: languages"
       );

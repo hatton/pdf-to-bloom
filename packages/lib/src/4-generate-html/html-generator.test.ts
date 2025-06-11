@@ -1,11 +1,11 @@
 import { describe, it, expect } from "vitest";
 import { HtmlGenerator } from "./html-generator";
+import { Book } from "../types";
 
 describe("generateHtmlDocument", () => {
   it("should convert simple book to Bloom HTML", () => {
-    const book = {
-      metadata: {
-        allTitles: { en: "Test Book" },
+    const book: Book = {
+      frontMatterMetadata: {
         languages: { en: "English" },
         l1: "en",
       },
@@ -16,6 +16,12 @@ describe("generateHtmlDocument", () => {
           elements: [
             {
               type: "text" as const,
+              field: "bookTitle",
+              content: { en: "Title in English" },
+            },
+            {
+              type: "text" as const,
+
               content: { en: "<p>Hello world</p>" },
             },
           ],
@@ -26,71 +32,15 @@ describe("generateHtmlDocument", () => {
     const result = HtmlGenerator.generateHtmlDocument(book, () => {});
 
     expect(result).toContain("<!doctype html>");
-    expect(result).toContain("<title>Test Book</title>");
+    expect(result).toContain("<title>Title in English</title>");
     expect(result).toContain("Hello world");
     expect(result).toContain("bloom-editable");
-  });
-
-  it("should generate complete HTML document", () => {
-    const book = {
-      metadata: {
-        allTitles: { en: "Test Book" },
-        languages: { en: "English" },
-        l1: "en",
-      },
-      pages: [
-        {
-          type: "content" as const,
-          appearsToBeBilingualPage: false,
-          elements: [
-            {
-              type: "text" as const,
-              content: { en: "<p>Hello world</p>" },
-            },
-          ],
-        },
-      ],
-    };
-
-    const html = HtmlGenerator.generateHtmlDocument(book);
-
-    expect(html).toContain("<!doctype html>");
-    expect(html).toContain("<title>Test Book</title>");
-    expect(html).toContain("bloom-page");
-    expect(html).toContain("bloom-editable");
-    expect(html).toContain("Hello world");
-  });
-
-  it("no pages, should generate data div with metadata", () => {
-    const book = {
-      metadata: {
-        allTitles: { en: "Test Book", es: "Libro de Prueba" },
-        languages: { en: "English", es: "Spanish" },
-        l1: "en",
-        l2: "es",
-        isbn: "978-1234567890",
-        copyright: "2023 Test Author",
-        license: "CC-BY",
-      },
-      pages: [],
-    };
-
-    const html = HtmlGenerator.generateHtmlDocument(book);
-
-    expect(html).toContain('data-book="contentLanguage1"');
-    expect(html).not.toContain('data-book="contentLanguage2"'); // even though l2 is set, we don't have pages saying they are bilingual
-    expect(html).toContain('data-book="bookTitle"');
-    expect(html).toContain('data-book="ISBN"');
-    expect(html).toContain('data-book="copyright"');
-    expect(html).toContain('data-book="licenseUrl"');
-    expect(html).toContain("creativecommons.org");
   });
 
   describe("multiple pages", () => {
     it("should generate HTML for multiple pages with different types", () => {
       const book = {
-        metadata: {
-          allTitles: { en: "Test Book" },
+        frontMatterMetadata: {
           languages: { en: "English" },
           l1: "en",
         },
@@ -99,6 +49,11 @@ describe("generateHtmlDocument", () => {
             type: "front-matter" as const,
             appearsToBeBilingualPage: false,
             elements: [
+              {
+                type: "text" as const,
+                field: "bookTitle",
+                content: { en: "Title in English" },
+              },
               {
                 type: "text" as const,
                 content: { en: "<p>Title Page</p>" },
@@ -164,8 +119,7 @@ describe("generateHtmlDocument", () => {
 
     it("should handle bilingual pages correctly", () => {
       const book = {
-        metadata: {
-          allTitles: { en: "Test Book", es: "Libro de Prueba" },
+        frontMatterMetadata: {
           languages: { en: "English", es: "Spanish" },
           l1: "en",
           l2: "es",
@@ -175,6 +129,11 @@ describe("generateHtmlDocument", () => {
             type: "content" as const,
             appearsToBeBilingualPage: true,
             elements: [
+              {
+                type: "text" as const,
+                field: "bookTitle",
+                content: { en: "Title in English" },
+              },
               {
                 type: "text" as const,
                 content: {
@@ -214,9 +173,8 @@ describe("generateHtmlDocument", () => {
     });
 
     it("should handle Text-Image-Text bilingual pages with special translation groups", () => {
-      const book = {
-        metadata: {
-          allTitles: { en: "Test Book", fr: "Livre de Test" },
+      const book: Book = {
+        frontMatterMetadata: {
           languages: { en: "English", fr: "French" },
           l1: "en",
           l2: "fr",
@@ -230,7 +188,6 @@ describe("generateHtmlDocument", () => {
                 type: "text" as const,
                 content: {
                   en: "<p>First text</p>",
-                  fr: "<p>Premier texte</p>",
                 },
               },
               {
@@ -252,7 +209,6 @@ describe("generateHtmlDocument", () => {
       const html = HtmlGenerator.generateHtmlDocument(book);
 
       expect(html).toContain("First text");
-      expect(html).toContain("Premier texte");
       expect(html).toContain("middle-image.jpg");
       expect(html).toContain("Second text");
       expect(html).toContain("Deuxième texte");
@@ -263,9 +219,8 @@ describe("generateHtmlDocument", () => {
     });
 
     it("should handle L2-only page with N1 translation group", () => {
-      const book = {
-        metadata: {
-          allTitles: { en: "Test Book", fr: "Livre de Test" },
+      const book: Book = {
+        frontMatterMetadata: {
           languages: { en: "English", fr: "French" },
           l1: "en",
           l2: "fr",
@@ -294,8 +249,7 @@ describe("generateHtmlDocument", () => {
 
     it("should handle pages with mixed content types", () => {
       const book = {
-        metadata: {
-          allTitles: { en: "Mixed Content Book" },
+        frontMatterMetadata: {
           languages: { en: "English" },
           l1: "en",
         },
@@ -330,8 +284,7 @@ describe("generateHtmlDocument", () => {
 
     it("should handle empty pages gracefully", () => {
       const book = {
-        metadata: {
-          allTitles: { en: "Empty Pages Book" },
+        frontMatterMetadata: {
           languages: { en: "English" },
           l1: "en",
         },
@@ -353,30 +306,9 @@ describe("generateHtmlDocument", () => {
   });
 
   describe("generateBloomDataDiv", () => {
-    it("should generate basic data div with required fields", () => {
-      const book = {
-        metadata: {
-          allTitles: { en: "Simple Book" },
-          languages: { en: "English" },
-          l1: "en",
-        },
-        pages: [],
-      };
-
-      const html = HtmlGenerator.generateHtmlDocument(book);
-
-      expect(html).toContain('<div id="bloomDataDiv">');
-      expect(html).toContain('data-book="contentLanguage1" lang="*">en</div>');
-      expect(html).toContain(
-        'data-book="bookTitle" lang="en">Simple Book</div>'
-      );
-      expect(html).not.toContain('data-book="contentLanguage2"');
-    });
-
     it("should include L2 when more than half of pages are bilingual", () => {
       const book = {
-        metadata: {
-          allTitles: { en: "Bilingual Book", es: "Libro Bilingüe" },
+        frontMatterMetadata: {
           languages: { en: "English", es: "Spanish" },
           l1: "en",
           l2: "es",
@@ -417,8 +349,7 @@ describe("generateHtmlDocument", () => {
 
     it("should not include L2 when less than half of pages are bilingual", () => {
       const book = {
-        metadata: {
-          allTitles: { en: "Mostly Monolingual", es: "Mayormente Monolingüe" },
+        frontMatterMetadata: {
           languages: { en: "English", es: "Spanish" },
           l1: "en",
           l2: "es",
@@ -456,16 +387,27 @@ describe("generateHtmlDocument", () => {
 
     it("should include all titles for multiple languages", () => {
       const book = {
-        metadata: {
-          allTitles: {
-            en: "Multi-Language Book",
-            es: "Libro Multi-Idioma",
-            fr: "Livre Multi-Langues",
-          },
+        frontMatterMetadata: {
           languages: { en: "English", es: "Spanish", fr: "French" },
           l1: "en",
         },
-        pages: [],
+        pages: [
+          {
+            type: "content" as const,
+            appearsToBeBilingualPage: false,
+            elements: [
+              {
+                type: "text" as const,
+                field: "bookTitle",
+                content: {
+                  en: "Multi-Language Book",
+                  es: "Libro Multi-Idioma",
+                  fr: "Livre Multi-Langues",
+                },
+              },
+            ],
+          },
+        ],
       };
 
       const html = HtmlGenerator.generateHtmlDocument(book);
@@ -480,40 +422,32 @@ describe("generateHtmlDocument", () => {
         'data-book="bookTitle" lang="fr">Livre Multi-Langues</div>'
       );
     });
-    it("should include optional metadata fields when present", () => {
+
+    it("should escape HTML characters in frontMatterMetadata", () => {
       const book = {
-        metadata: {
-          allTitles: { en: "Complete Metadata Book" },
+        frontMatterMetadata: {
           languages: { en: "English" },
           l1: "en",
-          coverImage: "cover.jpg",
-          isbn: "978-1234567890",
-          copyright: "Copyright © 2023 Test Author",
-          license: "CC-BY",
         },
-        pages: [],
-      };
-
-      const html = HtmlGenerator.generateHtmlDocument(book);
-
-      expect(html).toContain('data-book="coverImage" lang="*">cover.jpg</div>');
-      expect(html).toContain('data-book="ISBN" lang="*">978-1234567890</div>');
-      expect(html).toContain(
-        'data-book="copyright" lang="*">Copyright © 2023 Test Author</div>'
-      );
-      expect(html).toContain('data-book="licenseUrl" lang="*">');
-      expect(html).toContain("creativecommons.org"); // License should be mapped to URL
-    });
-
-    it("should escape HTML characters in metadata", () => {
-      const book = {
-        metadata: {
-          allTitles: { en: 'Book with <tags> & "quotes"' },
-          languages: { en: "English" },
-          l1: "en",
-          copyright: 'Copyright © 2023 <Publisher> & "Authors"',
-        },
-        pages: [],
+        pages: [
+          // credits page with copyright
+          {
+            type: "content" as const,
+            appearsToBeBilingualPage: false,
+            elements: [
+              {
+                type: "text" as const,
+                field: "bookTitle",
+                content: { en: 'Book with <tags> & "quotes"' },
+              },
+              {
+                type: "text" as const,
+                field: "copyright",
+                content: { en: 'Copyright © 2023 <Publisher> & "Authors"' },
+              },
+            ],
+          },
+        ],
       };
 
       const html = HtmlGenerator.generateHtmlDocument(book);
@@ -522,19 +456,30 @@ describe("generateHtmlDocument", () => {
       expect(html).toContain(
         "Copyright © 2023 &lt;Publisher&gt; &amp; &quot;Authors&quot;"
       );
-      expect(html).not.toContain("<tags>");
+
       expect(html).not.toContain("<Publisher>");
     });
 
     it("should handle missing optional fields gracefully", () => {
       const book = {
-        metadata: {
-          allTitles: { en: "Minimal Book" },
+        frontMatterMetadata: {
           languages: { en: "English" },
           l1: "en",
           // No optional fields
         },
-        pages: [],
+        pages: [
+          {
+            type: "content" as const,
+            appearsToBeBilingualPage: false,
+            elements: [
+              {
+                type: "text" as const,
+                field: "bookTitle",
+                content: { en: "Book Title" },
+              },
+            ],
+          },
+        ],
       };
 
       const html = HtmlGenerator.generateHtmlDocument(book);

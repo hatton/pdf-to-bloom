@@ -8,7 +8,7 @@ export enum Orientation {
 export interface TextOrigamiItem {
   type: "text";
   content: Record<string, string>;
-  translationGroupDefaultLangVariables?: string[];
+  translationGroupDefaultLangVariables?: ("*" | "auto" | "V" | "L1" | "N1")[];
 }
 
 export interface ImageOrigamiItem {
@@ -24,23 +24,23 @@ export type OrigamiItem = TextOrigamiItem | ImageOrigamiItem;
  * @throws Error if the input sequence is empty.
  */
 export function generateOrigamiHtml(
-  sequence: OrigamiItem[],
+  blocks: OrigamiItem[],
   orientation: Orientation = Orientation.Portrait
 ): string {
-  if (!sequence || sequence.length === 0) {
+  if (!blocks || blocks.length === 0) {
     throw new Error("Input sequence cannot be empty.");
   }
 
-  if (sequence.length === 1) {
+  if (blocks.length === 1) {
     // Single item: just the inner component with the actual content.
-    const item = sequence[0];
+    const item = blocks[0];
     return `
 <div class="split-pane-component-inner">
   ${generateItemHtml(item)}
 </div>`.trim();
   }
   // Multiple items: start with a split pane structure.
-  return buildSplitPane(sequence, orientation);
+  return buildSplitPane(blocks, orientation);
 }
 
 /**
@@ -48,11 +48,11 @@ export function generateOrigamiHtml(
  * @returns HTML string for the split pane.
  */
 function buildSplitPane(
-  currentSequence: OrigamiItem[],
+  blocks: OrigamiItem[],
   orientation: Orientation = Orientation.Portrait
 ): string {
-  const firstItem = currentSequence[0];
-  const remainingItemsSequence = currentSequence.slice(1);
+  const firstItem = blocks[0];
+  const remainingItemsSequence = blocks.slice(1);
 
   // Content for the first pane is the HTML for the first item.
   const contentForFirstPane = generateItemHtml(firstItem);
@@ -127,7 +127,10 @@ function generateTextBlock(
         content
       );
 
-    paragraphs.push(shouldWrapInParagraph ? `<p>${content}</p>` : content);
+    const escapedContent = escapeHtml(content);
+    paragraphs.push(
+      shouldWrapInParagraph ? `<p>${escapedContent}</p>` : escapedContent
+    );
 
     bloomEditableDivs.push(
       `
