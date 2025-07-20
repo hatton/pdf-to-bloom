@@ -1,15 +1,10 @@
 import { Command } from "commander";
 import chalk from "chalk";
-import { existsSync } from "fs"; // Import the synchronous existsSync function
-import * as path from "path";
 import { fileURLToPath } from "url";
 import { Arguments, Artifact, processConversion } from "./process";
-import { A } from "vitest/dist/chunks/environment.LoooBwUu.js";
-import { get } from "http";
 
 // ES module equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 const program = new Command();
 
@@ -41,6 +36,10 @@ program
     "--openrouter-key <key>",
     "OpenRouter API key (for enrichment and potentially advanced Bloom HTML generation)"
   )
+  .option(
+    "--prompt <path>",
+    "Path to custom prompt file to override the built-in LLM prompt"
+  )
   .option("--verbose", "Enable verbose logging to see detailed process steps")
   .action(async (input, options) => {
     if (input) {
@@ -50,6 +49,7 @@ program
         output: options.output,
         mistralApiKey: options.mistralApiKey || process.env.MISTRAL_API_KEY,
         openrouterKey: options.openrouterKey || process.env.OPENROUTER_KEY,
+        promptPath: options.prompt,
         verbose: options.verbose || false,
       };
 

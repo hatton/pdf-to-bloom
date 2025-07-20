@@ -30,6 +30,7 @@ export type Arguments = {
   verbose: boolean; // Verbose logging
   mistralApiKey?: string; // Mistral API key for PDF to markdown conversion
   openrouterKey?: string; // OpenRouter API key for LLM tagging of markdown
+  promptPath?: string; // Path to custom prompt file to override built-in prompt
 };
 
 type Plan = {
@@ -44,6 +45,7 @@ type Plan = {
   verbose: boolean;
   mistralKey?: string;
   openrouterKey?: string;
+  promptPath?: string;
 };
 
 // Convert numeric enum value to readable string
@@ -108,6 +110,20 @@ export async function processConversion(inputPath: string, options: Arguments) {
         );
       }
 
+      // Read custom prompt if provided
+      let customPrompt: string | undefined;
+      if (plan.promptPath) {
+        try {
+          customPrompt = await fs.readFile(plan.promptPath, "utf-8");
+          logger.info(`Using custom prompt from: ${plan.promptPath}`);
+        } catch (error) {
+          logger.error(`Failed to read custom prompt file: ${error}`);
+          throw new Error(
+            `Failed to read custom prompt file: ${plan.promptPath}`
+          );
+        }
+      }
+
       const llmResult = await llmMarkdown(
         markdownContentToEnrich,
         plan.openrouterKey!,
@@ -116,6 +132,7 @@ export async function processConversion(inputPath: string, options: Arguments) {
           l1: langs?.l1,
           l2: langs?.l2,
           l3: langs?.l3,
+          overridePrompt: customPrompt,
         }
       );
       logger.info(
@@ -248,7 +265,7 @@ async function makeThePlan(
     case ".pdf":
       inputType = Artifact.PDF;
       break;
-    case "md":
+    case ".md":
     case ".ocr.md":
       inputType = Artifact.MarkdownFromOCR;
       break;
@@ -321,10 +338,19 @@ async function makeThePlan(
   }
   const plan = {
     pdfPath: inputType === Artifact.PDF ? fullInputPath : undefined,
-    markdownFromOCRPath: path.join(baseOutputDir, baseName + ".ocr.md"),
+    markdownFromOCRPath:
+      inputType === Artifact.MarkdownFromOCR
+        ? fullInputPath
+        : path.join(baseOutputDir, baseName + ".ocr.md"),
     markdownFromLLMPath: path.join(baseOutputDir, baseName + ".raw-llm.md"),
-    markdownCleanedAfterLLMPath: path.join(baseOutputDir, baseName + ".llm.md"),
-    markdownForBloomPath: path.join(baseOutputDir, baseName + ".bloom.md"),
+    markdownCleanedAfterLLMPath:
+      inputType === Artifact.MarkdownFromLLM
+        ? fullInputPath
+        : path.join(baseOutputDir, baseName + ".llm.md"),
+    markdownForBloomPath:
+      inputType === Artifact.MarkdownReadyForBloom
+        ? fullInputPath
+        : path.join(baseOutputDir, baseName + ".bloom.md"),
 
     bookFolderPath: bookDir,
 
@@ -333,6 +359,7 @@ async function makeThePlan(
     verbose: cliArguments.verbose ?? false,
     mistralKey,
     openrouterKey,
+    promptPath: cliArguments.promptPath,
   };
   //console.log(`Plan created:`, JSON.stringify(plan, null, 2));
 

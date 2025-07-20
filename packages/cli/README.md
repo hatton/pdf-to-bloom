@@ -1,21 +1,8 @@
-# @pdf-to-bloom/cli
+# pdf-to-bloom command line tool
 
-Command-line interface for converting PDF documents to Bloom format.
-
-## Installation
-
-```bash
-yarn add -g @pdf-to-bloom/cli
-```
+Command-line interface for converting PDF and markdown documents to Bloom books.
 
 ## Usage
-
-### Start Web Application
-
-```bash
-# Start the web application (when no arguments provided)
-pdf-to-bloom
-```
 
 ### PDF Conversions
 
@@ -43,15 +30,6 @@ pdf-to-bloom mybook.md --target=enriched
 pdf-to-bloom mybook.md --target=enriched --output ./output
 ```
 
-### Directory Processing
-
-```bash
-# Process directory containing .md files
-# - If markdown has YAML front matter: convert directly to Bloom HTML
-# - If no front matter: enrich first, then convert to Bloom HTML
-pdf-to-bloom ./my-directory --output ./output
-```
-
 ## API Keys
 
 API keys can be provided via command line options or environment variables:
@@ -60,47 +38,34 @@ API keys can be provided via command line options or environment variables:
 
 - `--mistral-api-key <key>` - Mistral AI API key
 - `--openrouter-key <key>` - OpenRouter API key
+- `--prompt <path>` - Path to custom prompt file to override the built-in LLM prompt
 
 ### Environment Variables
 
 - `MISTRAL_API_KEY` - Mistral AI API key
 - `OPENROUTER_KEY` - OpenRouter API key
 
-## Target Formats
+## Options for --target
 
-- `bloom` - Full conversion pipeline (PDF → Markdown → Enriched → Bloom HTML)
-- `markdown` - PDF to markdown conversion only
-- `enriched` - PDF to enriched markdown, or markdown enrichment
+- `markdown` - OCR's markdown
+- `tagged` - markdown annotated with comments that identify text blocks, languages, and metadata fields
+- `bloom` - Bloom HTML
 
 ## Examples
 
 ```bash
 # Basic PDF to Bloom conversion
-pdf-to-bloom document.pdf --mistral-api-key YOUR_KEY
+pdf-to-bloom document.pdf
 
 # Convert PDF to markdown only
-pdf-to-bloom document.pdf --target=markdown --mistral-api-key YOUR_KEY
+pdf-to-bloom document.pdf --target=markdown
 
 # Enrich existing markdown
-pdf-to-bloom document.md --target=enriched --openrouter-key YOUR_KEY
+pdf-to-bloom document.md --target=tagged
 
-# Process directory with verbose logging
-pdf-to-bloom ./markdown-files --output ./output --verbose --openrouter-key YOUR_KEY
+# Use custom prompt for LLM enrichment
+pdf-to-bloom document.pdf --target=tagged --prompt ./my-custom-prompt.txt
 
-# Using environment variables
-export MISTRAL_API_KEY="your-mistral-key"
-export OPENROUTER_KEY="your-openrouter-key"
-pdf-to-bloom document.pdf --target=bloom --output ./output
-```
-
-## Legacy Command
-
-For backwards compatibility, the original `convert` command is still available:
-
-```bash
-pdf-to-bloom convert \
-  --input document.pdf \
-  --output ./output \
-  --mistral-key YOUR_MISTRAL_API_KEY \
-  --openrouter-key YOUR_OPENROUTER_API_KEY
+# Process directory with verbose logging and custom prompt
+pdf-to-bloom ./markdown-files --output ./output --verbose --openrouter-key YOUR_KEY --prompt ./custom-prompt.txt
 ```
