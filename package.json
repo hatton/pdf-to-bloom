@@ -20,7 +20,7 @@
     "dev:cli": "yarn workspace @pdf-to-bloom/cli dev",
     "watch": "concurrently \"yarn dev:lib\" \"yarn dev:cli\" --names \"lib,cli\" --prefix-colors \"blue,green\"",
     "cli": "yarn node packages/cli/dist/index.js",
-    "test:md-to-enriched": "yarn build:lib && yarn build:cli && node packages/cli/dist/index.js test-inputs/testme.md --target enriched"
+    "test:md-to-tagged": "yarn build:lib && yarn build:cli && node packages/cli/dist/index.js test-inputs/testme.md --target tagged"
   },
   "packageManager": "yarn@1.22.22",
   "volta": {

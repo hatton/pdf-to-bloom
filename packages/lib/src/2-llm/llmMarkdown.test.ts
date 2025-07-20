@@ -5,7 +5,7 @@ import { LogEntry } from "../logger";
 // Mock the AI SDK generateText function
 vi.mock("ai", () => ({
   generateText: vi.fn().mockResolvedValue({
-    text: "<!-- Enriched Content via OpenRouter -->\n\n# Test Content\n\nThis is enriched test content.",
+    text: "<!-- Tagged Content via OpenRouter -->\n\n# Test Content\n\nThis is tagged test content.",
   }),
 }));
 
@@ -56,7 +56,7 @@ describe("llmMarkdown", () => {
     expect(result).toHaveProperty("cleanedUpMarkdown");
     expect(result).toHaveProperty("valid");
     expect(result.cleanedUpMarkdown).toContain(
-      "<!-- Enriched Content via OpenRouter -->"
+      "<!-- Tagged Content via OpenRouter -->"
     );
   });
   it("should work without options", async () => {
@@ -65,7 +65,7 @@ describe("llmMarkdown", () => {
     expect(result).toHaveProperty("cleanedUpMarkdown");
     expect(result).toHaveProperty("valid");
     expect(result.cleanedUpMarkdown).toContain(
-      "<!-- Enriched Content via OpenRouter -->"
+      "<!-- Tagged Content via OpenRouter -->"
     );
   });
 
@@ -78,7 +78,7 @@ describe("llmMarkdown", () => {
     expect(result).toHaveProperty("cleanedUpMarkdown");
     expect(result).toHaveProperty("valid");
     expect(result.cleanedUpMarkdown).toContain(
-      "<!-- Enriched Content via OpenRouter -->"
+      "<!-- Tagged Content via OpenRouter -->"
     );
   });
 });

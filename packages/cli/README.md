@@ -65,9 +65,9 @@ The conversion from PDF to Bloom HTML is a three stage process. If you want, you
 
 This tool determines the starting stage by looking at the file name you give it:
 
-- \*.PDF Start with PDF
-- \*.md Start with raw markdown
-- \*.tagged.md Start with the markdown that has been tagged by an LLM
+- `*.PDF` Start with PDF
+- `*.md` Start with raw markdown
+- `*.tagged.md` Start with the markdown that has been tagged by an LLM
 
 ## Setting the Target
 
@@ -83,7 +83,7 @@ For example, to convert PDF to markdown only:
 
 Or to skip OCR'ing and start with a raw markdown:
 
-`pdf-to-bloom mybook.md --target=enriched`
+`pdf-to-bloom mybook.md --target=tagged`
 
 ## API Keys
 

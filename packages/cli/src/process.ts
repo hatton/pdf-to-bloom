@@ -54,7 +54,7 @@ type Plan = {
 const artifactNames = {
   [Artifact.PDF]: "PDF",
   [Artifact.MarkdownFromOCR]: "Markdown from OCR",
-  [Artifact.MarkdownFromLLM]: "Enriched Markdown from LLM",
+  [Artifact.MarkdownFromLLM]: "Tagged Markdown from LLM",
   [Artifact.MarkdownReadyForBloom]: "Bloom-ready Markdown",
   [Artifact.HTML]: "Bloom HTML",
 };
@@ -139,7 +139,7 @@ export async function processConversion(inputPath: string, options: Arguments) {
         }
       );
       logger.info(
-        `Writing llm-enriched markdown to: ${plan.markdownFromLLMPath}`
+        `Writing llm-tagged markdown to: ${plan.markdownFromLLMPath}`
       );
 
       await fs.writeFile(
@@ -151,7 +151,7 @@ export async function processConversion(inputPath: string, options: Arguments) {
       );
       await fs.writeFile(
         plan.markdownCleanedAfterLLMPath!,
-        llmResult.cleanedUpMarkdown
+        llmResult.markdownResultFromLLM
       );
 
       if (!llmResult.valid) {
@@ -196,22 +196,22 @@ export async function processConversion(inputPath: string, options: Arguments) {
       await fs.writeFile(plan.markdownForBloomPath!, finalMarkdown);
 
       latestArtifact = Artifact.MarkdownReadyForBloom;
-      // If Enriched Markdown was the final target, we're done here
+      // If Tagged Markdown was the final target, we're done here
       if (plan.targetArtifact === Artifact.MarkdownReadyForBloom) {
         return;
       }
     }
     // ------------------------------------------------------------------------------
-    // Stage 4: Convert Enriched Markdown to Bloom HTML
+    // Stage 4: Convert Tagged Markdown to Bloom HTML
     // ------------------------------------------------------------------------------
     if (latestArtifact === Artifact.MarkdownReadyForBloom) {
       logger.info(`-> Converting Markdown to Bloom HTML...`);
-      const enrichedMarkdownContent = await fs.readFile(
+      const taggedMarkdownContent = await fs.readFile(
         plan.markdownForBloomPath!,
         "utf-8"
       );
 
-      const book = new Parser().parseMarkdown(enrichedMarkdownContent);
+      const book = new Parser().parseMarkdown(taggedMarkdownContent);
 
       const bloomHtmlContent = await HtmlGenerator.generateHtmlDocument(
         book,

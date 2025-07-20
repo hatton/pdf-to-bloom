@@ -53,7 +53,7 @@ This is a **Yarn workspaces monorepo** with three packages:
 ### CLI Usage
 
 - `yarn cli` - Run the built CLI tool
-- `yarn test:md-to-enriched` - Test conversion of markdown to enriched format
+- `yarn test:md-to-tagged` - Test conversion of markdown to tagged format
 
 ## Testing
 

@@ -6,7 +6,7 @@ import path from "path";
 import { Language } from "../types";
 import { attemptCleanup } from "./post-llm-cleanup";
 
-export interface EnrichMarkdownOptions {
+export interface TagMarkdownOptions {
   logCallback?: (log: LogEntry) => void;
   overridePrompt?: string;
   overrideModel?: string; // an openrouter model name, e.g. "google/gemini-2.5-flash
@@ -22,9 +22,9 @@ export interface EnrichMarkdownOptions {
 export async function llmMarkdown(
   markdown: string,
   openRouterApiKey: string,
-  options?: EnrichMarkdownOptions
+  options?: TagMarkdownOptions
 ): Promise<{
-  markdownResultFromEnrichmentLLM: string;
+  markdownResultFromLLM: string;
   cleanedUpMarkdown: string;
   valid: boolean;
 }> {
@@ -100,27 +100,25 @@ export async function llmMarkdown(
       temperature: 0.0, // Deterministic, no creativity needed
       maxTokens,
     });
-    let enrichedContent = result.text;
+    let taggedContent = result.text;
 
     logger.info("Markdown enrichment completed... validating...");
-    logger.verbose(
-      `Generated ${enrichedContent.length} characters of markdown`
-    );
+    logger.verbose(`Generated ${taggedContent.length} characters of markdown`);
 
-    if (!enrichedContent) {
+    if (!taggedContent) {
       logger.error("No markdown content received from AI model");
-      throw new Error("Failed to generate enriched markdown");
+      throw new Error("Failed to generate tagged markdown");
     }
 
-    const cleanupResult = attemptCleanup(enrichedContent);
+    const cleanupResult = attemptCleanup(taggedContent);
     if (!cleanupResult.valid) {
-      logger.error("Enriched markdown content failed validation checks");
-      // don't throw: we want to save what we did so that it can be inspected: throw new Error("Enriched markdown content failed validation checks");
+      logger.error("Tagged markdown content failed validation checks");
+      // don't throw: we want to save what we did so that it can be inspected: throw new Error("Tagged markdown content failed validation checks");
     } else {
-      logger.info("Enriched markdown content passed validation checks");
+      logger.info("Tagged markdown content passed validation checks");
     }
     return {
-      markdownResultFromEnrichmentLLM: enrichedContent,
+      markdownResultFromLLM: taggedContent,
       cleanedUpMarkdown: cleanupResult.cleaned,
       valid: cleanupResult.valid,
     };

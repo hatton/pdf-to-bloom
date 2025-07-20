@@ -48,7 +48,7 @@ export function createLogCallback(showVerbose: boolean) {
 }
 
 // More robust check for YAML front matter presence
-export async function checkIfEnriched(filePath: string): Promise<boolean> {
+export async function checkIfTagged(filePath: string): Promise<boolean> {
   if (!(await fileExists(filePath))) return false;
   const content = await fs.readFile(filePath, "utf-8");
   // Check for '---' at the very beginning (trimmed), followed by content, then another '---'
