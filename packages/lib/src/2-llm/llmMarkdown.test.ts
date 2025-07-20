@@ -52,7 +52,7 @@ describe("llmMarkdown", () => {
     ).toBe(true);
 
     // Result is an object with properties, not a string
-    expect(result).toHaveProperty("markdownResultFromEnrichmentLLM");
+    expect(result).toHaveProperty("markdownResultFromLLM");
     expect(result).toHaveProperty("cleanedUpMarkdown");
     expect(result).toHaveProperty("valid");
     expect(result.cleanedUpMarkdown).toContain(
@@ -61,7 +61,7 @@ describe("llmMarkdown", () => {
   });
   it("should work without options", async () => {
     const result = await llmMarkdown("# Test", "valid-key");
-    expect(result).toHaveProperty("markdownResultFromEnrichmentLLM");
+    expect(result).toHaveProperty("markdownResultFromLLM");
     expect(result).toHaveProperty("cleanedUpMarkdown");
     expect(result).toHaveProperty("valid");
     expect(result.cleanedUpMarkdown).toContain(
@@ -74,7 +74,7 @@ describe("llmMarkdown", () => {
       overridePrompt: "Custom prompt",
       overrideModel: "custom-model",
     });
-    expect(result).toHaveProperty("markdownResultFromEnrichmentLLM");
+    expect(result).toHaveProperty("markdownResultFromLLM");
     expect(result).toHaveProperty("cleanedUpMarkdown");
     expect(result).toHaveProperty("valid");
     expect(result.cleanedUpMarkdown).toContain(
