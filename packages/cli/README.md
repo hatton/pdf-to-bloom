@@ -38,7 +38,8 @@ API keys can be provided via command line options or environment variables:
 
 - `--mistral-api-key <key>` - Mistral AI API key
 - `--openrouter-key <key>` - OpenRouter API key
-- `--prompt <path>` - Path to custom prompt file to override the built-in LLM prompt
+- `--prompt <path>` - Path to custom prompt file to override the built-in LLM prompt. Use this to override the default.
+- `--model <model>` - OpenRouter model name to use in tagging the markdown. E.g., 'google/gemini-2.5-flash'. Use this to override the default.
 
 ### Environment Variables
 
@@ -66,6 +67,12 @@ pdf-to-bloom document.md --target=tagged
 # Use custom prompt for LLM enrichment
 pdf-to-bloom document.pdf --target=tagged --prompt ./my-custom-prompt.txt
 
-# Process directory with verbose logging and custom prompt
-pdf-to-bloom ./markdown-files --output ./output --verbose --openrouter-key YOUR_KEY --prompt ./custom-prompt.txt
+# Use custom model for LLM enrichment
+pdf-to-bloom document.pdf --target=tagged --model "anthropic/claude-3-5-sonnet"
+
+# Use both custom prompt and model
+pdf-to-bloom document.pdf --target=tagged --prompt ./custom-prompt.txt --model "google/gemini-2.5-flash"
+
+# Process directory with verbose logging, custom prompt, and model
+pdf-to-bloom ./markdown-files --output ./output --verbose --openrouter-key YOUR_KEY --prompt ./custom-prompt.txt --model "anthropic/claude-3-5-haiku"
 ```

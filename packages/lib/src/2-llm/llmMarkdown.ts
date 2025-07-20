@@ -9,7 +9,7 @@ import { attemptCleanup } from "./post-llm-cleanup";
 export interface EnrichMarkdownOptions {
   logCallback?: (log: LogEntry) => void;
   overridePrompt?: string;
-  overrideModel?: string;
+  overrideModel?: string; // an openrouter model name, e.g. "google/gemini-2.5-flash
   // AI can guess at these, but in the context of a bloom collection, we already know what to expect so we can provide these to help the AI model
   l1?: Language; // Primary language of the content
   l2?: Language; // Secondary language

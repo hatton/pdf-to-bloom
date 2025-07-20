@@ -31,6 +31,7 @@ export type Arguments = {
   mistralApiKey?: string; // Mistral API key for PDF to markdown conversion
   openrouterKey?: string; // OpenRouter API key for LLM tagging of markdown
   promptPath?: string; // Path to custom prompt file to override built-in prompt
+  modelName?: string; // OpenRouter model name to override the default model
 };
 
 type Plan = {
@@ -46,6 +47,7 @@ type Plan = {
   mistralKey?: string;
   openrouterKey?: string;
   promptPath?: string;
+  modelName?: string;
 };
 
 // Convert numeric enum value to readable string
@@ -133,6 +135,7 @@ export async function processConversion(inputPath: string, options: Arguments) {
           l2: langs?.l2,
           l3: langs?.l3,
           overridePrompt: customPrompt,
+          overrideModel: plan.modelName,
         }
       );
       logger.info(
@@ -360,6 +363,7 @@ async function makeThePlan(
     mistralKey,
     openrouterKey,
     promptPath: cliArguments.promptPath,
+    modelName: cliArguments.modelName,
   };
   //console.log(`Plan created:`, JSON.stringify(plan, null, 2));
 

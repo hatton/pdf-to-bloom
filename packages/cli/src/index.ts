@@ -40,6 +40,10 @@ program
     "--prompt <path>",
     "Path to custom prompt file to override the built-in LLM prompt"
   )
+  .option(
+    "--model <model>",
+    "OpenRouter model name to use for LLM enrichment (e.g., 'google/gemini-2.5-flash')"
+  )
   .option("--verbose", "Enable verbose logging to see detailed process steps")
   .action(async (input, options) => {
     if (input) {
@@ -50,6 +54,7 @@ program
         mistralApiKey: options.mistralApiKey || process.env.MISTRAL_API_KEY,
         openrouterKey: options.openrouterKey || process.env.OPENROUTER_KEY,
         promptPath: options.prompt,
+        modelName: options.model,
         verbose: options.verbose || false,
       };
 
