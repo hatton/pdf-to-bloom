@@ -14,7 +14,7 @@ yarn add @pdf-to-bloom/core
 import {
   pdfToBloomFolder,
   makeMarkdownFromPDF,
-  enrichMarkdown,
+  tagMarkdown,
   mdToBloomHtml,
 } from "@pdf-to-bloom/core";
 
@@ -31,11 +31,8 @@ const markdown = await makeMarkdownFromPDF(
   "./output",
   "your-mistral-api-key"
 );
-const enrichedMarkdown = await enrichMarkdown(
-  markdown,
-  "your-openrouter-api-key"
-);
-const bloomHtml = await mdToBloomHtml(enrichedMarkdown);
+const taggedMarkdown = await tagMarkdown(markdown, "your-openrouter-api-key");
+const bloomHtml = await mdToBloomHtml(taggedMarkdown);
 ```
 
 ## API
@@ -48,9 +45,9 @@ Complete pipeline that converts a PDF to Bloom HTML format.
 
 Extract and convert PDF content to markdown using MistralAI.
 
-### `enrichMarkdown(markdown, openRouterApiKey, options?)`
+### `tagMarkdown(markdown, openRouterApiKey, options?)`
 
-Enhance the markdown content using OpenRouter API.
+Enhance the markdown content using an LLM
 
 ### `mdToBloomHtml(markdown, options?)`
 

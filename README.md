@@ -88,27 +88,27 @@ pdf-to-bloom is a TypeScript library that provides a three-stage pipeline for co
    ): Promise<string>
 ````
 
-2. **enrichMarkdown**: Enhance the markdown content using OpenRouter API
+2. **tagMarkdown**: Enhance the markdown content using OpenRouter API
 
    ```typescript
-   enrichMarkdown(
+   tagMarkdown(
      markdown: string,
      openRouterApiKey: string,
-     options?: EnrichMarkdownOptions
+     options?: TaggedMarkdownOptions
    ): Promise<string>
    ```
 
    Options interface:
 
    ```typescript
-   interface EnrichMarkdownOptions {
+   interface TaggedMarkdownOptions {
      logCallback?: (log: LogEntry) => void;
      overridePrompt?: string;
      overrideModel?: string;
    }
    ```
 
-3. **mdToBloomHtml**: Convert the enriched markdown to Bloom-compatible HTML format
+3. **mdToBloomHtml**: Convert the tagged markdown to Bloom-compatible HTML format
 
    ```typescript
    mdToBloomHtml(
