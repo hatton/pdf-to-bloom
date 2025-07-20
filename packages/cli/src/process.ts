@@ -144,14 +144,14 @@ export async function processConversion(inputPath: string, options: Arguments) {
 
       await fs.writeFile(
         plan.markdownFromLLMPath!,
-        llmResult.markdownResultFromEnrichmentLLM
+        llmResult.markdownResultFromLLM
       );
       logger.info(
         `Writing cleaned up markdown to: ${plan.markdownCleanedAfterLLMPath}`
       );
       await fs.writeFile(
         plan.markdownCleanedAfterLLMPath!,
-        llmResult.markdownResultFromLLM
+        llmResult.cleanedUpMarkdown
       );
 
       if (!llmResult.valid) {
