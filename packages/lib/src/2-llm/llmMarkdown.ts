@@ -53,7 +53,7 @@ export async function llmMarkdown(
       logger.error(`Failed to read enrichment prompt: ${error}`);
       throw error;
     } // Configure OpenRouter with Gemini 2.5 Flash
-    const modelName = overrideModel || "google/gemini-2.5-flash-preview-05-20";
+    const modelName = overrideModel || "google/gemini-2.5-pro";
     const openrouterProvider = createOpenRouter({
       apiKey: openRouterApiKey,
     });
