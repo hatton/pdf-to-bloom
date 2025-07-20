@@ -61,15 +61,16 @@ Edolo Books/
 
 ## Setting the starting stage
 
-The conversion from PDF to Bloom HTML is a three stage process. If you want, you can start at any of those stages, and end at any of them.
+The conversion from PDF to Bloom HTML is a four stage process. If you want, you can start at any of those stages, and end at three of them.
 
 This tool determines the starting stage by looking at the file name you give it:
 
 - `*.PDF` Start with PDF
-- `*.md` Start with raw markdown
-- `*.tagged.md` Start with the markdown that has been tagged by an LLM
+- `*.md` or `*.ocr.md` Start with raw markdown
+- `*.llm.md` Start with the markdown that has been tagged by an LLM
+- `*.bloom.md` Start with markdown that is ready for the last stage of conversion to Bloom HTML:
 
-## Setting the Target
+## Setting the ending stage
 
 To specify the end stage, add the `--target` option using one of these values:
 
@@ -80,10 +81,6 @@ To specify the end stage, add the `--target` option using one of these values:
 For example, to convert PDF to markdown only:
 
 `pdf-to-bloom mybook.pdf --target=markdown`
-
-Or to skip OCR'ing and start with a raw markdown:
-
-`pdf-to-bloom mybook.md --target=tagged`
 
 ## API Keys
 
