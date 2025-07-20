@@ -1,163 +1,113 @@
-You are given a Markdown file that may contain multiple languages. Your task is to enrich this file by identifying metadata and languages.
-    
-# YAML Front Matter
-At the very top of your output, emit "---" followed by some metadata, and end that section with "---".
-Include information on the languages of the document here. Example:
+You will be given a Markdown file that may contain multiple languages. Your overall task has two parts, each with instructions below: Generating a YAML block that the files languages, and annotating the markdown with text block comments.
 
----
+YAML Front Matter:
+
+Identify the languages in this markdown file.  Use the "YAML Block Example" and "General YAML Format Criteria" sections of these instructions below to format the block. Use the sections beneath them titled "What Counts" and "Language Identification" to help when you are identifying the languages in the file.
+YAML Block Example:
+The YAML block should be formatted like this:
 languages:
-  fr: "française"
-  en: "English"
-l1: "fr"
-l2: "en"
----
-
-# Content
-
-Next, repeat all of the markdown in the input file, but annotated.
+wo: "woelian"
+be: "bemalia"
+l1: "wo"
+l2: "be"
 
 
-Preserve all incoming comments. The input markdown will already have `<!-- page -->` comments.
-
-Example:
-
-<!-- page index=1 --->
-
-... stuff on the cover...
-
-<!-- page index=2 --->
-
-... stuff from the title page ...
+General YAML Format Criteria:
+Like the example given above, the YAML block should meet the following criteria:
+three dashes before and after
+a yaml block with a “languages” object that has the BCP 47 language tag for each language found in the book (this could be 1,2,3, conceivably 4 languages).
+The language name in the “languages” object written in the language itself
+l1: the BCP 47 tag of the primary language of the book
+l2: the BCP 47 tag of the secondary language of the book (if there is one)
+l3: repeat the process for any additional languages
 
 
-## Image blocks
-- Preserve all markdown image references without changes
-
-## Text blocks
-Annotate all blocks of text with a language comment. E.g. `<!-- text lang="en" --> This is my house. <!-- text lang="fr" --> C'est ma maison.`
-- Use ISO 639-1 or 639-3 language codes (e.g., `es` for Spanish, `mxa` for Mixteco de Santa María Zacatepec, uz-CYRL for Uzbeck in cyrillic script).
-- Preserve Markdown formatting
-- Books have front matter for the first 1 to 4 pages, and back matter for the last 1 or 2 pages. For each of these pages, look at every text block and determine a good label for the metadata. Then add `field="the data"` attribute to the text block. 
-Examples:
-<!-- text lang="fr" field="title" -->
-Ma maison
-<!-- text lang="en" field="title" -->
-My House
-<!-- text lang="fr" field="smallCoverCredits" -->
-Author: John, Illustrator Suzanne
-<!-- text lang="fr" field="country" -->
-United States
-<!-- text lang="en" field="copyright" -->
-Copyright 1993, Instituto Lingüístico de Verano, A.C.
-`<!-- text lang="*" field="ISBN" -->
-968-31-0276`
+What Counts:
+What does count: any language for which there is at least one word written in that language in the entire markdown file.
+What does not count: Languages where that languages alphabet or script is used, but there aren't any actual words from that language present in the file.
 
 
-The following are fields that you should look for and tag:
-bookTitle
-isbn
-license (e.g. "CC-BY")
-licenseUrl (e.g. "http://creativecommons.org/licenses/by/4.0/")
-licenseDescription (If the book is CC-license, this is often a description of what the license means.)
-licenseNotes  (Something that goes beyond describing the legalities of the license, often this is ued to add a condition or permit use. Example "Ask us before you translate this." or "It is ok to translate this, just send us a copy")
-copyright  (e.g. "Copyright © 1993, Instituto Lingüístico de Verano, A.C.")
-originalCopyright (when the book is a derivative, it may have text like "Based on the original, Copyright 1991, Generous Publishing")
-smallCoverCredits  (e.g "Authored by Cassidy, Illustrated by Sundance")
-topic  (e.g. Traditional Story)
-credits  (e.g. "the authors, the illustrator")
-versionAcknowledgments  (Normally this is all you will use, unless the version is a derivative, in which case this may say something like "this version translated by foo bar")
-originalContributions
-originalAcknowledgments  (This would be acknowledgements of the original that we don't want to lose, e.g. "Based on the original by Joe.")
-funding  (e.g. "funded by a grant from the Foo dept of literacy")
-country  (e.g. "Mexico")
-province  (e.g. "Oaxaca")
-district  (e.g. "Santa María Zacatepec")
-author  (e.g. "Virginia López Lucas")
-illustrator  (e.g. "Jose Foo")
-publisher  (e.g. "Instituto de Grillo")
-originalPublisher  (e.g. "Originally published by Acme Publishers")
+Language Identification:
+Use the following instructions to systematically complete this task:
+1: Look at the original file's cover. Often the names of the languages in the book will be here, and may be used for your task.
+2: Examine the entire markdown file, always assuming that each page might be a new language.
+3: Search through the entire text, examining each block sequentially. Look for and identify any languages.
+4: If you find any text you cannot identify the language of, add 'unk: "unknown"' to the language list. This successfully counts as that text's language.
+5: Identify the accurate BCP 47 tag that corresponds to each language you found in the book. You need the correct language tag, as well as the region segment of the tag if it is identified in the book. For example: A book produced in Saudi Arabia in Arabic would have a tag of "ar-SA", but if the book doesn't make the region clear, it would be correct to tag it as just "ar". It is always better to exclude the region than to guess it.
+4: If 'unk: "unknown"' has been added to the language list, add a matching substitute BCP 47 tag. The tag should look like this: l2: "unk". It may also be located at l1, l3, and so forth.
+5: If you've identified a language in the book and listed it, but do not know the BCP 47 tag for that language, list the BCP 47 tag for that language item as "unk" just as you did in step 4.
 
 
-Here is an example of what you will output
-
-```
----
-allTitles:
-  bo: "ངའི་ཁང་པ་།"
-  en: "My House"
-languages:
-  bo: "Tibetan"
-  en: "English"
-l1: "bo" # the primary language
-l2: "en" # often a major language used for metadata, but may also be used in bilingual pages
----
-<!-- page index=1 -->
-
-<!-- text lang="bo" field="bookTitle" -->
-ངའི་ཁང་པ་།
-
-<!-- text lang="en" field="bookTitle" -->
-My House
-
-![](myHouse.jpg)
-
-<!-- text lang="en" field="smallCoverCredits" -->
-Authored by Cassidy, Illustrated by Sundance
-
-<!-- text lang="en" field="topic" -->
-Traditional Story
-
-<!-- page index=2 -->
-
-<!-- text lang="en" field="copyright" -->
-Copyright 1993, Instituto Lingüístico de Verano, A.C.
-
-<!-- text lang="en" field="license" -->
-CC-BY-NC
-
-<!-- text lang="en" field="licenseUrl" -->
-http://creativecommons.org/licenses/by-nc/4.0/
+Markdown Enrichment: 
+Your task in this part of the instructions to enrich the file by annotating it with a sequence of text block comments, identifying languages and a set of required metadata information. 
 
 
-<!-- page index=3 -->
+Where To Add Text Block Comments:
 
-<!-- text lang="bo" -->
+Introduce a new text block comment any time one or more of three things occurs at any point in the text:
+1: If you encounter a “<!-- page index=x -->" add a text block directly below it.
+2: Any time the language of some text does not match the language of the text directly above it.
+3: Directly above the location of one of the pieces of metadata information you are required to annotate.
 
-འདི་ངའི་ཁང་པ་ཡིན།
+Make sure each text block comment is on its own line. Do introduce a new line of space directly above the section being annotated for the text block comment, even when a line of space was already open. Do not introduce new lines of space as buffer around the comment.
 
-<!-- page index=3 -->
 
-<!-- text lang="bo" -->
+Language Annotation Format:
 
-ང་ཚོ་ཧ་ཅང་དགའ།
-
-![](/myFamily.jpg)
-
+Every single text block comment introduced should include an annotation identifying the language of the text that follows it. For example, if the language of that segment of the text is in english, the text block comment would look like this: 
 <!-- text lang="en" -->
 
-We like it a lot.```    
-    
 
-# Rules
-The final output should be a single Markdown file containing:
+Metadata Field List:
+Here is a list of every kind of metadata you need to identify in the markdown file:
 
-- Front matter using a YAML for metadata
-- The original content with all text annotated for language and all the images referenced.
+1: bookTitle 
+2: isbn 
+3: license (e.g. "CC-BY") 
+4: licenseUrl (e.g. "http://creativecommons.org/licenses/by/4.0/") 
+5: licenseDescription (If the book is CC-license, this is often a description of what the license means.) 
+6: licenseNotes (Something that goes beyond describing the legalities of the license, often this is used to add a condition or permit use. Example: "Ask us before you translate this." or "It is ok to translate this, just send us a copy") 
+7: copyright (e.g. "Copyright © 1993, Instituto Lingüístico de Verano, A.C.") 
+8: originalCopyright (when the book is a derivative, it may have text like "Based on the original, Copyright 1991, Generous Publishing") 
+9: smallCoverCredits (Credits are found on the first page of the file, e.g "Authored by Cassidy, Illustrated by Sundance") 
+10: topic (e.g. Traditional Story) 
+11: credits (Credits found anywhere except the first page, e.g. "the authors, the illustrator") 
+12: versionAcknowledgments (Normally this is all you will use, unless the version is a derivative, in which case this may say something like "this version translated by foo bar") 
+13: originalContributions 
+14: originalAcknowledgments (Acknowledgments of the original other than the publisher, e.g. "Based on the original by Joe.") 
+15: funding (e.g. "funded by a grant from the Foo dept of literacy") 
+16: country (e.g. "Mexico") 
+17: province (e.g. "Oaxaca") 
+18: district (e.g. "Santa María Zacatepec")
+19: author (e.g. "Virginia López Lucas") 
+20: illustrator (e.g. "Jose Foo") 
+21: publisher (If the file only mentions a single publisher, always use this feild e.g. "Instituto de Grillo") 
+22: originalPublisher (This feild is for when the file indicates an original publisher in addition to its current publisher, e.g. "Originally published by Acme Publishers")
+23: language (If the name of a language is explicitly listed seperately on the first three pages, list this, 
+e.g. if you see just the word "française" alone, it should be annoted like this: "<!-- text lang="fr" field="language" --> 
 
-Ensure the document remains readable and structurally intact, and that no content is lost or misclassified. 
+Metadata Annotation Format:
 
-Never truncate anything. You must preserve it all.
+The text block comments for the metadata annotation should be formatted like this:
+<!-- field="bookTitle" -->    
+In the place of “bookTitle” should be whatever metadata field is being identified in that location.
 
-If you aren't sure about the lang tag, do not hallucinate it. Just put in unk-x-languageName, e.g. if you don't know what langtag "northern foobar" uses, you can say "unk-x-northern_foobar".
+Since all text block comments should also identify the language of the text that follows it, the full text block comments when you annotate metadata fields should be formatted like this, expanding the text block to include both fields:
+<!-- text lang="fr" field="bookTitle" -->  
 
-If you don't even know what language it is, you can use "unk".
+Just like in this example, always list the language field to the leftmost side of the text block comment.
 
-The following metadata fields are required: allTitles, languages, l1. Normally you can also provide l2 if there is a second language. Sometimes a book will even have an L3.
+Clarifications:
+1:  Treat image tags like ![img-5.jpeg](img-5.jpeg){width=532} as non-linguistic elements. You must copy them into the output exactly as they appear in the original file, without altering the alt text, path, or attributes in any way. Do not add a language comment for the image tag itself.
+2: Except for the text block annotations, your output should be an exact replica of the markdown file. This means you shouldn't introduce any extra changes, including but not limted to spelling, convention, language, or headers.
+3: If an item on from the metadata field list is absent from the book, you may ignore it.
+4: The file content may be wrapped by delimiter lines like --- START OF FILE --- or --- END OF FILE ---. These delimiter lines are for context only and must be excluded from your final output.
+5: Non-linguistic elements should be treated as having the language tag "zxx".
+6: The text block comments themselves and page break indicators should be ignored for the purposes of language identification.
+7: Grouping Contiguous Text:
+A new text block comment should only be introduced if one of the three specific criteria (a new page index, a change in language, or a new metadata field) is met. Do not introduce a new comment simply because of a line break if the language remains the same. Multiple consecutive lines of text in the same language that are not distinct metadata fields must be grouped under a single text block comment. For example, a block like: {
+Author: Jane Doe
+English
+}
 
-If you see a number all alone in a text area at the end of a page, it is a page number. Drop it from the output, do not output a text comment for it.
-
-If on the page with license info, you see `# (cc)`, that's an OCR error, just drop it from the output.
-
-Do not mislabel the licenseUrl field as "license". The licenseUrl field will look like a url. If you see a creativecommons.org license url an don't have a license, you can infer the license from the url. A proper CC license does not end in a version number, e.g. if you just see http://creativecommons.org/licenses/by/4.0/, then is license "CC-BY".
-
-Note that the cover will often have the name of the L1 on the cover. You can just drop that line, don't make a mistake like adding it to the topic.
+Your final output should consist of the annotated markdown with the YAML code block you created appended to the top of it. Wrap both parts of the answer in code blocks.
