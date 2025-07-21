@@ -217,8 +217,13 @@ export class BloomMarkdown {
       if (imageMatch) {
         // Finalize current text block before adding image
         if (currentTextBlock) {
+          // Transfer any accumulated text before finalizing
+          if (currentLang && currentText.trim()) {
+            currentTextBlock.content[currentLang] = currentText.trim();
+          }
           elements.push(currentTextBlock);
           currentTextBlock = null;
+          currentText = "";
         }
 
         const alt = imageMatch[1];

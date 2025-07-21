@@ -406,4 +406,48 @@ French acknowledgment
       "French acknowledgment"
     );
   });
+
+  it("should preserve text content when followed by an image", () => {
+    const content = `---
+allTitles:
+  en: "Test Book"
+languages:
+  en: "English"
+  gon: "Gondi"
+l1: en
+l2: gon
+---
+<!-- text lang="en" field="bookTitle" -->
+
+test me
+
+![img-0.jpeg](img-0.jpeg){width=731}
+
+<!-- text lang="gon" field="bookTitle" -->
+
+ஹ்வ்லி (Gondi)`;
+
+    const parser = new BloomMarkdown();
+    const result = parser.parseMarkdown(content);
+
+    expect(result.pages).toHaveLength(1);
+    expect(result.pages[0].elements).toHaveLength(3);
+
+    // First element should be the English book title with "test me"
+    const englishTitle = result.pages[0].elements[0] as TextBlockElement;
+    expect(englishTitle.type).toBe("text");
+    expect(englishTitle.field).toBe("bookTitle");
+    expect(englishTitle.content.en).toBe("test me");
+
+    // Second element should be the image
+    const image = result.pages[0].elements[1] as ImageElement;
+    expect(image.type).toBe("image");
+    expect(image.src).toBe("img-0.jpeg");
+
+    // Third element should be the Gondi book title
+    const gondiTitle = result.pages[0].elements[2] as TextBlockElement;
+    expect(gondiTitle.type).toBe("text");
+    expect(gondiTitle.field).toBe("bookTitle");
+    expect(gondiTitle.content.gon).toBe("ஹ்வ்லி (Gondi)");
+  });
 });
