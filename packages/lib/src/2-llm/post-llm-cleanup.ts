@@ -10,10 +10,7 @@ export function attemptCleanup(content: string): {
   valid: boolean;
 } {
   // Strip code block wrapper if present
-  content = content.replace(/^```\w*\s*\n([\s\S]*?)\n```\s*$/g, "$1");
-
-  // Remove standalone "yaml" lines that AI models sometimes add
-  content = content.replace(/yaml/, "");
+  content = content.replace(/^```\w*\s*$/gm, "");
 
   // Fix malformed YAML frontmatter if it's missing the opening delimiter
   // Check if content starts with YAML-like content but is missing the opening ---
@@ -94,7 +91,7 @@ export function attemptCleanup(content: string): {
     return { cleaned: content, valid: false };
   }
 
-  const requiredFields = ["allTitles", "l1", "languages"];
+  const requiredFields = ["l1", "languages"];
   for (const field of requiredFields) {
     if (!content.includes(`${field}:`)) {
       logger.error(`Missing required frontmatter field: ${field}`);

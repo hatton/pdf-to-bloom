@@ -27,6 +27,7 @@ export async function llmMarkdown(
   markdownResultFromLLM: string;
   cleanedUpMarkdown: string;
   valid: boolean;
+  error?: string;
 }> {
   const {
     logCallback,
@@ -62,10 +63,8 @@ export async function llmMarkdown(
       `Processing markdown with ${modelName} through OpenRouter API...`
     );
 
-    // let's set the maxTokens to at least the length of the markdown content
-    // because we're typically working on minority languages so can expect poor tokenization.
-    const maxTokens = markdown.length + 2000; // Adding a buffer of 2000 tokens for metadata and new tagging
-    logger.verbose(`Setting maxTokens to: ${maxTokens}`);
+    const maxTokens = getMaxTokens(markdown, llmPrompt);
+    logger.info(`Setting maxTokens to: ${maxTokens}`);
 
     let messages: CoreUserMessage[] = [
       {
@@ -100,6 +99,28 @@ export async function llmMarkdown(
       temperature: 0.0, // Deterministic, no creativity needed
       maxTokens,
     });
+    const finishReason = result.finishReason as string; // Cast to string to allow checking custom reasons like "payment"
+    if (finishReason !== "stop") {
+      console.log("⚠️ runPrompt: Non-stop finish reason detected", {
+        finishReason,
+      });
+      if (finishReason === "length") {
+        throw new Error(
+          "Ran out of tokens before finishing (max tokens reached)"
+        );
+      }
+      if (finishReason === "error" || finishReason === "payment") {
+        throw new Error(
+          "API request failed - this may be due to insufficient credits, invalid API key, or service unavailability. Please check your OpenRouter account and API key."
+        );
+      }
+      if (finishReason === "content-filter") {
+        throw new Error(
+          "Content was filtered by the AI model's safety systems"
+        );
+      }
+      throw new Error(`Streaming finished with reason: ${finishReason}`);
+    }
     let taggedContent = result.text;
 
     logger.info("Markdown enrichment completed... validating...");
@@ -124,8 +145,37 @@ export async function llmMarkdown(
     };
   } catch (error) {
     logger.error(`Markdown enrichment failed: ${error}`);
-    throw error;
+    return {
+      markdownResultFromLLM: "",
+      cleanedUpMarkdown: "",
+      valid: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
   } finally {
     if (logCallback) logger.unsubscribe(logCallback);
   }
+}
+
+function getMaxTokens(markdown: string, llmPrompt: string): number {
+  // Let's set the maxTokens to at least the length of the markdown content
+  // because we're typically working on minority languages so can expect poor tokenization.
+
+  const kMultiplierForOutput = 3; // While something like English might be 4:1 letter to token, some other script of an unknown language could be 1 token for each unicode byte?
+  // todo: at the moment 1,411 input tokens are leading to 3,848 output tokens, probably from thinking. Really we don't
+  // want to limit the thinking because if it doesn't finished, we're hosed.
+  const kMultiplierForThinking = 6;
+  const kMultiplierForAnnotations = 1;
+
+  // Factor in prompt complexity - longer prompts typically require more thinking
+  const kPromptThinkingFactor = 5; // Additional thinking tokens per character in prompt
+  const promptThinkingTokens = llmPrompt.length * kPromptThinkingFactor;
+
+  const maxTokens =
+    markdown.length *
+      (kMultiplierForOutput +
+        kMultiplierForAnnotations +
+        kMultiplierForThinking) +
+    promptThinkingTokens;
+
+  return Math.round(maxTokens);
 }

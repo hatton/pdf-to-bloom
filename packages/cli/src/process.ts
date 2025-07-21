@@ -142,6 +142,20 @@ export async function processConversion(inputPath: string, options: Arguments) {
         `Writing llm-tagged markdown to: ${plan.markdownFromLLMPath}`
       );
 
+      // Check if LLM processing failed
+      if (llmResult.error) {
+        // Save the invalid markdown for inspection
+        await fs.writeFile(
+          plan.markdownFromLLMPath!,
+          llmResult.markdownResultFromLLM
+        );
+        logger.error(`LLM processing failed: ${llmResult.error}`);
+        logger.info(`Invalid markdown saved to: ${plan.markdownFromLLMPath!}`);
+        throw new Error(
+          `LLM processing failed: ${llmResult.error}. Check the saved markdown at "${plan.markdownFromLLMPath!}" for details.`
+        );
+      }
+
       await fs.writeFile(
         plan.markdownFromLLMPath!,
         llmResult.markdownResultFromLLM

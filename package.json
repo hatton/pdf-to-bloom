@@ -15,6 +15,7 @@
     "test:lib": "yarn workspace @pdf-to-bloom/lib test",
     "test:lib:watch": "yarn workspace @pdf-to-bloom/lib test:watch",
     "test:strict": "yarn workspaces foreach --all run test",
+    "test:manual-llm": "yarn workspace @pdf-to-bloom/lib test packages/lib/src/2-llm/llmMarkdown.manual.test.ts",
     "dev": "yarn workspaces foreach --all run dev",
     "dev:lib": "yarn workspace @pdf-to-bloom/lib dev",
     "dev:cli": "yarn workspace @pdf-to-bloom/cli dev",

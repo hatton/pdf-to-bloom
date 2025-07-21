@@ -16,6 +16,7 @@ node_modules/
 dist/
 
 test-inputs/**/index.html
+testme/**
 collections/
 
 bilingual-sample_bloom/
