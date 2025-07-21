@@ -13,6 +13,7 @@ import {
   getApiKeys,
   getFileNameWithoutExtension,
   readBloomCollectionSettingsIfFound,
+  validateAndResolveCollectionPath,
 } from "./processUtils";
 import { b } from "vitest/dist/chunks/suite.B2jumIFP.js";
 
@@ -25,7 +26,8 @@ export enum Artifact {
 }
 export type Arguments = {
   input: string; // Input file or directory path
-  output: string; // Optional output path
+  output?: string; // Optional output path
+  collection?: string; // Path to Bloom collection folder or .bloomCollection file
   target: Artifact; // Target format (default is HTML)
   verbose: boolean; // Verbose logging
   mistralApiKey?: string; // Mistral API key for PDF to markdown conversion
@@ -41,6 +43,7 @@ type Plan = {
   markdownCleanedAfterLLMPath?: string;
   markdownForBloomPath?: string;
   bookFolderPath?: string;
+  collectionFolderPath?: string;
   inputArtifact: Artifact;
   targetArtifact: Artifact;
   verbose: boolean;
@@ -100,11 +103,14 @@ export async function processConversion(inputPath: string, options: Arguments) {
         "utf-8"
       );
       // For markdown enrichment, if the input is from a Bloom collection, try to get language info from collection settings
-      const inputFolder = path.dirname(plan.bookFolderPath!);
+      const inputFolder =
+        plan.collectionFolderPath || path.dirname(plan.bookFolderPath!);
       const langs = await readBloomCollectionSettingsIfFound(inputFolder);
       if (langs) {
+        const formatLang = (lang?: { tag: string; name: string }) =>
+          lang ? `${lang.name} (${lang.tag})` : "undefined";
         logger.info(
-          `Supplying info from Bloom Collection settings: L1: ${langs.l1}, L2: ${langs.l2}, L3: ${langs.l3}`
+          `Supplying info from Bloom Collection settings: L1: ${formatLang(langs.l1)}, L2: ${formatLang(langs.l2)}, L3: ${formatLang(langs.l3)}`
         );
       } else {
         logger.warn(
@@ -265,6 +271,14 @@ async function makeThePlan(
   cliArguments: Arguments
 ): Promise<Plan> {
   const fullInputPath = path.resolve(inputPath);
+
+  // Validate that collection and output are not both specified
+  if (cliArguments.collection && cliArguments.output) {
+    throw new Error(
+      "Cannot specify both --collection and --output options. Use --collection for better language detection, or --output for custom directory placement."
+    );
+  }
+
   // use a regex to figure out the input type (as an Artifact) by looking at its last two file extensions, e.g. ".pdf" or ".ocr.md"
   const regex = /^(.*?)(\.[^.]+)?(\.[^.]+)?$/; // Matches the last two extensions
   const match = fullInputPath.match(regex);
@@ -324,15 +338,31 @@ async function makeThePlan(
   }
 
   logger.verbose(
-    `fullInputPath: ${fullInputPath} cliOutput: ${cliArguments.output}`
+    `fullInputPath: ${fullInputPath} cliOutput: ${cliArguments.output} cliCollection: ${cliArguments.collection}`
   );
 
-  // - If output directory is specified, use it. If a book directory will be created, it will be inside this directory.
-  // - If no output directory specified and inputType = PDF, create the book directory in the current working directory
-  // - If no output directory specified and inputType != PDF, send all output to the same directory as the input file
-  let baseOutputDir =
-    cliArguments.output ||
-    (inputType === Artifact.PDF ? process.cwd() : path.dirname(fullInputPath));
+  // Handle collection path validation and setup
+  let collectionFolderPath: string | undefined;
+  let baseOutputDir: string;
+
+  if (cliArguments.collection) {
+    // Validate and resolve collection path
+    const { collectionFolderPath: resolvedCollectionPath } =
+      await validateAndResolveCollectionPath(cliArguments.collection);
+    collectionFolderPath = resolvedCollectionPath;
+    baseOutputDir = collectionFolderPath;
+    logger.info(`Using Bloom collection folder: ${collectionFolderPath}`);
+  } else {
+    // Fall back to the old logic
+    // - If output directory is specified, use it. If a book directory will be created, it will be inside this directory.
+    // - If no output directory specified and inputType = PDF, create the book directory in the current working directory
+    // - If no output directory specified and inputType != PDF, send all output to the same directory as the input file
+    baseOutputDir =
+      cliArguments.output ||
+      (inputType === Artifact.PDF
+        ? process.cwd()
+        : path.dirname(fullInputPath));
+  }
 
   logger.verbose(`Output directory: ${baseOutputDir}`);
   const baseName = getFileNameWithoutExtension(
@@ -370,6 +400,7 @@ async function makeThePlan(
         : path.join(baseOutputDir, baseName + ".bloom.md"),
 
     bookFolderPath: bookDir,
+    collectionFolderPath,
 
     inputArtifact: inputType,
     targetArtifact: targetType,

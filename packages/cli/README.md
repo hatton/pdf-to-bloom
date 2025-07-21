@@ -13,6 +13,18 @@ First, create these accounts and put their keys in your Environment Variables. O
 
 ### Run
 
+The recommended way to use the tool is with the `--collection` option, which points to either a Bloom collection folder or a `.bloomCollection` file:
+
+```bash
+# Using a collection folder
+pdf-to-bloom Ebida.pdf --collection "C:\Users\MudMan\Documents\Bloom\Edolo Books"
+
+# Using a .bloomCollection file directly
+pdf-to-bloom Ebida.pdf --collection "C:\Users\MudMan\Documents\Bloom\Edolo Books\EdoloBooks.bloomCollection"
+```
+
+Alternatively, you can use the older `--output` option:
+
 ```bash
 pdf-to-bloom Ebida.pdf --output "C:\Users\MudMan\Documents\Bloom\Edolo Books"
 ```
@@ -21,13 +33,20 @@ Then run or restart Bloom to see the book.
 
 ## About Language Detection and Bloom Collections
 
-When processing files, the tool can automatically detect expected languages by looking for Bloom Collection settings in the output directory. If you specify an output directory that contains a `.bloomCollection` file (or if the parent directory contains one), the tool will read the language configuration from it.
-
-This provides several benefits:
+When processing files, the tool can automatically detect expected languages by looking for Bloom Collection settings. This provides several benefits:
 
 - **More accurate language detection**: The LLM knows what languages to expect when processing the content
 - **Consistent language codes**: Uses the same BCP 47 language tags as configured in your Bloom Collection
 - **Better metadata extraction**: Language-specific content is properly identified and tagged
+
+### Using the --collection Option (Recommended)
+
+The `--collection` option is the preferred way to specify where to create your book because it automatically finds and uses the Bloom Collection settings. You can point it to either:
+
+1. **A Bloom collection folder** (containing a `.bloomCollection` file)
+2. **A `.bloomCollection` file directly**
+
+The tool will validate that the path exists and contains the necessary collection settings.
 
 ### Example Bloom Collection Structure
 
@@ -42,10 +61,10 @@ C:\Users\MudMan\Documents\Bloom\Edolo Books\
 and we run
 
 ```bash
-pdf-to-bloom Ebida.pdf --output "C:\Users\MudMan\Documents\Bloom\Edolo Books"
+pdf-to-bloom Ebida.pdf --collection "C:\Users\MudMan\Documents\Bloom\Edolo Books"
 ```
 
-The tool will find `EdoloBooks.bloomCollection` use its language settings (L1, L2, L3) to help the LLM process the content more accurately.
+The tool will find `EdoloBooks.bloomCollection` and use its language settings (L1, L2, L3) to help the LLM process the content more accurately.
 
 Then, if all goes well, we will have:
 
@@ -88,6 +107,8 @@ API keys can be provided via command line options or environment variables:
 
 ### Command Line Options
 
+- `--collection <path>` - **Recommended**: Path to Bloom collection folder or .bloomCollection file for better language detection
+- `--output <path>` - Directory in which a new directory will be created based on the input file name (use --collection instead for better results)
 - `--mistral-api-key <key>` - Mistral AI API key
 - `--openrouter-key <key>` - OpenRouter API key
 - `--prompt <path>` - Path to custom prompt file to override the built-in LLM prompt. Use this to override the default.

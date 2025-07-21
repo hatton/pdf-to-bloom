@@ -13,6 +13,66 @@ export function getApiKeys(options: any) {
   return { mistralKey, openrouterKey };
 }
 
+/**
+ * Validates and resolves a collection path.
+ * @param collectionPath Path to either a Bloom collection folder or .bloomCollection file
+ * @returns Object containing the collection folder path and collection file path
+ * @throws Error if the path is invalid
+ */
+export async function validateAndResolveCollectionPath(
+  collectionPath: string
+): Promise<{
+  collectionFolderPath: string;
+  collectionFilePath: string;
+}> {
+  const resolvedPath = path.resolve(collectionPath);
+
+  // Check if path exists
+  try {
+    const stats = await fs.stat(resolvedPath);
+
+    if (stats.isFile()) {
+      // If it's a file, it should end with .bloomCollection
+      if (!resolvedPath.endsWith(".bloomCollection")) {
+        throw new Error(
+          `Collection file must end with .bloomCollection, got: ${resolvedPath}`
+        );
+      }
+
+      return {
+        collectionFolderPath: path.dirname(resolvedPath),
+        collectionFilePath: resolvedPath,
+      };
+    } else if (stats.isDirectory()) {
+      // If it's a directory, look for a .bloomCollection file inside
+      const files = await fs.readdir(resolvedPath);
+      const bloomCollectionFile = files.find((file) =>
+        file.endsWith(".bloomCollection")
+      );
+
+      if (!bloomCollectionFile) {
+        throw new Error(
+          `No .bloomCollection file found in directory: ${resolvedPath}`
+        );
+      }
+
+      return {
+        collectionFolderPath: resolvedPath,
+        collectionFilePath: path.join(resolvedPath, bloomCollectionFile),
+      };
+    } else {
+      throw new Error(
+        `Collection path must be a file or directory: ${resolvedPath}`
+      );
+    }
+  } catch (error: any) {
+    if (error.code === "ENOENT") {
+      throw new Error(`Collection path does not exist: ${resolvedPath}`);
+    }
+    throw error;
+  }
+}
+
 export async function createTempDir(): Promise<string> {
   // Creates a unique temporary directory
   return fs.mkdtemp(path.join(os.tmpdir(), "pdf-to-bloom-"));

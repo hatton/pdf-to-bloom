@@ -25,8 +25,12 @@ program
     "Target format: markdown (just ocr of the PDF), tagged (run through LLM and other processing), or bloom. Default is bloom."
   )
   .option(
+    "-c, --collection <path>",
+    "Path to Bloom collection folder or .bloomCollection file. This is the recommended way to specify where to create the book, as it provides language settings for better processing."
+  )
+  .option(
     "-o, --output <path>",
-    "Directory in which a new directory will be created based on the input file name. Defaults to your current working directory."
+    "Directory in which a new directory will be created based on the input file name. Defaults to your current working directory. (Use --collection instead for better language detection)"
   )
   .option(
     "--mistral-api-key <key>",
@@ -51,6 +55,7 @@ program
         input,
         target: getTarget(options.target),
         output: options.output,
+        collection: options.collection,
         mistralApiKey: options.mistralApiKey || process.env.MISTRAL_API_KEY,
         openrouterKey: options.openrouterKey || process.env.OPENROUTER_KEY,
         promptPath: options.prompt,

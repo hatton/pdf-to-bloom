@@ -48,6 +48,7 @@ yarn test
 yarn test:watch
 
 # convert a pdf
+yarn cli input.pdf --collection path/to/bloom/collection
 yarn cli ./test-inputs/testme.pdf
 ```
 
