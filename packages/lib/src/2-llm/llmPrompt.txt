@@ -5,12 +5,13 @@ YAML Front Matter:
 Identify the languages in this markdown file.  Use the "YAML Block Example" and "General YAML Format Criteria" sections of these instructions below to format the block. Use the sections beneath them titled "What Counts" and "Language Identification" to help when you are identifying the languages in the file.
 YAML Block Example:
 The YAML block should be formatted like this:
-languages:
-wo: "woelian"
-be: "bemalia"
+---
 l1: "wo"
 l2: "be"
-
+languages:
+  wo: "woelian"
+  be: "bemalia"
+---
 
 General YAML Format Criteria:
 Like the example given above, the YAML block should meet the following criteria:
