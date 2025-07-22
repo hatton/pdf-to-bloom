@@ -3,7 +3,10 @@ import fs from "fs";
 import path from "path";
 import { getDocumentProxy, getResolvedPDFJS, definePDFJSModule } from "unpdf";
 
-// Type definitions for unpdf processing
+// We need the full PDF.js types for this, but 'any' will suffice for demonstration
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let PDFJSOps: any;
+
 interface UnpdfPage {
   index: number;
   content: Array<{
@@ -14,16 +17,108 @@ interface UnpdfPage {
 }
 
 /**
- * Converts a PDF file to markdown format using unpdf
+ * Recursively searches within an XObject (which could be a Form) to find the raw image data.
+ * This is the key to handling images embedded inside Form XObjects.
  *
- * FUNDAMENTAL REQUIREMENT: This function MUST preserve the exact order of text and images
- * as they appear on each page. The order is determined by the PDF's paint operations,
- * not by document structure or layout analysis.
+ * @param xobj - The XObject to search, retrieved from page.objs or form.resources.
+ * @param depth - Current recursion depth for logging
+ * @returns The Uint8Array of the image data if found, otherwise null.
+ */
+function findImageInData(xobj: any, depth: number = 0): Uint8Array | null {
+  const indent = "  ".repeat(depth);
+  logger.info(`${indent}[DEBUG] findImageInData depth=${depth}: Analyzing XObject...`);
+  
+  if (!xobj) {
+    logger.info(`${indent}[DEBUG] XObject is null or undefined`);
+    return null;
+  }
+
+  // Log XObject properties for debugging
+  const objKeys = Object.keys(xobj);
+  logger.info(`${indent}[DEBUG] XObject properties: ${objKeys.join(', ')}`);
+  logger.info(`${indent}[DEBUG] XObject.kind: ${xobj.kind}`);
+  logger.info(`${indent}[DEBUG] XObject.data exists: ${!!xobj.data}`);
+  logger.info(`${indent}[DEBUG] XObject.opList exists: ${!!xobj.opList}`);
+  logger.info(`${indent}[DEBUG] XObject.resources exists: ${!!xobj.resources}`);
+
+  // Base Case 1: This is a direct Image XObject. We found it.
+  if (xobj && xobj.data && xobj.kind === 1) {
+    // kind 1 is Image
+    logger.info(`${indent}[DEBUG] ✅ Found Image XObject! data length: ${xobj.data.length}`);
+    return xobj.data;
+  }
+
+  // Base Case 2: This might be an XObject with image data but different kind
+  if (xobj && xobj.data && (xobj.kind === 2 || xobj.kind === 3) && !xobj.opList) {
+    // kind 2/3 with data but no opList = direct image data, not a form to recurse into
+    logger.info(`${indent}[DEBUG] ✅ Found XObject with image data (kind=${xobj.kind})! data length: ${xobj.data.length}`);
+    return xobj.data;
+  }
+
+  // Check if this might be an image with different structure
+  if (xobj.data && typeof xobj.kind === 'undefined') {
+    logger.info(`${indent}[DEBUG] Found XObject with data but no kind - might be image: data length ${xobj.data.length}`);
+    // Try to detect if this looks like image data
+    if (xobj.data instanceof Uint8Array && xobj.data.length > 100) {
+      logger.info(`${indent}[DEBUG] ✅ Treating as potential image data`);
+      return xobj.data;
+    }
+  }
+
+  // Base Case 3: This is not a Form XObject, so we can't search deeper.
+  if (!xobj || xobj.kind !== 2 || !xobj.opList) {
+    // kind 2 is Form (only recurse if it has opList)
+    logger.info(`${indent}[DEBUG] Not a Form XObject (kind !== 2 or no opList), stopping recursion`);
+    return null;
+  }
+
+  // Recursive Step: This is a Form XObject. We need to parse its operator list.
+  logger.info(`${indent}[DEBUG] Found Form XObject, parsing operator list...`);
+  const form = xobj;
+  const { fnArray, argsArray } = form.opList;
+  logger.info(`${indent}[DEBUG] Form has ${fnArray.length} operations`);
+
+  for (let i = 0; i < fnArray.length; i++) {
+    const fn = fnArray[i];
+    const args = argsArray[i];
+
+    logger.info(`${indent}[DEBUG] Operation ${i}: ${fn} with args: ${JSON.stringify(args)}`);
+
+    // Look for paint operators within the form
+    if (fn === PDFJSOps.paintImageXObject || fn === PDFJSOps.paintXObject) {
+      const imageName = args[0];
+      logger.info(`${indent}[DEBUG] Found paint operation for '${imageName}', looking in form.resources...`);
+      
+      if (!form.resources) {
+        logger.warn(`${indent}[DEBUG] ❌ Form has no resources!`);
+        continue;
+      }
+      
+      // IMPORTANT: Resources for a form are in `form.resources`, not `page.objs`
+      const innerXObj = form.resources.get(imageName);
+      logger.info(`${indent}[DEBUG] Retrieved inner XObject for '${imageName}': ${!!innerXObj}`);
+      
+      const imageData = findImageInData(innerXObj, depth + 1); // Recursive call
+      if (imageData) {
+        logger.info(`${indent}[DEBUG] ✅ Found image data in recursion, bubbling up`);
+        return imageData; // Found the image, bubble it up.
+      }
+    }
+  }
+
+  // If the loop finishes without finding an image.
+  logger.info(`${indent}[DEBUG] ❌ No image found after checking all operations`);
+  return null;
+}
+
+/**
+ * Converts a PDF to markdown, preserving the exact order of text and images
+ * by recursively parsing Form XObjects to find embedded images.
  *
  * @param pdfPath - Path to the PDF file
  * @param imageOutputDir - Directory where extracted images will be saved
  * @param logCallback - Optional callback to receive log messages
- * @returns Promise resolving to markdown string with content in proper paint order
+ * @returns Promise resolving to markdown string
  */
 export async function pdfToMarkdownWithUnpdf(
   pdfPath: string,
@@ -33,44 +128,18 @@ export async function pdfToMarkdownWithUnpdf(
   if (logCallback) logger.subscribe(logCallback);
 
   try {
-    logger.info(
-      `Starting PDF to markdown conversion with unpdf for: ${pdfPath}`
-    );
-
-    // Check if PDF file exists
-    if (!fs.existsSync(pdfPath)) {
-      logger.error(`PDF file not found: ${pdfPath}`);
+    logger.info(`Starting PDF to markdown conversion for: ${pdfPath}`);
+    if (!fs.existsSync(pdfPath))
       throw new Error(`PDF file not found: ${pdfPath}`);
-    }
 
-    // Get file size for logging
-    const fileStats = fs.statSync(pdfPath);
-    logger.info(`PDF file size: ${Math.round(fileStats.size / 1024)} KB`);
-
-    // Read PDF file
-    logger.verbose("Reading PDF file...");
-    const pdfBuffer = fs.readFileSync(pdfPath);
-    const uint8Buffer = new Uint8Array(pdfBuffer);
-
-    logger.info("Processing PDF with unpdf...");
-
-    logger.info(`✅ Successfully loaded PDF with unpdf`);
-
-    // Ensure output directory exists
-    logger.verbose("Creating output directory for images...");
-    if (!fs.existsSync(imageOutputDir)) {
+    const pdfBuffer = new Uint8Array(fs.readFileSync(pdfPath));
+    if (!fs.existsSync(imageOutputDir))
       fs.mkdirSync(imageOutputDir, { recursive: true });
-    }
 
-    // CRITICAL: Process pages using PDF.js operator list to maintain EXACT paint order
-    // This is a fundamental requirement - text and images must appear in the same order
-    // as they were painted on the original PDF page
-    const pages = await processPages(uint8Buffer, imageOutputDir);
+    const pages = await processPages(pdfBuffer, imageOutputDir);
 
-    // Generate markdown from processed pages
     const markdown = generateMarkdownFromPages(pages);
-
-    logger.info("PDF to markdown conversion completed successfully");
+    logger.info("✅ PDF to markdown conversion completed successfully.");
     return markdown;
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -82,196 +151,194 @@ export async function pdfToMarkdownWithUnpdf(
 }
 
 /**
- * Process extracted content and organize by pages using PDF.js operator list to maintain paint order
- *
- * FUNDAMENTAL REQUIREMENT: This function uses PDF.js getOperatorList() to preserve the EXACT
- * order that content was painted on each page. Text and images must be interleaved in the
- * same sequence as they appear in the PDF's paint operations.
- *
- * The operator list contains paint operations in chronological order:
- * - OPS.showText/OPS.showSpacedText for text content
- * - OPS.paintImageXObject/OPS.paintXObject for images
- *
- * This ensures the output markdown maintains the visual reading order of the original PDF.
+ * Processes pages by iterating through the operator list to maintain paint order.
+ * When a paintXObject is found, it uses a recursive helper to find the actual image data.
  *
  * @param pdfBuffer - PDF buffer data
  * @param imageOutputDir - Directory to save images
- * @returns Array of processed pages with content in correct paint order
+ * @returns Array of processed pages
  */
 async function processPages(
   pdfBuffer: Uint8Array,
   imageOutputDir: string
 ): Promise<UnpdfPage[]> {
-  const pages: UnpdfPage[] = [];
-
-  // Use the full PDF.js build so we can get image data
-  try {
-    await definePDFJSModule(() => import("pdfjs-dist"));
-  } catch (error) {
-    // Fall back to default PDF.js if full build not available
-    logger.verbose("Full PDF.js build not available, using default");
+  // Polyfill DOMMatrix for Node.js environment
+  if (typeof globalThis !== 'undefined' && !(globalThis as any).DOMMatrix) {
+    // Simple identity matrix polyfill
+    (globalThis as any).DOMMatrix = class DOMMatrix {
+      a: number = 1;
+      b: number = 0;
+      c: number = 0;
+      d: number = 1;
+      e: number = 0;
+      f: number = 0;
+      
+      constructor(init?: string | number[]) {
+        if (Array.isArray(init) && init.length >= 6) {
+          [this.a, this.b, this.c, this.d, this.e, this.f] = init;
+        }
+      }
+      
+      multiply(other: DOMMatrix): DOMMatrix {
+        const result = new DOMMatrix();
+        result.a = this.a * other.a + this.b * other.c;
+        result.b = this.a * other.b + this.b * other.d;
+        result.c = this.c * other.a + this.d * other.c;
+        result.d = this.c * other.b + this.d * other.d;
+        result.e = this.e * other.a + this.f * other.c + other.e;
+        result.f = this.e * other.b + this.f * other.d + other.f;
+        return result;
+      }
+    };
   }
 
-  const pdf = await getDocumentProxy(pdfBuffer);
+  await definePDFJSModule(() => import("pdfjs-dist"));
   const { OPS } = await getResolvedPDFJS();
+  PDFJSOps = OPS; // Store OPS globally for the helper function
+
+  const pdf = await getDocumentProxy(pdfBuffer);
+  const pages: UnpdfPage[] = [];
 
   for (let p = 1; p <= pdf.numPages; p++) {
     const page = await pdf.getPage(p);
-    // CRITICAL: getOperatorList() returns paint operations in chronological order
-    // This is the KEY to preserving text/image ordering as it appeared on the original page
-    const op = await page.getOperatorList(); // paint order - DO NOT CHANGE THIS APPROACH
-    const objs = page.objs; // image cache
+    const opList = await page.getOperatorList();
+    const objs = page.objs;
 
-    const events = op.fnArray
-      .map((fn: number, i: number) => {
-        switch (fn) {
-          case OPS.showText:
-          case OPS.showSpacedText:
-            const textArg = op.argsArray[i][0];
-            let textStr = "";
-
-            if (Array.isArray(textArg)) {
-              // Handle array of character objects or mixed content
-              textStr = textArg
-                .map((item) => {
-                  if (typeof item === "string") {
-                    return item;
-                  } else if (typeof item === "number") {
-                    return ""; // Skip numeric spacing adjustments
-                  } else if (item && typeof item === "object" && item.unicode) {
-                    // Handle character objects with unicode property
-                    return item.unicode;
-                  } else if (
-                    item &&
-                    typeof item === "object" &&
-                    item.fontChar
-                  ) {
-                    // Handle character objects with fontChar property
-                    return item.fontChar;
-                  }
-                  return "";
-                })
-                .join("");
-            } else if (typeof textArg === "string") {
-              textStr = textArg;
-            } else {
-              textStr = String(textArg);
-            }
-
-            return { type: "text" as const, content: textStr };
-
-          case OPS.paintImageXObject:
-          case OPS.paintXObject:
-            const imageName = op.argsArray[i][0];
-            const imageData = objs.get(imageName);
-            logger.verbose(
-              `Found image operation: ${imageName}, data available: ${!!imageData}`
-            );
-            return { type: "image" as const, name: imageName, data: imageData };
-        }
-        return null;
-      })
-      .filter((event): event is NonNullable<typeof event> => event !== null);
-
-    // CRITICAL: Process events in EXACT order from operator list to preserve paint sequence
-    // This maintains the visual reading order from the original PDF page
-    const pageContent: Array<{
-      type: "text" | "image";
-      content: string;
-      orderIndex: number;
-    }> = [];
+    const pageContent: UnpdfPage["content"] = [];
     let textAccumulator = "";
     let orderIndex = 0;
 
-    for (const event of events) {
-      if (event.type === "text") {
-        textAccumulator += event.content;
-      } else if (event.type === "image") {
-        // IMPORTANT: Flush accumulated text before image to maintain correct interleaving
-        if (textAccumulator.trim()) {
-          pageContent.push({
-            type: "text",
-            content: textAccumulator.trim(),
-            orderIndex: orderIndex++,
-          });
-          textAccumulator = "";
-        }
+    const flushText = () => {
+      if (textAccumulator.trim()) {
+        pageContent.push({
+          type: "text",
+          content: textAccumulator.trim().replace(/\s+/g, " "), // Normalize whitespace
+          orderIndex: orderIndex++,
+        });
+        textAccumulator = "";
+      }
+    };
 
-        // Process and save image
-        try {
-          const imageId = `img-${p - 1}-${orderIndex}.png`;
-          logger.verbose(
-            `Processing image: ${imageId}, event.data: ${!!event.data}, event.name: ${event.name}`
-          );
-
-          if (event.data && event.data.data) {
-            const imagePath = path.join(imageOutputDir, imageId);
-            const imageBuffer = new Uint8Array(event.data.data);
-            fs.writeFileSync(imagePath, imageBuffer);
-            logger.verbose(`✅ Saved image: ${imageId}`);
-
-            pageContent.push({
-              type: "image",
-              content: `![${imageId}](${imageId})`,
-              orderIndex: orderIndex++,
-            });
-          } else {
-            logger.verbose(
-              `❌ Image data not available for: ${imageId}, event.name: ${event.name}`
-            );
-            // Still add the image placeholder to maintain order
-            pageContent.push({
-              type: "image",
-              content: `<!-- Image ${imageId} not extracted -->`,
-              orderIndex: orderIndex++,
-            });
-          }
-        } catch (imageError) {
-          logger.error(`Failed to save image: ${imageError}`);
+    const { fnArray, argsArray } = opList;
+    logger.verbose(`Page ${p}: Found ${fnArray.length} operations in operator list`);
+    
+    // For page 4, log all operations to debug image detection
+    if (p === 4) {
+      logger.info(`Page ${p}: Analyzing all ${fnArray.length} operations for image detection...`);
+      for (let i = 0; i < fnArray.length; i++) {
+        const fn = fnArray[i];
+        const args = argsArray[i];
+        if (fn === OPS.paintImageXObject || fn === OPS.paintXObject) {
+          logger.info(`Page ${p}: Operation ${i}: ${fn === OPS.paintImageXObject ? 'paintImageXObject' : 'paintXObject'} with args: ${JSON.stringify(args)}`);
         }
       }
     }
+    
+    for (let i = 0; i < fnArray.length; i++) {
+      const fn = fnArray[i];
+      const args = argsArray[i];
 
-    // Flush any remaining text
-    if (textAccumulator.trim()) {
-      pageContent.push({
-        type: "text",
-        content: textAccumulator.trim(),
-        orderIndex: orderIndex++,
-      });
+      switch (fn) {
+        case OPS.showText:
+        case OPS.showSpacedText:
+          const textArg = args[0];
+          if (Array.isArray(textArg)) {
+            textAccumulator += textArg
+              .map((item) => (item && item.unicode ? item.unicode : ""))
+              .join("");
+          }
+          break;
+
+        case OPS.paintImageXObject:
+        case OPS.paintXObject:
+          // An image operation is a natural break for text. Flush any pending text first.
+          flushText();
+
+          const imageName = args[0];
+          const xobj = objs.get(imageName);
+
+          logger.info(
+            `Page ${p}: Found paint operation for XObject '${imageName}' with type: ${fn === OPS.paintImageXObject ? 'paintImageXObject' : 'paintXObject'}.`
+          );
+          
+          // Debug XObject retrieval
+          logger.info(`Page ${p}: Retrieved XObject '${imageName}': ${!!xobj}`);
+          if (xobj) {
+            const objKeys = Object.keys(xobj);
+            logger.info(`Page ${p}: XObject '${imageName}' properties: ${objKeys.join(', ')}`);
+          }
+          
+          const imageData = findImageInData(xobj); // Use the recursive helper
+
+          if (imageData) {
+            const imageId = `page${p}-img${orderIndex}.png`;
+            const imagePath = path.join(imageOutputDir, imageId);
+            fs.writeFileSync(imagePath, imageData);
+            logger.verbose(
+              `✅ Saved image: ${imagePath} from XObject '${imageName}'.`
+            );
+
+            pageContent.push({
+              type: "image",
+              content: `![Image](${imagePath})`,
+              orderIndex: orderIndex++,
+            });
+          } else {
+            logger.warn(
+              `❌ Could not extract image data from XObject '${imageName}' on page ${p}.`
+            );
+            pageContent.push({
+              type: "image",
+              content: `<!-- Image from XObject ${imageName} could not be extracted -->`,
+              orderIndex: orderIndex++,
+            });
+          }
+          break;
+
+        case OPS.setTextMatrix:
+          // A change in text position often implies a new block. Add a space.
+          if (textAccumulator.length > 0 && !textAccumulator.endsWith(" ")) {
+            textAccumulator += " ";
+          }
+          break;
+      }
     }
 
+    // Flush any remaining text at the end of the page processing
+    flushText();
+
     pages.push({
-      index: p - 1, // Convert to 0-based index
+      index: p - 1,
       content: pageContent,
     });
   }
-
   return pages;
 }
 
 /**
- * Generate markdown from processed pages
+ * Generates markdown from processed pages, sorting content by its order index.
  *
- * FUNDAMENTAL REQUIREMENT: Content must be sorted by orderIndex to maintain the exact
- * paint order from the original PDF. This preserves the visual reading sequence.
- *
- * @param pages - Array of processed pages with content in paint order
- * @returns Markdown string with content in correct sequence
+ * @param pages - Array of processed pages
+ * @returns Markdown string
  */
 function generateMarkdownFromPages(pages: UnpdfPage[]): string {
   return pages
-    .map((page: UnpdfPage) => {
-      const pageHeader = `<!-- page index=${page.index + 1} -->`;
+    .map((page) => {
+      const pageHeader = `==Start of OCR for page ${page.index + 1}==`;
+      const pageFooter = `==End of OCR for page ${page.index + 1}==`;
 
-      // CRITICAL: Sort by orderIndex to maintain exact paint order from PDF
-      // This preserves the visual reading sequence from the original document
       const sortedContent = page.content
         .sort((a, b) => a.orderIndex - b.orderIndex)
-        .map((item) => item.content)
-        .join("\n\n");
+        .map((item) => {
+          if (item.type === "image") {
+            return item.content;
+          }
+          // For text, wrap it to look more like the original OCR format
+          return item.content;
+        })
+        .join("\n"); // Join with single newline to match OCR format
 
-      return `${pageHeader}\n${sortedContent}`;
+      return `${pageHeader}\n${sortedContent}\n${pageFooter}`;
     })
     .join("\n\n");
 }

@@ -88,6 +88,13 @@ describe("pdfToMarkdownWithUnpdf", () => {
       logCallback
     );
 
+    // Print all log messages to see the debug output
+    console.log("\n=== LOG MESSAGES ===");
+    logMessages.forEach(log => {
+      console.log(`[${log.level.toUpperCase()}] ${log.message}`);
+    });
+    console.log("==================\n");
+
     // Should have some content (exact content depends on the PDF)
     expect(result.trim().length).toBeGreaterThan(50);
     expect(result).toContain("<!-- page index=1 -->");
@@ -263,29 +270,28 @@ describe("pdfToMarkdownWithUnpdf", () => {
     console.log("Result length:", result.length);
 
     // Split result by page markers to isolate the fourth page
-    const pageMarkers = [...result.matchAll(/<!-- page index=(\d+) -->/g)];
+    const pageMarkers = [...result.matchAll(/==Start of OCR for page (\d+)==/g)];
     console.log(
       "Page markers found:",
       pageMarkers.map((m) => `Page ${m[1]} at index ${m.index}`)
     );
 
-    const pages = result.split(/<!-- page index=\d+ -->/);
+    const pages = result.split(/==Start of OCR for page \d+==/);
     console.log("Number of page sections:", pages.length);
 
     // Find the fourth page content (index 4 in the pages array after splitting)
     let fourthPageContent = "";
     for (let i = 0; i < pageMarkers.length; i++) {
       if (parseInt(pageMarkers[i][1]) === 4) {
-        // Get content between this page marker and the next (or end)
-        const nextPageIndex =
-          i + 1 < pageMarkers.length
-            ? result.indexOf(pageMarkers[i + 1][0])
-            : result.length;
-        const currentPageStart =
-          result.indexOf(pageMarkers[i][0]) + pageMarkers[i][0].length;
-        fourthPageContent = result
-          .substring(currentPageStart, nextPageIndex)
-          .trim();
+        // Get content between this page start marker and its end marker
+        const startMarker = `==Start of OCR for page 4==`;
+        const endMarker = `==End of OCR for page 4==`;
+        const startIndex = result.indexOf(startMarker) + startMarker.length;
+        const endIndex = result.indexOf(endMarker);
+        
+        if (startIndex > startMarker.length && endIndex > startIndex) {
+          fourthPageContent = result.substring(startIndex, endIndex).trim();
+        }
         break;
       }
     }
@@ -296,18 +302,18 @@ describe("pdfToMarkdownWithUnpdf", () => {
       // If we can't find page 4, let's examine what pages we do have
       pageMarkers.forEach((marker, index) => {
         const pageNum = parseInt(marker[1]);
-        const nextPageIndex =
-          index + 1 < pageMarkers.length
-            ? result.indexOf(pageMarkers[index + 1][0])
-            : result.length;
-        const currentPageStart = result.indexOf(marker[0]) + marker[0].length;
-        const pageContent = result
-          .substring(currentPageStart, nextPageIndex)
-          .trim();
-        console.log(
-          `Page ${pageNum} content (${pageContent.length} chars):`,
-          JSON.stringify(pageContent.substring(0, 200))
-        );
+        const startMarker = `==Start of OCR for page ${pageNum}==`;
+        const endMarker = `==End of OCR for page ${pageNum}==`;
+        const startIndex = result.indexOf(startMarker) + startMarker.length;
+        const endIndex = result.indexOf(endMarker);
+        
+        if (startIndex > startMarker.length && endIndex > startIndex) {
+          const pageContent = result.substring(startIndex, endIndex).trim();
+          console.log(
+            `Page ${pageNum} content (${pageContent.length} chars):`,
+            JSON.stringify(pageContent.substring(0, 200))
+          );
+        }
       });
 
       throw new Error(
