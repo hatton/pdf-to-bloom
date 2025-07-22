@@ -374,16 +374,51 @@ async function processPages(
             );
           }
 
-          const xobj = objs.get(imageName);
-
-          // Debug XObject retrieval
-          logger.info(`Page ${p}: Retrieved XObject '${imageName}': ${!!xobj}`);
-          if (xobj) {
-            const objKeys = Object.keys(xobj);
+          // Try to get the XObject - this may throw if object isn't resolved yet
+          let xobj;
+          try {
+            xobj = objs.get(imageName);
             logger.info(
-              `Page ${p}: XObject '${imageName}' properties: ${objKeys.join(", ")}`
+              `Page ${p}: Retrieved XObject '${imageName}': ${!!xobj}`
             );
+          } catch (error) {
+            logger.warn(
+              `Page ${p}: Failed to retrieve XObject '${imageName}': ${error instanceof Error ? error.message : String(error)}`
+            );
+
+            // Add a placeholder comment indicating the missing image
+            pageContent.push({
+              type: "image",
+              content: `<!-- Image XObject ${imageName} not available (PDF.js error: ${error instanceof Error ? error.message : String(error)}) -->`,
+              orderIndex: orderIndex++,
+            });
+
+            // Continue processing without throwing an error
+            break;
           }
+
+          // If the object is not resolved yet, skip with graceful handling
+          if (!xobj) {
+            logger.warn(
+              `Page ${p}: XObject '${imageName}' not resolved yet, skipping...`
+            );
+
+            // Add a placeholder comment indicating the missing image
+            pageContent.push({
+              type: "image",
+              content: `<!-- Image XObject ${imageName} not available (unresolved reference) -->`,
+              orderIndex: orderIndex++,
+            });
+
+            // Continue processing without throwing an error
+            break;
+          }
+
+          // Successfully retrieved XObject, process it
+          const objKeys = Object.keys(xobj);
+          logger.info(
+            `Page ${p}: XObject '${imageName}' properties: ${objKeys.join(", ")}`
+          );
 
           const imageData = findImageInData(xobj); // Use the recursive helper
 

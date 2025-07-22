@@ -114,6 +114,7 @@ program.on("command:*", () => {
 program.parse(process.argv);
 function getTarget(target: any): Artifact {
   switch (target) {
+    case "ocr":
     case "markdown":
       return Artifact.MarkdownFromOCR;
     case "tagged":
