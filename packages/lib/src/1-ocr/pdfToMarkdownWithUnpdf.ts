@@ -254,7 +254,7 @@ async function processPages(
     let isTextVisible = true;
     let graphicsStack: any[] = [];
     let currentTransformMatrix = [1, 0, 0, 1, 0, 0]; // Default transformation matrix
-    
+
     // Track text positioning for line break detection
     let lastTextY = 0;
     let hasTextBeenPlaced = false;
@@ -380,27 +380,93 @@ async function processPages(
             );
           }
 
-          // Try to get the XObject - this may throw if object isn't resolved yet
+          // Try to get the XObject - wait for it to be resolved if needed
           let xobj;
           try {
+            // First try to get the object directly
             xobj = objs.get(imageName);
             logger.info(
               `Page ${p}: Retrieved XObject '${imageName}': ${!!xobj}`
             );
           } catch (error) {
-            logger.warn(
-              `Page ${p}: Failed to retrieve XObject '${imageName}': ${error instanceof Error ? error.message : String(error)}`
-            );
+            // If the object isn't resolved yet, retry with exponential backoff
+            if (
+              error instanceof Error &&
+              error.message.includes(
+                "Requesting object that isn't resolved yet"
+              )
+            ) {
+              logger.info(
+                `Page ${p}: XObject '${imageName}' not resolved yet, retrying...`
+              );
 
-            // Add a placeholder comment indicating the missing image
-            pageContent.push({
-              type: "image",
-              content: `<!-- Image XObject ${imageName} not available (PDF.js error: ${error instanceof Error ? error.message : String(error)}) -->`,
-              orderIndex: orderIndex++,
-            });
+              let retryCount = 0;
+              const maxRetries = 10;
+              const baseDelay = 10; // Start with 10ms
 
-            // Continue processing without throwing an error
-            break;
+              while (retryCount < maxRetries) {
+                try {
+                  // Wait with exponential backoff
+                  const delay = baseDelay * Math.pow(2, retryCount);
+                  await new Promise((resolve) => setTimeout(resolve, delay));
+
+                  xobj = objs.get(imageName);
+                  logger.info(
+                    `Page ${p}: Successfully retrieved XObject '${imageName}' after ${retryCount + 1} retries`
+                  );
+                  break;
+                } catch (retryError) {
+                  retryCount++;
+                  if (
+                    retryError instanceof Error &&
+                    retryError.message.includes(
+                      "Requesting object that isn't resolved yet"
+                    )
+                  ) {
+                    logger.verbose(
+                      `Page ${p}: XObject '${imageName}' still not resolved, retry ${retryCount}/${maxRetries}`
+                    );
+                  } else {
+                    // Different error, break out of retry loop
+                    logger.warn(
+                      `Page ${p}: Different error while retrying XObject '${imageName}': ${retryError instanceof Error ? retryError.message : String(retryError)}`
+                    );
+                    break;
+                  }
+                }
+              }
+
+              if (!xobj) {
+                logger.warn(
+                  `Page ${p}: Failed to retrieve XObject '${imageName}' after ${maxRetries} retries`
+                );
+
+                // Add a placeholder comment indicating the missing image
+                pageContent.push({
+                  type: "image",
+                  content: `<!-- Image XObject ${imageName} not available (resolution timeout after ${maxRetries} retries) -->`,
+                  orderIndex: orderIndex++,
+                });
+
+                // Continue processing without throwing an error
+                break;
+              }
+            } else {
+              // Other type of error - log and continue
+              logger.warn(
+                `Page ${p}: Failed to retrieve XObject '${imageName}': ${error instanceof Error ? error.message : String(error)}`
+              );
+
+              // Add a placeholder comment indicating the missing image
+              pageContent.push({
+                type: "image",
+                content: `<!-- Image XObject ${imageName} not available (PDF.js error: ${error instanceof Error ? error.message : String(error)}) -->`,
+                orderIndex: orderIndex++,
+              });
+
+              // Continue processing without throwing an error
+              break;
+            }
           }
 
           // If the object is not resolved yet, skip with graceful handling
@@ -426,6 +492,15 @@ async function processPages(
             `Page ${p}: XObject '${imageName}' properties: ${objKeys.join(", ")}`
           );
 
+          // Log width/height information for debugging
+          const width = xobj.width || xobj.Width;
+          const height = xobj.height || xobj.Height;
+          if (width && height) {
+            logger.verbose(
+              `Page ${p}: XObject '${imageName}' dimensions: ${width}x${height}`
+            );
+          }
+
           const imageData = findImageInData(xobj); // Use the recursive helper
 
           if (imageData) {
@@ -436,9 +511,16 @@ async function processPages(
               `✅ Saved image: ${imagePath} from XObject '${imageName}'.`
             );
 
+            // Extract width information from XObject if available
+            const width = xobj.width || xobj.Width;
+            let imageMarkdown = `![Image](${imageId})`;
+            if (width && typeof width === "number") {
+              imageMarkdown = `![Image](${imageId}){width=${width}}`;
+            }
+
             pageContent.push({
               type: "image",
-              content: `![Image](${imagePath})`,
+              content: imageMarkdown,
               orderIndex: orderIndex++,
             });
           } else {
@@ -457,42 +539,53 @@ async function processPages(
           // Extract Y position from text matrix to detect line breaks
           const textMatrix = args[0] || args; // The matrix might be the first argument
           let currentTextY = 0;
-          
+
           // Handle both array format [a,b,c,d,e,f] and object format {"0":a,"1":b,...,"5":f}
           if (Array.isArray(textMatrix)) {
             currentTextY = textMatrix[5] || 0;
-          } else if (textMatrix && typeof textMatrix === 'object') {
+          } else if (textMatrix && typeof textMatrix === "object") {
             currentTextY = textMatrix["5"] || 0;
           }
-          
+
           // Debug output for page 1
           if (p === 1) {
-            logger.verbose(`Page ${p}: setTextMatrix args=${JSON.stringify(args)}, textMatrix=${JSON.stringify(textMatrix)}, Y=${currentTextY}, lastY=${lastTextY}, diff=${Math.abs(currentTextY - lastTextY)}`);
+            logger.verbose(
+              `Page ${p}: setTextMatrix args=${JSON.stringify(args)}, textMatrix=${JSON.stringify(textMatrix)}, Y=${currentTextY}, lastY=${lastTextY}, diff=${Math.abs(currentTextY - lastTextY)}`
+            );
           }
-          
+
           // If this is a significant vertical movement, it likely indicates a new line
           // Increased threshold to 5 points to better detect line breaks
           if (hasTextBeenPlaced && Math.abs(currentTextY - lastTextY) > 5) {
             // Flush accumulated text as a separate text block
-            logger.verbose(`Page ${p}: Line break detected - Y changed from ${lastTextY} to ${currentTextY} (diff: ${Math.abs(currentTextY - lastTextY)})`);
+            logger.verbose(
+              `Page ${p}: Line break detected - Y changed from ${lastTextY} to ${currentTextY} (diff: ${Math.abs(currentTextY - lastTextY)})`
+            );
             flushText();
-          } else if (textAccumulator.length > 0 && !textAccumulator.endsWith(" ")) {
+          } else if (
+            textAccumulator.length > 0 &&
+            !textAccumulator.endsWith(" ")
+          ) {
             // Small position changes within same line - just add space
             textAccumulator += " ";
           }
-          
+
           lastTextY = currentTextY;
           hasTextBeenPlaced = true;
           break;
-          
+
         case OPS.moveText:
           // Text movement operation - check if it's a significant move indicating a new line
           const [, ty] = args;
           if (p === 1) {
-            logger.verbose(`Page ${p}: moveText args=${JSON.stringify(args)}, dy=${ty}`);
+            logger.verbose(
+              `Page ${p}: moveText args=${JSON.stringify(args)}, dy=${ty}`
+            );
           }
           if (ty !== 0 && Math.abs(ty) > 5) {
-            logger.verbose(`Page ${p}: Text move operation - dy=${ty}, flushing text`);
+            logger.verbose(
+              `Page ${p}: Text move operation - dy=${ty}, flushing text`
+            );
             flushText();
           }
           break;

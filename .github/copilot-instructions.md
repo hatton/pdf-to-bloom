@@ -80,3 +80,5 @@ Do not tell me to do things or check things, do it yourself as an agent.
 Ask me any clarifying questions.
 
 When running add-hoc tests in the terminal, use the --output option to place outputs underneath the `test-outputs` directory, e.g. `yarn test:md-to-tagged --output test-outputs/md-to-tagged`.
+
+When doing debugging by writing temporary one-off code files in the terminal, remember not to leave them laying around.
