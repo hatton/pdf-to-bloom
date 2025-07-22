@@ -6,6 +6,7 @@ import { LogEntry } from "../logger";
 vi.mock("ai", () => ({
   generateText: vi.fn().mockResolvedValue({
     text: "<!-- Tagged Content via OpenRouter -->\n\n# Test Content\n\nThis is tagged test content.",
+    finishReason: "stop",
   }),
 }));
 
@@ -15,12 +16,17 @@ vi.mock("@openrouter/ai-sdk-provider", () => ({
 }));
 
 describe("llmMarkdown", () => {
-  it("should throw error when API key is missing", async () => {
+  it("should return error when API key is missing", async () => {
     const logs: LogEntry[] = [];
 
-    await expect(
-      llmMarkdown("# Test", "", { logCallback: (log) => logs.push(log) })
-    ).rejects.toThrow("OpenRouter API key is required");
+    const result = await llmMarkdown("# Test", "", {
+      logCallback: (log) => logs.push(log),
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.error).toBe("OpenRouter API key is required");
+    expect(result.markdownResultFromLLM).toBe("");
+    expect(result.cleanedUpMarkdown).toBe("");
 
     expect(
       logs.some(

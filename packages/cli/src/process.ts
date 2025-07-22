@@ -16,7 +16,6 @@ import {
   readBloomCollectionSettingsIfFound,
   validateAndResolveCollectionPath,
 } from "./processUtils";
-import { b } from "vitest/dist/chunks/suite.B2jumIFP.js";
 
 export enum PdfProcessor {
   Mistral = "mistral",
