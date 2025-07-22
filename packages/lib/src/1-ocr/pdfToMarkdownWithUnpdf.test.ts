@@ -68,7 +68,7 @@ describe("pdfToMarkdownWithUnpdf", () => {
       logCallback
     );
 
-    expect(result).toContain("==Start of OCR for page");
+    expect(result).toContain("<!-- page index=");
     expect(result.length).toBeGreaterThan(0);
     expect(typeof result).toBe("string");
   });
@@ -97,7 +97,7 @@ describe("pdfToMarkdownWithUnpdf", () => {
 
     // Should have some content (exact content depends on the PDF)
     expect(result.trim().length).toBeGreaterThan(50);
-    expect(result).toContain("==Start of OCR for page");
+    expect(result).toContain("<!-- page index=");
   });
 
   it("should handle bilingual PDF file", async () => {
@@ -107,7 +107,7 @@ describe("pdfToMarkdownWithUnpdf", () => {
       logCallback
     );
 
-    expect(result).toContain("==Start of OCR for page");
+    expect(result).toContain("<!-- page index=");
     expect(result.length).toBeGreaterThan(0);
     // Should handle the bilingual content gracefully
     expect(typeof result).toBe("string");
@@ -249,7 +249,7 @@ describe("pdfToMarkdownWithUnpdf", () => {
     }
 
     // Should still return markdown content even if image saving failed
-    expect(result).toContain("==Start of OCR for page");
+    expect(result).toContain("<!-- page index=");
     expect(result.length).toBeGreaterThan(0);
   });
 
@@ -270,26 +270,29 @@ describe("pdfToMarkdownWithUnpdf", () => {
     console.log("Result length:", result.length);
 
     // Split result by page markers to isolate the fourth page
-    const pageMarkers = [
-      ...result.matchAll(/==Start of OCR for page (\d+)==/g),
-    ];
+    const pageMarkers = [...result.matchAll(/<!-- page index=(\d+) -->/g)];
     console.log(
       "Page markers found:",
       pageMarkers.map((m) => `Page ${m[1]} at index ${m.index}`)
     );
 
-    const pages = result.split(/==Start of OCR for page \d+==/);
+    const pages = result.split(/<!-- page index=\d+ -->/);
     console.log("Number of page sections:", pages.length);
 
     // Find the fourth page content (index 4 in the pages array after splitting)
     let fourthPageContent = "";
     for (let i = 0; i < pageMarkers.length; i++) {
       if (parseInt(pageMarkers[i][1]) === 4) {
-        // Get content between this page start marker and its end marker
-        const startMarker = `==Start of OCR for page 4==`;
-        const endMarker = `==End of OCR for page 4==`;
+        // Get content between this page start marker and the next page marker (or end)
+        const startMarker = `<!-- page index=4 -->`;
         const startIndex = result.indexOf(startMarker) + startMarker.length;
-        const endIndex = result.indexOf(endMarker);
+
+        // Find the next page marker or use end of string
+        let endIndex = result.length;
+        const nextPageMatch = result.match(/<!-- page index=5 -->/);
+        if (nextPageMatch && nextPageMatch.index) {
+          endIndex = nextPageMatch.index;
+        }
 
         if (startIndex > startMarker.length && endIndex > startIndex) {
           fourthPageContent = result.substring(startIndex, endIndex).trim();
@@ -304,10 +307,17 @@ describe("pdfToMarkdownWithUnpdf", () => {
       // If we can't find page 4, let's examine what pages we do have
       pageMarkers.forEach((marker, index) => {
         const pageNum = parseInt(marker[1]);
-        const startMarker = `==Start of OCR for page ${pageNum}==`;
-        const endMarker = `==End of OCR for page ${pageNum}==`;
+        const startMarker = `<!-- page index=${pageNum} -->`;
         const startIndex = result.indexOf(startMarker) + startMarker.length;
-        const endIndex = result.indexOf(endMarker);
+
+        // Find the next page marker or use end of string
+        let endIndex = result.length;
+        const nextPageMatch = result.match(
+          new RegExp(`<!-- page index=${pageNum + 1} -->`)
+        );
+        if (nextPageMatch && nextPageMatch.index) {
+          endIndex = nextPageMatch.index;
+        }
 
         if (startIndex > startMarker.length && endIndex > startIndex) {
           const pageContent = result.substring(startIndex, endIndex).trim();

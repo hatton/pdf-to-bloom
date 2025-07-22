@@ -1,7 +1,12 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import { fileURLToPath } from "url";
-import { Arguments, Artifact, processConversion } from "./process";
+import {
+  Arguments,
+  Artifact,
+  PdfProcessor,
+  processConversion,
+} from "./process";
 
 // ES module equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -48,6 +53,11 @@ program
     "--model <model>",
     "OpenRouter model name to use for LLM enrichment (e.g., 'google/gemini-2.5-flash')"
   )
+  .option(
+    "--pdf <method>",
+    "PDF processing method: 'mistral' (default, vision-based OCR) or 'unpdf' (experimental structural extraction). Note: unpdf extracts all text from PDF structure, including hidden layers that may not be visually rendered.",
+    "mistral"
+  )
   .option("--verbose", "Enable verbose logging to see detailed process steps")
   .action(async (input, options) => {
     if (input) {
@@ -61,6 +71,8 @@ program
         promptPath: options.prompt,
         modelName: options.model,
         verbose: options.verbose || false,
+        pdfProcessor:
+          options.pdf === "unpdf" ? PdfProcessor.Unpdf : PdfProcessor.Mistral,
       };
 
       await processConversion(input, args);

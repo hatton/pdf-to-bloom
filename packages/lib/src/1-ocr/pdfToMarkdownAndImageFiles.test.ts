@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { pdfToMarkdownAndImageFiles } from "./pdfToMarkdownAndImageFiles";
+import { pdfToMarkdownAndImageFiles } from "./pdfToMarkdownAndImageFiles-Mistral";
 import { LogEntry } from "../logger";
 import fs from "fs";
 import path from "path";
@@ -9,34 +9,33 @@ import os from "os";
 vi.mock("@mistralai/mistralai", () => ({
   Mistral: vi.fn().mockImplementation(() => ({
     ocr: {
-      process: vi
-        .fn()
-        .mockResolvedValue({
-          pages: [
-            {
-              index: 0,
-              markdown: "# Document from /testme.pdf\n\nSample content with an image:\n\n![image1](image1)",
-              images: [
-                {
-                  id: "image1.png",
-                  topLeftX: 100,
-                  topLeftY: 50,
-                  bottomRightX: 300,
-                  bottomRightY: 150,
-                  imageBase64: "cHJldGVuZCBpbWFnZSBjb250ZW50", // base64 for "pretend image content"
-                  imageAnnotation: "Sample image",
-                },
-              ],
-              dimensions: {
-                dpi: 72,
-                height: 792,
-                width: 612,
+      process: vi.fn().mockResolvedValue({
+        pages: [
+          {
+            index: 0,
+            markdown:
+              "# Document from /testme.pdf\n\nSample content with an image:\n\n![image1](image1)",
+            images: [
+              {
+                id: "image1.png",
+                topLeftX: 100,
+                topLeftY: 50,
+                bottomRightX: 300,
+                bottomRightY: 150,
+                imageBase64: "cHJldGVuZCBpbWFnZSBjb250ZW50", // base64 for "pretend image content"
+                imageAnnotation: "Sample image",
               },
+            ],
+            dimensions: {
+              dpi: 72,
+              height: 792,
+              width: 612,
             },
-          ],
-        })
-    }
-  }))
+          },
+        ],
+      }),
+    },
+  })),
 }));
 
 describe("pdfToMarkdownAndImageFiles", () => {
@@ -45,7 +44,7 @@ describe("pdfToMarkdownAndImageFiles", () => {
   beforeEach(() => {
     // Create a unique temporary directory for each test
     tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "pdf-to-bloom-test-"));
-    
+
     // Create a mock PDF file for testing
     const testPdfPath = path.join(tempDir, "testme.pdf");
     // Create a minimal PDF content (just enough to pass file existence check)
@@ -77,7 +76,8 @@ describe("pdfToMarkdownAndImageFiles", () => {
           log.message === "MistralAI API key is required"
       )
     ).toBe(true);
-  });  it("should log conversion process", async () => {
+  });
+  it("should log conversion process", async () => {
     const logs: LogEntry[] = [];
     const result = await pdfToMarkdownAndImageFiles(
       path.join(tempDir, "testme.pdf"),
@@ -102,7 +102,8 @@ describe("pdfToMarkdownAndImageFiles", () => {
       )
     ).toBe(true);
     expect(result).toContain("# Document from /testme.pdf");
-  });  it("should create files in the output directory", async () => {
+  });
+  it("should create files in the output directory", async () => {
     const logs: LogEntry[] = [];
     await pdfToMarkdownAndImageFiles(
       path.join(tempDir, "testme.pdf"),
@@ -122,7 +123,7 @@ describe("pdfToMarkdownAndImageFiles", () => {
   it("should call the Mistral OCR API with correct parameters", async () => {
     const logs: LogEntry[] = [];
     const { Mistral } = await import("@mistralai/mistralai");
-    
+
     await pdfToMarkdownAndImageFiles(
       path.join(tempDir, "testme.pdf"),
       tempDir,
@@ -132,7 +133,7 @@ describe("pdfToMarkdownAndImageFiles", () => {
 
     // Verify Mistral client was created with the API key
     expect(Mistral).toHaveBeenCalledWith({ apiKey: "test-api-key" });
-    
+
     // Get the mock instance and verify OCR process was called
     const mockInstance = vi.mocked(Mistral).mock.results[0].value;
     expect(mockInstance.ocr.process).toHaveBeenCalledWith({
@@ -147,49 +148,56 @@ describe("pdfToMarkdownAndImageFiles", () => {
   it("should handle OCR response with multiple pages", async () => {
     const logs: LogEntry[] = [];
     const { Mistral } = await import("@mistralai/mistralai");
-    
+
     // Create a new mock for this test with multiple pages
     const mockMultiPageResponse = {
       pages: [
         {
           index: 0,
           markdown: "# Page 1\n\nFirst page content\n\n![image1](image1)",
-          images: [{
-            id: "image1.png",
-            topLeftX: 100,
-            topLeftY: 50,
-            bottomRightX: 300,
-            bottomRightY: 150,
-            imageBase64: "cHJldGVuZCBpbWFnZSBjb250ZW50",
-            imageAnnotation: "First image"
-          }],
-          dimensions: { dpi: 72, height: 792, width: 612 }
+          images: [
+            {
+              id: "image1.png",
+              topLeftX: 100,
+              topLeftY: 50,
+              bottomRightX: 300,
+              bottomRightY: 150,
+              imageBase64: "cHJldGVuZCBpbWFnZSBjb250ZW50",
+              imageAnnotation: "First image",
+            },
+          ],
+          dimensions: { dpi: 72, height: 792, width: 612 },
         },
         {
           index: 1,
           markdown: "# Page 2\n\nSecond page content\n\n![image2](image2)",
-          images: [{
-            id: "image2.jpg",
-            topLeftX: 50,
-            topLeftY: 100,
-            bottomRightX: 250,
-            bottomRightY: 200,
-            imageBase64: "YW5vdGhlciBpbWFnZQ==",
-            imageAnnotation: "Second image"
-          }],
-          dimensions: { dpi: 72, height: 792, width: 612 }
-        }
-      ]
+          images: [
+            {
+              id: "image2.jpg",
+              topLeftX: 50,
+              topLeftY: 100,
+              bottomRightX: 250,
+              bottomRightY: 200,
+              imageBase64: "YW5vdGhlciBpbWFnZQ==",
+              imageAnnotation: "Second image",
+            },
+          ],
+          dimensions: { dpi: 72, height: 792, width: 612 },
+        },
+      ],
     };
 
     // Reset and create a new mock for this specific test
     vi.clearAllMocks();
-    vi.mocked(Mistral).mockImplementation(() => ({
-      ocr: {
-        process: vi.fn().mockResolvedValue(mockMultiPageResponse)
-      }
-    }) as any);
-    
+    vi.mocked(Mistral).mockImplementation(
+      () =>
+        ({
+          ocr: {
+            process: vi.fn().mockResolvedValue(mockMultiPageResponse),
+          },
+        }) as any
+    );
+
     const result = await pdfToMarkdownAndImageFiles(
       path.join(tempDir, "testme.pdf"),
       tempDir,
@@ -202,7 +210,7 @@ describe("pdfToMarkdownAndImageFiles", () => {
     expect(result).toContain("# Page 2");
     expect(result).toContain("First page content");
     expect(result).toContain("Second page content");
-    
+
     // Verify both images were saved
     expect(fs.existsSync(path.join(tempDir, "image1.png"))).toBe(true);
     expect(fs.existsSync(path.join(tempDir, "image2.jpg"))).toBe(true);

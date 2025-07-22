@@ -140,6 +140,18 @@ function findImageInData(xobj: any, depth: number = 0): Uint8Array | null {
  * Converts a PDF to markdown, preserving the exact order of text and images
  * by recursively parsing Form XObjects to find embedded images.
  *
+ * KNOWN LIMITATION: This approach extracts ALL text operations from the PDF structure,
+ * including text that may not be visually rendered. Some PDFs (particularly those created
+ * with Adobe Illustrator and processed through Adobe Distiller) may contain hidden or
+ * non-visible text layers that appear in the extracted content but are not visible when
+ * viewing the PDF. For example, bilingual-sample.pdf contains an English story summary
+ * that is embedded in the PDF structure but not visually displayed.
+ *
+ * This differs from vision-based OCR approaches (like Mistral AI) which only extract
+ * visually rendered text. Choose the appropriate method based on your needs:
+ * - unpdf: Structural text extraction (includes hidden/searchable text)
+ * - Mistral OCR: Visual text extraction (what you see is what you get)
+ *
  * @param pdfPath - Path to the PDF file
  * @param imageOutputDir - Directory where extracted images will be saved
  * @param logCallback - Optional callback to receive log messages
@@ -219,7 +231,9 @@ async function processPages(
     };
   }
 
-  await definePDFJSModule(() => import("pdfjs-dist"));
+  // No worker configuration needed - let unpdf handle it
+
+  await definePDFJSModule(() => import("pdfjs-dist/legacy/build/pdf.mjs"));
   const { OPS } = await getResolvedPDFJS();
   PDFJSOps = OPS; // Store OPS globally for the helper function
 
@@ -235,15 +249,21 @@ async function processPages(
     let textAccumulator = "";
     let orderIndex = 0;
 
+    // Track graphics state to filter out invisible text
+    let textRenderingMode = 0; // 0 = fill (visible), 3 = invisible
+    let isTextVisible = true;
+    let graphicsStack: any[] = [];
+    let currentTransformMatrix = [1, 0, 0, 1, 0, 0]; // Default transformation matrix
+
     const flushText = () => {
-      if (textAccumulator.trim()) {
+      if (textAccumulator.trim() && isTextVisible) {
         pageContent.push({
           type: "text",
           content: textAccumulator.trim().replace(/\s+/g, " "), // Normalize whitespace
           orderIndex: orderIndex++,
         });
-        textAccumulator = "";
       }
+      textAccumulator = "";
     };
 
     const { fnArray, argsArray } = opList;
@@ -251,18 +271,83 @@ async function processPages(
       `Page ${p}: Found ${fnArray.length} operations in operator list`
     );
 
+    // Log all text-related operations for debugging
+    const textOperations = [];
+    for (let i = 0; i < fnArray.length; i++) {
+      const fn = fnArray[i];
+      if (
+        fn === OPS.showText ||
+        fn === OPS.showSpacedText ||
+        fn === OPS.setTextRenderingMode
+      ) {
+        textOperations.push({ fn, args: argsArray[i], index: i });
+      }
+    }
+    logger.verbose(
+      `Page ${p}: Found ${textOperations.length} text-related operations`
+    );
+
     for (let i = 0; i < fnArray.length; i++) {
       const fn = fnArray[i];
       const args = argsArray[i];
 
       switch (fn) {
+        case OPS.save:
+          // Push current graphics state onto stack
+          graphicsStack.push({
+            textRenderingMode,
+            transformMatrix: [...currentTransformMatrix],
+          });
+          break;
+
+        case OPS.restore:
+          // Restore previous graphics state
+          if (graphicsStack.length > 0) {
+            const state = graphicsStack.pop();
+            textRenderingMode = state.textRenderingMode;
+            currentTransformMatrix = state.transformMatrix;
+            isTextVisible = textRenderingMode !== 3;
+          }
+          break;
+
+        case OPS.setTextRenderingMode:
+          textRenderingMode = args[0];
+          // Text rendering modes: 0-2 are visible, 3 is invisible
+          isTextVisible = textRenderingMode !== 3;
+          logger.verbose(
+            `Page ${p}: Text rendering mode changed to ${textRenderingMode} (visible: ${isTextVisible})`
+          );
+          break;
+
+        case OPS.transform:
+          // Update transformation matrix - could affect text positioning/visibility
+          const [a, b, c, d, e, f] = args;
+          const newMatrix = [
+            currentTransformMatrix[0] * a + currentTransformMatrix[2] * b,
+            currentTransformMatrix[1] * a + currentTransformMatrix[3] * b,
+            currentTransformMatrix[0] * c + currentTransformMatrix[2] * d,
+            currentTransformMatrix[1] * c + currentTransformMatrix[3] * d,
+            currentTransformMatrix[0] * e +
+              currentTransformMatrix[2] * f +
+              currentTransformMatrix[4],
+            currentTransformMatrix[1] * e +
+              currentTransformMatrix[3] * f +
+              currentTransformMatrix[5],
+          ];
+          currentTransformMatrix = newMatrix;
+          break;
+
         case OPS.showText:
         case OPS.showSpacedText:
           const textArg = args[0];
-          if (Array.isArray(textArg)) {
-            textAccumulator += textArg
+          if (Array.isArray(textArg) && isTextVisible) {
+            const extractedText = textArg
               .map((item) => (item && item.unicode ? item.unicode : ""))
               .join("");
+
+            textAccumulator += extractedText;
+          } else if (!isTextVisible) {
+            logger.verbose(`Page ${p}: Skipping invisible text operation`);
           }
           break;
 
@@ -356,8 +441,8 @@ async function processPages(
 function generateMarkdownFromPages(pages: UnpdfPage[]): string {
   return pages
     .map((page) => {
-      const pageHeader = `==Start of OCR for page ${page.index + 1}==`;
-      const pageFooter = `==End of OCR for page ${page.index + 1}==`;
+      // Use the same format as Mistral OCR approach for consistency
+      const pageHeader = `<!-- page index=${page.index + 1} -->`;
 
       const sortedContent = page.content
         .sort((a, b) => a.orderIndex - b.orderIndex)
@@ -370,7 +455,7 @@ function generateMarkdownFromPages(pages: UnpdfPage[]): string {
         })
         .join("\n"); // Join with single newline to match OCR format
 
-      return `${pageHeader}\n${sortedContent}\n${pageFooter}`;
+      return `${pageHeader}\n${sortedContent}`;
     })
     .join("\n\n");
 }

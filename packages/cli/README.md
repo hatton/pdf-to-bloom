@@ -113,3 +113,34 @@ API keys can be provided via command line options or environment variables:
 - `--openrouter-key <key>` - OpenRouter API key
 - `--prompt <path>` - Path to custom prompt file to override the built-in LLM prompt. Use this to override the default.
 - `--model <model>` - OpenRouter llm model name to use in tagging the markdown. E.g., 'google/gemini-2.5-flash'. Use this to override the default.
+- `--pdf <method>` - PDF processing method: 'mistral' (default, vision-based OCR) or 'unpdf' (experimental structural extraction)
+
+## PDF Processing Methods
+
+The tool supports two different methods for extracting content from PDFs:
+
+### Mistral AI OCR (Default)
+
+- **Usage**: `--pdf mistral` (or omit the option)
+- **How it works**: Uses vision-based OCR that processes PDFs as images
+- **Advantages**: Only extracts visually displayed text, handles complex layouts well
+- **Requirements**: Mistral AI API key
+- **Best for**: PDFs with complex layouts, PDFs from Adobe Illustrator/Distiller that may contain hidden text
+
+### unpdf (Experimental)
+
+- **Usage**: `--pdf unpdf`
+- **How it works**: Structural extraction that reads PDF text content directly
+- **Advantages**: Faster processing, no API costs, preserves text formatting
+- **Limitations**: May extract hidden/non-visible text layers from some PDFs
+- **Best for**: Standard PDFs without hidden content, cost-sensitive processing
+
+Example usage:
+
+```bash
+# Use Mistral AI OCR (default)
+pdf-to-bloom mybook.pdf
+
+# Use unpdf for local processing
+pdf-to-bloom mybook.pdf --pdf unpdf
+```

@@ -7,6 +7,7 @@ import {
   Parser,
   HtmlGenerator,
   addBloomPlanToMarkdown,
+  pdfToMarkdownWithUnpdf,
 } from "@pdf-to-bloom/lib"; // Assuming these functions are async and return/handle as described
 import {
   createLogCallback,
@@ -16,6 +17,11 @@ import {
   validateAndResolveCollectionPath,
 } from "./processUtils";
 import { b } from "vitest/dist/chunks/suite.B2jumIFP.js";
+
+export enum PdfProcessor {
+  Mistral = "mistral",
+  Unpdf = "unpdf",
+}
 
 export enum Artifact {
   PDF,
@@ -34,6 +40,7 @@ export type Arguments = {
   openrouterKey?: string; // OpenRouter API key for LLM tagging of markdown
   promptPath?: string; // Path to custom prompt file to override built-in prompt
   modelName?: string; // OpenRouter model name to override the default model
+  pdfProcessor: PdfProcessor; // PDF processing method: mistral or unpdf
 };
 
 type Plan = {
@@ -51,6 +58,7 @@ type Plan = {
   openrouterKey?: string;
   promptPath?: string;
   modelName?: string;
+  pdfProcessor: PdfProcessor;
 };
 
 // Convert numeric enum value to readable string
@@ -78,13 +86,31 @@ export async function processConversion(inputPath: string, options: Arguments) {
     // ------------------------------------------------------------------------------
     if (latestArtifact === Artifact.PDF) {
       logger.info(`-> Converting PDF to Markdown...`);
-      // makeMarkdownFromPDF returns the markdown content string and writes associated images
-      const markdownContent = await makeMarkdownFromPDF(
-        plan.pdfPath!,
-        plan.bookFolderPath!,
-        plan.mistralKey!,
-        logCallback
-      );
+
+      let markdownContent: string;
+
+      if (plan.pdfProcessor === PdfProcessor.Unpdf) {
+        logger.info(`Using unpdf for PDF processing (experimental)`);
+        // Use the new unpdf approach - extracts ALL text from PDF structure,
+        // including potentially hidden layers. Some PDFs (especially those from
+        // Adobe Illustrator/Distiller) may contain non-visible text.
+        markdownContent = await pdfToMarkdownWithUnpdf(
+          plan.pdfPath!,
+          plan.bookFolderPath!,
+          logCallback
+        );
+      } else {
+        logger.info(`Using Mistral AI for PDF processing`);
+        // Use the existing Mistral AI approach - vision-based OCR that only
+        // extracts visually rendered text, similar to what a human would see.
+        markdownContent = await makeMarkdownFromPDF(
+          plan.pdfPath!,
+          plan.bookFolderPath!,
+          plan.mistralKey!,
+          logCallback
+        );
+      }
+
       logger.info(`Writing OCR'd markdown to: ${plan.markdownFromOCRPath}`);
       await fs.writeFile(plan.markdownFromOCRPath!, markdownContent); // Write the markdown content to file
 
@@ -320,10 +346,14 @@ async function makeThePlan(
 
   const { mistralKey, openrouterKey } = getApiKeys(cliArguments);
 
-  if (inputType === Artifact.PDF && !mistralKey) {
+  if (
+    inputType === Artifact.PDF &&
+    cliArguments.pdfProcessor === PdfProcessor.Mistral &&
+    !mistralKey
+  ) {
     // we are going to have to do OCR, need the key
     throw new Error(
-      "Mistral API key is required for PDF to Bloom conversion. Provide --mistral-api-key or set MISTRAL_API_KEY environment variable."
+      "Mistral API key is required for PDF to Bloom conversion. Provide --mistral-api-key or set MISTRAL_API_KEY environment variable, or use --pdf unpdf for local processing."
     );
   }
   if (
@@ -409,6 +439,7 @@ async function makeThePlan(
     openrouterKey,
     promptPath: cliArguments.promptPath,
     modelName: cliArguments.modelName,
+    pdfProcessor: cliArguments.pdfProcessor,
   };
   //console.log(`Plan created:`, JSON.stringify(plan, null, 2));
 
