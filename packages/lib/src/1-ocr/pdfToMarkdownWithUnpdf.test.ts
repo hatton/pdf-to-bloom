@@ -68,7 +68,7 @@ describe("pdfToMarkdownWithUnpdf", () => {
       logCallback
     );
 
-    expect(result).toContain("<!-- page index=");
+    expect(result).toContain("==Start of OCR for page");
     expect(result.length).toBeGreaterThan(0);
     expect(typeof result).toBe("string");
   });
@@ -90,14 +90,14 @@ describe("pdfToMarkdownWithUnpdf", () => {
 
     // Print all log messages to see the debug output
     console.log("\n=== LOG MESSAGES ===");
-    logMessages.forEach(log => {
+    logMessages.forEach((log) => {
       console.log(`[${log.level.toUpperCase()}] ${log.message}`);
     });
     console.log("==================\n");
 
     // Should have some content (exact content depends on the PDF)
     expect(result.trim().length).toBeGreaterThan(50);
-    expect(result).toContain("<!-- page index=1 -->");
+    expect(result).toContain("==Start of OCR for page");
   });
 
   it("should handle bilingual PDF file", async () => {
@@ -107,7 +107,7 @@ describe("pdfToMarkdownWithUnpdf", () => {
       logCallback
     );
 
-    expect(result).toContain("<!-- page index=");
+    expect(result).toContain("==Start of OCR for page");
     expect(result.length).toBeGreaterThan(0);
     // Should handle the bilingual content gracefully
     expect(typeof result).toBe("string");
@@ -180,7 +180,7 @@ describe("pdfToMarkdownWithUnpdf", () => {
 
     if (imageFiles.length > 0) {
       // If images exist, they should be referenced in the markdown
-      expect(result).toMatch(/!\[img-\d+-\d+\.png\]\(img-\d+-\d+\.png\)/);
+      expect(result).toMatch(/!\[Image\]\([^)]*page\d+-img\d+\.png\)/);
     }
 
     // This test should pass regardless of whether images exist
@@ -249,7 +249,7 @@ describe("pdfToMarkdownWithUnpdf", () => {
     }
 
     // Should still return markdown content even if image saving failed
-    expect(result).toContain("<!-- page index=");
+    expect(result).toContain("==Start of OCR for page");
     expect(result.length).toBeGreaterThan(0);
   });
 
@@ -270,7 +270,9 @@ describe("pdfToMarkdownWithUnpdf", () => {
     console.log("Result length:", result.length);
 
     // Split result by page markers to isolate the fourth page
-    const pageMarkers = [...result.matchAll(/==Start of OCR for page (\d+)==/g)];
+    const pageMarkers = [
+      ...result.matchAll(/==Start of OCR for page (\d+)==/g),
+    ];
     console.log(
       "Page markers found:",
       pageMarkers.map((m) => `Page ${m[1]} at index ${m.index}`)
@@ -288,7 +290,7 @@ describe("pdfToMarkdownWithUnpdf", () => {
         const endMarker = `==End of OCR for page 4==`;
         const startIndex = result.indexOf(startMarker) + startMarker.length;
         const endIndex = result.indexOf(endMarker);
-        
+
         if (startIndex > startMarker.length && endIndex > startIndex) {
           fourthPageContent = result.substring(startIndex, endIndex).trim();
         }
@@ -306,7 +308,7 @@ describe("pdfToMarkdownWithUnpdf", () => {
         const endMarker = `==End of OCR for page ${pageNum}==`;
         const startIndex = result.indexOf(startMarker) + startMarker.length;
         const endIndex = result.indexOf(endMarker);
-        
+
         if (startIndex > startMarker.length && endIndex > startIndex) {
           const pageContent = result.substring(startIndex, endIndex).trim();
           console.log(

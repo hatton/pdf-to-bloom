@@ -26,8 +26,10 @@ interface UnpdfPage {
  */
 function findImageInData(xobj: any, depth: number = 0): Uint8Array | null {
   const indent = "  ".repeat(depth);
-  logger.info(`${indent}[DEBUG] findImageInData depth=${depth}: Analyzing XObject...`);
-  
+  logger.info(
+    `${indent}[DEBUG] findImageInData depth=${depth}: Analyzing XObject...`
+  );
+
   if (!xobj) {
     logger.info(`${indent}[DEBUG] XObject is null or undefined`);
     return null;
@@ -35,7 +37,7 @@ function findImageInData(xobj: any, depth: number = 0): Uint8Array | null {
 
   // Log XObject properties for debugging
   const objKeys = Object.keys(xobj);
-  logger.info(`${indent}[DEBUG] XObject properties: ${objKeys.join(', ')}`);
+  logger.info(`${indent}[DEBUG] XObject properties: ${objKeys.join(", ")}`);
   logger.info(`${indent}[DEBUG] XObject.kind: ${xobj.kind}`);
   logger.info(`${indent}[DEBUG] XObject.data exists: ${!!xobj.data}`);
   logger.info(`${indent}[DEBUG] XObject.opList exists: ${!!xobj.opList}`);
@@ -44,20 +46,31 @@ function findImageInData(xobj: any, depth: number = 0): Uint8Array | null {
   // Base Case 1: This is a direct Image XObject. We found it.
   if (xobj && xobj.data && xobj.kind === 1) {
     // kind 1 is Image
-    logger.info(`${indent}[DEBUG] ✅ Found Image XObject! data length: ${xobj.data.length}`);
+    logger.info(
+      `${indent}[DEBUG] ✅ Found Image XObject! data length: ${xobj.data.length}`
+    );
     return xobj.data;
   }
 
   // Base Case 2: This might be an XObject with image data but different kind
-  if (xobj && xobj.data && (xobj.kind === 2 || xobj.kind === 3) && !xobj.opList) {
+  if (
+    xobj &&
+    xobj.data &&
+    (xobj.kind === 2 || xobj.kind === 3) &&
+    !xobj.opList
+  ) {
     // kind 2/3 with data but no opList = direct image data, not a form to recurse into
-    logger.info(`${indent}[DEBUG] ✅ Found XObject with image data (kind=${xobj.kind})! data length: ${xobj.data.length}`);
+    logger.info(
+      `${indent}[DEBUG] ✅ Found XObject with image data (kind=${xobj.kind})! data length: ${xobj.data.length}`
+    );
     return xobj.data;
   }
 
   // Check if this might be an image with different structure
-  if (xobj.data && typeof xobj.kind === 'undefined') {
-    logger.info(`${indent}[DEBUG] Found XObject with data but no kind - might be image: data length ${xobj.data.length}`);
+  if (xobj.data && typeof xobj.kind === "undefined") {
+    logger.info(
+      `${indent}[DEBUG] Found XObject with data but no kind - might be image: data length ${xobj.data.length}`
+    );
     // Try to detect if this looks like image data
     if (xobj.data instanceof Uint8Array && xobj.data.length > 100) {
       logger.info(`${indent}[DEBUG] ✅ Treating as potential image data`);
@@ -68,7 +81,9 @@ function findImageInData(xobj: any, depth: number = 0): Uint8Array | null {
   // Base Case 3: This is not a Form XObject, so we can't search deeper.
   if (!xobj || xobj.kind !== 2 || !xobj.opList) {
     // kind 2 is Form (only recurse if it has opList)
-    logger.info(`${indent}[DEBUG] Not a Form XObject (kind !== 2 or no opList), stopping recursion`);
+    logger.info(
+      `${indent}[DEBUG] Not a Form XObject (kind !== 2 or no opList), stopping recursion`
+    );
     return null;
   }
 
@@ -82,32 +97,42 @@ function findImageInData(xobj: any, depth: number = 0): Uint8Array | null {
     const fn = fnArray[i];
     const args = argsArray[i];
 
-    logger.info(`${indent}[DEBUG] Operation ${i}: ${fn} with args: ${JSON.stringify(args)}`);
+    logger.info(
+      `${indent}[DEBUG] Operation ${i}: ${fn} with args: ${JSON.stringify(args)}`
+    );
 
     // Look for paint operators within the form
     if (fn === PDFJSOps.paintImageXObject || fn === PDFJSOps.paintXObject) {
       const imageName = args[0];
-      logger.info(`${indent}[DEBUG] Found paint operation for '${imageName}', looking in form.resources...`);
-      
+      logger.info(
+        `${indent}[DEBUG] Found paint operation for '${imageName}', looking in form.resources...`
+      );
+
       if (!form.resources) {
         logger.warn(`${indent}[DEBUG] ❌ Form has no resources!`);
         continue;
       }
-      
+
       // IMPORTANT: Resources for a form are in `form.resources`, not `page.objs`
       const innerXObj = form.resources.get(imageName);
-      logger.info(`${indent}[DEBUG] Retrieved inner XObject for '${imageName}': ${!!innerXObj}`);
-      
+      logger.info(
+        `${indent}[DEBUG] Retrieved inner XObject for '${imageName}': ${!!innerXObj}`
+      );
+
       const imageData = findImageInData(innerXObj, depth + 1); // Recursive call
       if (imageData) {
-        logger.info(`${indent}[DEBUG] ✅ Found image data in recursion, bubbling up`);
+        logger.info(
+          `${indent}[DEBUG] ✅ Found image data in recursion, bubbling up`
+        );
         return imageData; // Found the image, bubble it up.
       }
     }
   }
 
   // If the loop finishes without finding an image.
-  logger.info(`${indent}[DEBUG] ❌ No image found after checking all operations`);
+  logger.info(
+    `${indent}[DEBUG] ❌ No image found after checking all operations`
+  );
   return null;
 }
 
@@ -133,6 +158,8 @@ export async function pdfToMarkdownWithUnpdf(
       throw new Error(`PDF file not found: ${pdfPath}`);
 
     const pdfBuffer = new Uint8Array(fs.readFileSync(pdfPath));
+    logger.info(`PDF file size: ${pdfBuffer.length} bytes`);
+    logger.info("Processing PDF with unpdf");
     if (!fs.existsSync(imageOutputDir))
       fs.mkdirSync(imageOutputDir, { recursive: true });
 
@@ -163,7 +190,7 @@ async function processPages(
   imageOutputDir: string
 ): Promise<UnpdfPage[]> {
   // Polyfill DOMMatrix for Node.js environment
-  if (typeof globalThis !== 'undefined' && !(globalThis as any).DOMMatrix) {
+  if (typeof globalThis !== "undefined" && !(globalThis as any).DOMMatrix) {
     // Simple identity matrix polyfill
     (globalThis as any).DOMMatrix = class DOMMatrix {
       a: number = 1;
@@ -172,13 +199,13 @@ async function processPages(
       d: number = 1;
       e: number = 0;
       f: number = 0;
-      
+
       constructor(init?: string | number[]) {
         if (Array.isArray(init) && init.length >= 6) {
           [this.a, this.b, this.c, this.d, this.e, this.f] = init;
         }
       }
-      
+
       multiply(other: DOMMatrix): DOMMatrix {
         const result = new DOMMatrix();
         result.a = this.a * other.a + this.b * other.c;
@@ -220,20 +247,10 @@ async function processPages(
     };
 
     const { fnArray, argsArray } = opList;
-    logger.verbose(`Page ${p}: Found ${fnArray.length} operations in operator list`);
-    
-    // For page 4, log all operations to debug image detection
-    if (p === 4) {
-      logger.info(`Page ${p}: Analyzing all ${fnArray.length} operations for image detection...`);
-      for (let i = 0; i < fnArray.length; i++) {
-        const fn = fnArray[i];
-        const args = argsArray[i];
-        if (fn === OPS.paintImageXObject || fn === OPS.paintXObject) {
-          logger.info(`Page ${p}: Operation ${i}: ${fn === OPS.paintImageXObject ? 'paintImageXObject' : 'paintXObject'} with args: ${JSON.stringify(args)}`);
-        }
-      }
-    }
-    
+    logger.verbose(
+      `Page ${p}: Found ${fnArray.length} operations in operator list`
+    );
+
     for (let i = 0; i < fnArray.length; i++) {
       const fn = fnArray[i];
       const args = argsArray[i];
@@ -251,23 +268,38 @@ async function processPages(
 
         case OPS.paintImageXObject:
         case OPS.paintXObject:
+        case OPS.paintImageMaskXObject:
           // An image operation is a natural break for text. Flush any pending text first.
           flushText();
 
-          const imageName = args[0];
+          // Handle different argument structures
+          let imageName: string;
+          if (fn === OPS.paintImageMaskXObject) {
+            // For paintImageMaskXObject, args[0] is an object with data, width, height properties
+            const maskData = args[0] as any;
+            imageName = maskData?.data || "unknown_mask";
+            logger.info(
+              `Page ${p}: Found paintImageMaskXObject operation with imageName: '${imageName}', width: ${maskData?.width}, height: ${maskData?.height}`
+            );
+          } else {
+            // For paintImageXObject and paintXObject, args[0] is the image name directly
+            imageName = args[0];
+            logger.info(
+              `Page ${p}: Found paint operation for XObject '${imageName}' with type: ${fn === OPS.paintImageXObject ? "paintImageXObject" : "paintXObject"}.`
+            );
+          }
+
           const xobj = objs.get(imageName);
 
-          logger.info(
-            `Page ${p}: Found paint operation for XObject '${imageName}' with type: ${fn === OPS.paintImageXObject ? 'paintImageXObject' : 'paintXObject'}.`
-          );
-          
           // Debug XObject retrieval
           logger.info(`Page ${p}: Retrieved XObject '${imageName}': ${!!xobj}`);
           if (xobj) {
             const objKeys = Object.keys(xobj);
-            logger.info(`Page ${p}: XObject '${imageName}' properties: ${objKeys.join(', ')}`);
+            logger.info(
+              `Page ${p}: XObject '${imageName}' properties: ${objKeys.join(", ")}`
+            );
           }
-          
+
           const imageData = findImageInData(xobj); // Use the recursive helper
 
           if (imageData) {
