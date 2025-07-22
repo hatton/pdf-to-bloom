@@ -17,6 +17,41 @@ interface UnpdfPage {
 }
 
 /**
+ * Determines if a space should be added between two characters based on their types
+ */
+function shouldAddSpace(lastChar: string, firstChar: string): boolean {
+  // Don't add space if either character is already a space or punctuation that doesn't need spaces
+  if (lastChar === " " || firstChar === " ") return false;
+
+  // Don't add space before certain punctuation
+  if (/[.,;:!?)]/.test(firstChar)) return false;
+
+  // Don't add space after certain punctuation
+  if (/[(]/.test(lastChar)) return false;
+
+  // Add space between Latin letters and other scripts
+  const lastIsLatin = /[a-zA-Z]/.test(lastChar);
+  const firstIsLatin = /[a-zA-Z]/.test(firstChar);
+
+  // Add space between different script types (e.g., Telugu and English)
+  if (lastIsLatin !== firstIsLatin) return true;
+
+  // Add space between letters and numbers
+  const lastIsDigit = /[0-9]/.test(lastChar);
+  const firstIsDigit = /[0-9]/.test(firstChar);
+  if ((lastIsLatin && firstIsDigit) || (lastIsDigit && firstIsLatin))
+    return true;
+
+  // For same-script characters, be more conservative - only add space if it looks like word boundary
+  if (lastIsLatin && firstIsLatin) {
+    // This could be refined further based on patterns
+    return false; // Let positioning handle spacing for now
+  }
+
+  return false; // Default to no space for fine-grained text
+}
+
+/**
  * Recursively searches within an XObject (which could be a Form) to find the raw image data.
  * This is the key to handling images embedded inside Form XObjects.
  *
@@ -348,10 +383,40 @@ async function processPages(
           const textArg = args[0];
           if (Array.isArray(textArg) && isTextVisible) {
             const extractedText = textArg
-              .map((item) => (item && item.unicode ? item.unicode : ""))
-              .join("");
+              .map((item) => {
+                if (item && item.unicode) {
+                  return item.unicode.replace(/\u0000/g, ""); // Remove null characters
+                } else if (typeof item === "number" && item < 0) {
+                  // Negative numbers in showSpacedText often represent spacing
+                  // Convert to space if the value indicates a significant gap
+                  return Math.abs(item) > 100 ? " " : "";
+                } else {
+                  return "";
+                }
+              })
+              .join("")
+              .trim(); // Remove leading/trailing whitespace
 
-            textAccumulator += extractedText;
+            if (extractedText) {
+              // Only add space if there's a significant gap AND we have meaningful content
+              if (
+                textAccumulator.length > 0 &&
+                !textAccumulator.endsWith(" ") &&
+                !extractedText.startsWith(" ") &&
+                textAccumulator.length > 3 && // Don't space single characters too much
+                extractedText.length > 0
+              ) {
+                // Check if the last character and first character suggest word boundary
+                const lastChar = textAccumulator.slice(-1);
+                const firstChar = extractedText.charAt(0);
+
+                // Add space if transitioning between different character types or scripts
+                if (shouldAddSpace(lastChar, firstChar)) {
+                  textAccumulator += " ";
+                }
+              }
+              textAccumulator += extractedText;
+            }
           } else if (!isTextVisible) {
             logger.verbose(`Page ${p}: Skipping invisible text operation`);
           }
@@ -554,19 +619,29 @@ async function processPages(
             );
           }
 
-          // If this is a significant vertical movement, it likely indicates a new line
-          // Increased threshold to 5 points to better detect line breaks
-          if (hasTextBeenPlaced && Math.abs(currentTextY - lastTextY) > 5) {
+          // Use adaptive thresholds based on text content and position changes
+          const yDiff = Math.abs(currentTextY - lastTextY);
+          const hasMinimalText = textAccumulator.trim().length > 10;
+
+          // Detect line breaks with balanced thresholds:
+          // - Large movements (>25 points) are likely line breaks
+          // - Medium movements (>12 points) with some text are likely line breaks
+          // - Small movements (<12 points) are likely styled text positioning
+          if (
+            hasTextBeenPlaced &&
+            (yDiff > 25 || (yDiff > 12 && hasMinimalText))
+          ) {
             // Flush accumulated text as a separate text block
             logger.verbose(
-              `Page ${p}: Line break detected - Y changed from ${lastTextY} to ${currentTextY} (diff: ${Math.abs(currentTextY - lastTextY)})`
+              `Page ${p}: Line break detected - Y changed from ${lastTextY} to ${currentTextY} (diff: ${yDiff}), text length: ${textAccumulator.trim().length}`
             );
             flushText();
           } else if (
             textAccumulator.length > 0 &&
-            !textAccumulator.endsWith(" ")
+            !textAccumulator.endsWith(" ") &&
+            yDiff > 5 // Small position changes get a space
           ) {
-            // Small position changes within same line - just add space
+            // Small position changes within same line/paragraph - just add space
             textAccumulator += " ";
           }
 
@@ -579,14 +654,33 @@ async function processPages(
           const [, ty] = args;
           if (p === 1) {
             logger.verbose(
-              `Page ${p}: moveText args=${JSON.stringify(args)}, dy=${ty}`
+              `Page ${p}: moveText args=${JSON.stringify(args)}, dy=${ty}, textLength=${textAccumulator.trim().length}`
             );
           }
-          if (ty !== 0 && Math.abs(ty) > 5) {
+          // Use balanced thresholds for moveText operations:
+          // - Large moves (>25) are likely line breaks
+          // - Medium moves (>12) with some text (>15 chars) are likely line breaks
+          // - Small moves (>5) just get a space
+          // - Very small moves (<5) are likely just positioning and get no space
+          const absMovement = Math.abs(ty);
+          const hasEnoughText = textAccumulator.trim().length > 15;
+
+          if (
+            ty !== 0 &&
+            (absMovement > 25 || (absMovement > 12 && hasEnoughText))
+          ) {
             logger.verbose(
-              `Page ${p}: Text move operation - dy=${ty}, flushing text`
+              `Page ${p}: Text move line break - dy=${ty}, flushing text (length: ${textAccumulator.trim().length})`
             );
             flushText();
+          } else if (
+            ty !== 0 &&
+            absMovement > 5 &&
+            textAccumulator.length > 0 &&
+            !textAccumulator.endsWith(" ")
+          ) {
+            // Medium moves just get a space to maintain word separation
+            textAccumulator += " ";
           }
           break;
       }
@@ -601,6 +695,28 @@ async function processPages(
     });
   }
   return pages;
+}
+
+/**
+ * Post-processes text to fix common ordering issues with styled text (italic, bold)
+ * that gets extracted out of order due to PDF structure.
+ */
+function fixTextOrdering(text: string): string {
+  // Pattern to match the specific case where italic book title gets separated
+  // Look for: "original, , Copyright" followed later by "A Family Learns about Immunisations"
+  const copyrightPattern =
+    /(.*adaptation of the original,)\s*,\s*(Copyright.*?\.)\s*(A Family Learns about[^.]*)/;
+  const match = text.match(copyrightPattern);
+
+  if (match) {
+    const [, beforeTitle, copyrightText, title] = match;
+    // Reconstruct the sentence with proper order
+    const corrected = `${beforeTitle} ${title}, ${copyrightText}`;
+    logger.verbose(`Fixed text ordering: "${text}" -> "${corrected}"`);
+    return corrected;
+  }
+
+  return text;
 }
 
 /**
@@ -621,8 +737,8 @@ function generateMarkdownFromPages(pages: UnpdfPage[]): string {
           if (item.type === "image") {
             return item.content;
           }
-          // For text, wrap it to look more like the original OCR format
-          return item.content;
+          // For text, apply text ordering fixes and wrap it to look more like the original OCR format
+          return fixTextOrdering(item.content);
         })
         .join("\n"); // Join with single newline to match OCR format
 

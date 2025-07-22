@@ -34,29 +34,19 @@ This is a **Yarn workspaces monorepo** with three packages:
 - `yarn build:lib` - Build only the lib package
 - `yarn build:cli` - Build only the CLI package
 
-### Testing
-
-- `yarn test` - Run tests for all packages (non-strict, continues on failure)
-- `yarn test:strict` - Run tests for all packages (strict, fails on first error)
-- `yarn test:lib` - Run tests for lib package only
-- `yarn test:lib:watch` - Run lib tests in watch mode
-- `yarn test:watch` - Run tests in watch mode for all packages
-
 ### Development
 
 - `yarn dev` - Start development mode for all packages
 - `yarn dev:lib` - Start lib development (build watch mode)
 - `yarn dev:cli` - Start CLI development (TypeScript watch mode)
-- `yarn watch` - Run lib and CLI in concurrent watch mode
-- `yarn web` - Start web development server
 
 ### CLI Usage
 
 - `yarn cli` - Run the built CLI tool
-- `yarn test:md-to-tagged` - Test conversion of markdown to tagged format
 
 ## Testing
 
+- use `yarn test` to run all tests across packages. This often works bettern than the "run_tests" tool.
 - Use **Vitest** for all tests
 - Test files should end with `.test.ts`
 - Import test utilities: `import { describe, it, expect } from 'vitest'`
