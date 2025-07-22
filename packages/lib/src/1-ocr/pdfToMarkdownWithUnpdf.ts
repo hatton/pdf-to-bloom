@@ -254,12 +254,16 @@ async function processPages(
     let isTextVisible = true;
     let graphicsStack: any[] = [];
     let currentTransformMatrix = [1, 0, 0, 1, 0, 0]; // Default transformation matrix
+    
+    // Track text positioning for line break detection
+    let lastTextY = 0;
+    let hasTextBeenPlaced = false;
 
     const flushText = () => {
       if (textAccumulator.trim() && isTextVisible) {
         pageContent.push({
           type: "text",
-          content: textAccumulator.trim().replace(/\s+/g, " "), // Normalize whitespace
+          content: textAccumulator.trim(),
           orderIndex: orderIndex++,
         });
       }
@@ -278,7 +282,9 @@ async function processPages(
       if (
         fn === OPS.showText ||
         fn === OPS.showSpacedText ||
-        fn === OPS.setTextRenderingMode
+        fn === OPS.setTextRenderingMode ||
+        fn === OPS.setTextMatrix ||
+        fn === OPS.moveText
       ) {
         textOperations.push({ fn, args: argsArray[i], index: i });
       }
@@ -448,9 +454,46 @@ async function processPages(
           break;
 
         case OPS.setTextMatrix:
-          // A change in text position often implies a new block. Add a space.
-          if (textAccumulator.length > 0 && !textAccumulator.endsWith(" ")) {
+          // Extract Y position from text matrix to detect line breaks
+          const textMatrix = args[0] || args; // The matrix might be the first argument
+          let currentTextY = 0;
+          
+          // Handle both array format [a,b,c,d,e,f] and object format {"0":a,"1":b,...,"5":f}
+          if (Array.isArray(textMatrix)) {
+            currentTextY = textMatrix[5] || 0;
+          } else if (textMatrix && typeof textMatrix === 'object') {
+            currentTextY = textMatrix["5"] || 0;
+          }
+          
+          // Debug output for page 1
+          if (p === 1) {
+            logger.verbose(`Page ${p}: setTextMatrix args=${JSON.stringify(args)}, textMatrix=${JSON.stringify(textMatrix)}, Y=${currentTextY}, lastY=${lastTextY}, diff=${Math.abs(currentTextY - lastTextY)}`);
+          }
+          
+          // If this is a significant vertical movement, it likely indicates a new line
+          // Increased threshold to 5 points to better detect line breaks
+          if (hasTextBeenPlaced && Math.abs(currentTextY - lastTextY) > 5) {
+            // Flush accumulated text as a separate text block
+            logger.verbose(`Page ${p}: Line break detected - Y changed from ${lastTextY} to ${currentTextY} (diff: ${Math.abs(currentTextY - lastTextY)})`);
+            flushText();
+          } else if (textAccumulator.length > 0 && !textAccumulator.endsWith(" ")) {
+            // Small position changes within same line - just add space
             textAccumulator += " ";
+          }
+          
+          lastTextY = currentTextY;
+          hasTextBeenPlaced = true;
+          break;
+          
+        case OPS.moveText:
+          // Text movement operation - check if it's a significant move indicating a new line
+          const [, ty] = args;
+          if (p === 1) {
+            logger.verbose(`Page ${p}: moveText args=${JSON.stringify(args)}, dy=${ty}`);
+          }
+          if (ty !== 0 && Math.abs(ty) > 5) {
+            logger.verbose(`Page ${p}: Text move operation - dy=${ty}, flushing text`);
+            flushText();
           }
           break;
       }

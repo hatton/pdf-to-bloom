@@ -78,3 +78,5 @@ Important: do not recommend adding extensions on import statements, as this is a
 Do not tell me to do things or check things, do it yourself as an agent.
 
 Ask me any clarifying questions.
+
+When running add-hoc tests in the terminal, use the --output option to place outputs underneath the `test-outputs` directory, e.g. `yarn test:md-to-tagged --output test-outputs/md-to-tagged`.
