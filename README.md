@@ -17,7 +17,6 @@ A command-line interface for converting PDFs to Bloom format.
 ## Requirements
 
 - Node.js 22.11.0 or higher
-- MistralAI API key
 - OpenRouter API key
 
 ## Development

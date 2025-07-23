@@ -8,6 +8,7 @@ import {
   HtmlGenerator,
   addBloomPlanToMarkdown,
   pdfToMarkdownWithUnpdf,
+  pdfToMarkdown,
 } from "@pdf-to-bloom/lib"; // Assuming these functions are async and return/handle as described
 import {
   createLogCallback,
@@ -136,9 +137,6 @@ export async function processConversion(inputPath: string, options: Arguments) {
           `Using OpenRouter model '${plan.ocrMethod}' for PDF processing (simplified approach)`
         );
         // Use OpenRouter vision models for OCR with simplified approach
-        const { pdfToMarkdown } = await import(
-          "@pdf-to-bloom/lib/src/1-ocr/pdfToMarkdown"
-        );
 
         // Read custom prompt if provided
         let customPrompt: string | undefined;
@@ -156,12 +154,14 @@ export async function processConversion(inputPath: string, options: Arguments) {
 
         markdownContent = await pdfToMarkdown(
           plan.pdfPath!,
-          plan.bookFolderPath!,
           plan.openrouterKey!,
           plan.ocrMethod,
           logCallback,
           customPrompt
         );
+        // After writing markdown, extract images from the PDF to match markdown references
+        const { extractAndSaveImages } = await import("@pdf-to-bloom/lib");
+        await extractAndSaveImages(plan.pdfPath!, plan.bookFolderPath!);
       }
 
       logger.info(`Writing OCR'd markdown to: ${plan.markdownFromOCRPath}`);

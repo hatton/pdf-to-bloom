@@ -41,7 +41,6 @@ function resolveModelName(model: string): string {
 /**
  * Converts a PDF file to markdown format using OpenRouter models with simple file upload
  * @param pdfPath - Path to the PDF file
- * @param imageOutputDir - Directory where extracted images will be saved
  * @param openRouterApiKey - OpenRouter API key for processing
  * @param modelName - Model name (can be alias like "gemini" or full name like "google/gemini-2.5-pro")
  * @param logCallback - Optional callback to receive log messages
@@ -50,7 +49,6 @@ function resolveModelName(model: string): string {
  */
 export async function pdfToMarkdown(
   pdfPath: string,
-  imageOutputDir: string,
   openRouterApiKey: string,
   modelName: string = "gemini",
   logCallback?: (log: LogEntry) => void,
@@ -195,45 +193,6 @@ export async function pdfToMarkdown(
     if (codeBlockMatch) {
       markdown = codeBlockMatch[1];
       logger.info("✅ Extracted markdown content from code block");
-    }
-
-    // Extract base64 images from markdown content and save them
-    const imageRegex = /!\[([^\]]*)\]\(data:image\/(\w+);base64,([^)]+)\)/g;
-    let match;
-    let imageCounter = 1;
-    let extractedImages = 0;
-
-    // Ensure output directory exists
-    if (!fs.existsSync(imageOutputDir)) {
-      fs.mkdirSync(imageOutputDir, { recursive: true });
-    }
-
-    while ((match = imageRegex.exec(markdown)) !== null) {
-      const [fullMatch, altText, imageExtension, base64Data] = match;
-      try {
-        const imageFilename = `image${imageCounter}.${imageExtension}`;
-        const imagePath = `${imageOutputDir}/${imageFilename}`;
-
-        logger.info(`Extracting image from markdown: ${imageFilename}`);
-        fs.writeFileSync(imagePath, Buffer.from(base64Data, "base64"));
-
-        // Replace the data URI with a file reference
-        markdown = markdown.replace(
-          fullMatch,
-          `![${altText}](${imageFilename})`
-        );
-
-        imageCounter++;
-        extractedImages++;
-      } catch (imageError) {
-        logger.error(`Failed to save image from markdown: ${imageError}`);
-      }
-    }
-
-    if (extractedImages > 0) {
-      logger.info(
-        `✅ Successfully extracted ${extractedImages} images from markdown content`
-      );
     }
 
     // Ensure we have page markers if not present

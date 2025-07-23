@@ -8,7 +8,6 @@ Command-line interface for converting PDF and markdown documents to Bloom books.
 
 First, create these accounts and put their keys in your Environment Variables. On Microsoft Windows, you will need to restart any terminals in or for them to see changes to Environment Variables.
 
-- `MISTRAL_API_KEY`
 - `OPENROUTER_KEY`
 
 ### Run
