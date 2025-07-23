@@ -113,13 +113,13 @@ export async function processConversion(inputPath: string, options: Arguments) {
         );
       } else {
         logger.info(
-          `Using OpenRouter model '${plan.ocrMethod}' for PDF processing`
+          `Using OpenRouter model '${plan.ocrMethod}' for PDF processing (simplified approach)`
         );
-        // Use OpenRouter vision models for OCR
-        const { pdfToMarkdownAndImageFiles } = await import(
-          "@pdf-to-bloom/lib/src/1-ocr/pdfToMarkdownAndImageFiles-OpenRouter"
+        // Use OpenRouter vision models for OCR with simplified approach
+        const { pdfToMarkdown } = await import(
+          "@pdf-to-bloom/lib/src/1-ocr/pdfToMarkdown"
         );
-        
+
         // Read custom prompt if provided
         let customPrompt: string | undefined;
         if (plan.promptPath) {
@@ -133,13 +133,12 @@ export async function processConversion(inputPath: string, options: Arguments) {
             throw error;
           }
         }
-        
-        markdownContent = await pdfToMarkdownAndImageFiles(
+
+        markdownContent = await pdfToMarkdown(
           plan.pdfPath!,
           plan.bookFolderPath!,
           plan.openrouterKey!,
           plan.ocrMethod,
-          plan.parserEngine,
           logCallback,
           customPrompt
         );

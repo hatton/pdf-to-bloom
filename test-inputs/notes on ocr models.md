@@ -1,6 +1,6 @@
-Using openiai "chat completions" with the pdf plugin "native" and 4o
+# Openai 4o
 
-# Good:
+## Good:
 
 - gondi text looks right
 - handled embedded italics in gondi
@@ -9,11 +9,7 @@ Using openiai "chat completions" with the pdf plugin "native" and 4o
 - is handling the embedded italisized portion
 - is putting the the images in the right place
 
-# Bad
-
-## Children
-
-- it might not be able to get the images out in the correct place. It's always putting them at the top
+## Bad
 
 ## yarn cli test-inputs/tiger.pdf --target ocr --ocr 4o --output test-outputs/4o-tiger
 
