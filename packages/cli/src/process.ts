@@ -41,6 +41,7 @@ export type Arguments = {
   promptPath?: string; // Path to custom prompt file to override built-in prompt
   modelName?: string; // OpenRouter model name to override the default model
   ocrMethod: string; // OCR processing method: mistral, unpdf, or any OpenRouter model
+  parserEngine: string; // PDF parsing engine for OpenRouter: native, mistral-ocr, or pdf-text
 };
 
 type Plan = {
@@ -59,6 +60,7 @@ type Plan = {
   promptPath?: string;
   modelName?: string;
   ocrMethod: string;
+  parserEngine: string;
 };
 
 // Convert numeric enum value to readable string
@@ -118,6 +120,7 @@ export async function processConversion(inputPath: string, options: Arguments) {
           plan.bookFolderPath!,
           plan.openrouterKey!,
           plan.ocrMethod,
+          plan.parserEngine,
           logCallback
         );
       }
@@ -463,6 +466,7 @@ async function makeThePlan(
     promptPath: cliArguments.promptPath,
     modelName: cliArguments.modelName,
     ocrMethod: cliArguments.ocrMethod,
+    parserEngine: cliArguments.parserEngine,
   };
   //console.log(`Plan created:`, JSON.stringify(plan, null, 2));
 

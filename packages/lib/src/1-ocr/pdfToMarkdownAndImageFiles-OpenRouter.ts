@@ -18,6 +18,19 @@ interface OpenRouterResponse {
   choices: Array<{
     message: {
       content: string;
+      annotations?: Array<{
+        type?: string;
+        file?: {
+          filename?: string;
+          content?: Array<{
+            type: string;
+            text?: string;
+            image_url?: {
+              url: string;
+            };
+          }>;
+        };
+      }>;
     };
   }>;
 }
@@ -43,6 +56,7 @@ function resolveModelName(model: string): string {
  * @param imageOutputDir - Directory where extracted images will be saved
  * @param openRouterApiKey - OpenRouter API key for processing
  * @param modelName - Model name (can be alias like "gemini" or full name like "google/gemini-2.5-pro")
+ * @param parserEngine - PDF parsing engine: "native", "mistral-ocr", or "pdf-text"
  * @param logCallback - Optional callback to receive log messages
  * @returns Promise resolving to markdown string
  */
@@ -51,6 +65,7 @@ export async function pdfToMarkdownAndImageFiles(
   imageOutputDir: string,
   openRouterApiKey: string,
   modelName: string = "gemini",
+  parserEngine: string = "native",
   logCallback?: (log: LogEntry) => void
 ): Promise<string> {
   if (logCallback) logger.subscribe(logCallback);
@@ -66,6 +81,7 @@ export async function pdfToMarkdownAndImageFiles(
     logger.info(
       `Starting PDF to markdown conversion for: ${pdfPath} using model: ${resolvedModel}`
     );
+    logger.info(`Using PDF parser engine: ${parserEngine}`);
 
     // Check if PDF file exists
     if (!fs.existsSync(pdfPath)) {
@@ -119,7 +135,7 @@ Starting with the very first line and then again for each page, insert a <!-- pa
         {
           id: "file-parser",
           pdf: {
-            engine: "pdf-text", // or 'mistral-ocr' or 'native'
+            engine: parserEngine,
           },
         },
       ],
@@ -141,6 +157,8 @@ Starting with the very first line and then again for each page, insert a <!-- pa
       }
     );
 
+    logger.info(`🔍 DEBUG: Response status: ${response.status}`);
+
     if (!response.ok) {
       const errorText = await response.text();
       logger.error(
@@ -152,7 +170,13 @@ Starting with the very first line and then again for each page, insert a <!-- pa
       );
     }
 
-    const ocrResponse = (await response.json()) as OpenRouterResponse;
+    let ocrResponse: OpenRouterResponse;
+    try {
+      ocrResponse = (await response.json()) as OpenRouterResponse;
+    } catch (parseError) {
+      logger.error(`Failed to parse JSON response: ${parseError}`);
+      throw new Error(`Failed to parse OpenRouter response: ${parseError}`);
+    }
 
     if (!ocrResponse.choices || ocrResponse.choices.length === 0) {
       logger.error("OCR request failed: No response choices received");
@@ -161,7 +185,47 @@ Starting with the very first line and then again for each page, insert a <!-- pa
 
     logger.info("✅ Received response from OpenRouter model");
 
-    let markdown = ocrResponse.choices[0].message.content;
+    // Check for annotations that might contain image data
+    const choice = ocrResponse.choices[0];
+    let imageCounter = 1;
+    
+    if (choice.message.annotations) {
+      logger.info(`Found annotations with potential image data`);
+      
+      choice.message.annotations.forEach((annotation) => {
+        if (annotation.file?.content) {
+          annotation.file.content.forEach((item) => {
+            if (item.type === "image_url" && item.image_url?.url) {
+              // Extract and save image if it's base64 data
+              if (item.image_url.url.startsWith("data:image/")) {
+                try {
+                  const base64Match = item.image_url.url.match(/^data:image\/(\w+);base64,(.+)$/);
+                  if (base64Match) {
+                    const imageExtension = base64Match[1];
+                    const base64Data = base64Match[2];
+                    const imagePath = `${imageOutputDir}/image${imageCounter}.${imageExtension}`;
+                    
+                    logger.info(`Saving extracted image: image${imageCounter}.${imageExtension}`);
+                    fs.writeFileSync(imagePath, Buffer.from(base64Data, 'base64'));
+                    imageCounter++;
+                  }
+                } catch (imageError) {
+                  logger.error(`Failed to save image: ${imageError}`);
+                }
+              }
+            }
+          });
+        }
+      });
+      
+      if (imageCounter > 1) {
+        logger.info(`✅ Successfully extracted ${imageCounter - 1} images from PDF`);
+      }
+    } else {
+      logger.info("No annotations found - images may not be available with this parser engine");
+    }
+
+    let markdown = choice.message.content;
 
     // Ensure we have page markers if not present
     if (!markdown.includes("<!-- page")) {

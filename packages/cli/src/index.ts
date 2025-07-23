@@ -58,6 +58,11 @@ program
     "OCR processing method: 'mistral' (default, vision-based OCR), 'unpdf' (experimental structural extraction), or any OpenRouter model (e.g. 'gemini', '4o', 'google/gemini-2.0-flash-exp'). Note: unpdf extracts all text from PDF structure, including hidden layers that may not be visually rendered.",
     "mistral"
   )
+  .option(
+    "--parser <engine>",
+    "PDF parsing engine for OpenRouter models: 'native' (default, use model's built-in capabilities), 'mistral-ocr' (best for scanned documents, $2 per 1,000 pages), or 'pdf-text' (free, best for text-based PDFs).",
+    "native"
+  )
   .option("--verbose", "Enable verbose logging to see detailed process steps")
   .action(async (input, options) => {
     if (input) {
@@ -72,6 +77,7 @@ program
         modelName: options.model,
         verbose: options.verbose || false,
         ocrMethod: options.ocr || "mistral",
+        parserEngine: options.parser || "native",
       };
 
       await processConversion(input, args);
