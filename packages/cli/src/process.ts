@@ -119,13 +119,29 @@ export async function processConversion(inputPath: string, options: Arguments) {
         const { pdfToMarkdownAndImageFiles } = await import(
           "@pdf-to-bloom/lib/src/1-ocr/pdfToMarkdownAndImageFiles-OpenRouter"
         );
+        
+        // Read custom prompt if provided
+        let customPrompt: string | undefined;
+        if (plan.promptPath) {
+          try {
+            customPrompt = await fs.readFile(plan.promptPath, "utf-8");
+            logger.info(`Using custom prompt from: ${plan.promptPath} for OCR`);
+          } catch (error) {
+            logger.error(
+              `Failed to read custom prompt file: ${plan.promptPath}`
+            );
+            throw error;
+          }
+        }
+        
         markdownContent = await pdfToMarkdownAndImageFiles(
           plan.pdfPath!,
           plan.bookFolderPath!,
           plan.openrouterKey!,
           plan.ocrMethod,
           plan.parserEngine,
-          logCallback
+          logCallback,
+          customPrompt
         );
       }
 
