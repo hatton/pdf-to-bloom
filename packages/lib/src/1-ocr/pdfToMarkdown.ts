@@ -88,9 +88,22 @@ export async function pdfToMarkdown(
     logger.info("Sending PDF to OpenRouter model...");
 
     // Default system prompt copied from the original file
-    const defaultSystemPrompt = `Return this book in markdown format, both text and image references. For the image references, make sure to given them at the correct location with respect to the text, and use the format ![image](image-x-y.png) where x is the page where it was found an y is nth image on that page.
-Starting with the very first line and then again for each page, insert a <!-- page-index="1" -->. Drop the text giving the page number at the bottom.  Be super careful with the transcription, preferring the embedded unicode over optical recognition. 
-This book may include minority language text with unusual characters. Therefore, do not omit or substitute any characters, and preserve all Unicode exactly as present, including rare IPA symbols and diacritics. You will return both text and markdown image references. `;
+    const defaultSystemPrompt = `Return this book in markdown format, both text and image references. 
+    
+    # Images
+    For the image references, make sure to given them at the correct location with respect to the text, and use the format ![image](image-x-y.png) where x is the page where it was found an y is nth image on that page. Make sure to output all images, some pages have more than one image.
+
+    # Pages
+    Starting with the very first line and then again for each page, insert a <!-- page-index="1" -->. Drop the text giving the page number at the bottom.  Be super careful with the transcription, preferring the embedded unicode over optical recognition. 
+
+    # Text
+    This book may include minority language text with unusual characters. Therefore, do not omit or substitute any characters, and preserve all Unicode exactly as present, including rare IPA symbols and diacritics. 
+
+    # Special First Page Instructions
+    It is common to have a bit of text in one corner and another bit of text across from it in the other corner. When you see this, output them as two separate paragraphs. In doing so, Make sure to output all images, some pages have more than one image.
+    
+    # Markdown
+    You will return both text and markdown image references. `;
 
     const systemPrompt = customPrompt || defaultSystemPrompt;
 
@@ -126,8 +139,8 @@ This book may include minority language text with unusual characters. Therefore,
         },
         userMessage,
       ],
-      temperature: 0.1,
-      max_tokens: 8000, // Increase max tokens for longer documents
+      temperature: 0.0,
+      max_tokens: 8000, // todo Increase max tokens for longer documents
     };
 
     const response = await fetch(
