@@ -1,6 +1,16 @@
-# OCR instructions
+# synthetic.pdf
 
-Convert this to markdown. starting with the very first line and then again for each page, insert a <!-- page-index="1" -->. Drop the text giving the page number at the bottom. For images, include a markdown image reference. Be super careful with the transcription, preferring the embedded unicode over optical recognition. This may include minority language text with unusual characters. Therefore, do not omit or substitute any characters, and preserve all Unicode exactly as present, including rare IPA symbols and diacritics
+- from ms publisher
+
+## good
+
+- handled gondi, Apali (barred-is)
+- put image references in the right place
+- dropped page numbers as requested.
+
+## bad
+
+- page break on each new line
 
 # tiger.pdf
 

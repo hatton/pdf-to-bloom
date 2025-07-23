@@ -103,13 +103,15 @@ export async function pdfToMarkdownAndImageFiles(
     logger.info("Sending PDF to OpenRouter model...");
 
     // Prepare the request for OpenRouter
-    const defaultSystemPrompt = `You are an expert in OCRing documents in languages you have never seen before. Convert the provided PDF pages to markdown format. 
-Starting with the very first line and then again for each page, insert a <!-- page-index="1" -->. Drop the text giving the page number at the bottom. For images, include a markdown image reference AND provide the actual image data if possible. Be super careful with the transcription, preferring the embedded unicode over optical recognition. This may include minority language text with unusual characters. Therefore, do not omit or substitute any characters, and preserve all Unicode exactly as present, including rare IPA symbols and diacritics.
+    const defaultSystemPrompt = `Return this book in markdown format, both text and image references. For the image references, make sure to given them at the correct location with respect to the text, and use the format ![image](image-x-y.png) where x is the page where it was found an y is nth image on that page.
+Starting with the very first line and then again for each page, insert a <!-- page-index="1" -->. Drop the text giving the page number at the bottom.  Be super careful with the transcription, preferring the embedded unicode over optical recognition. 
+This book may include minority language text with unusual characters. Therefore, do not omit or substitute any characters, and preserve all Unicode exactly as present, including rare IPA symbols and diacritics. You will return both text and markdown image references. `;
 
-IMPORTANT: Please extract and provide any images found in the PDF as base64 data or in your response annotations so they can be saved as separate files.`;
+    // You MUST NOT add text, not even to say "This page is blank".
+    // You MUST NOT respond with any introductory text, e.g. about your limitations. It is vital that you faithfully return the text of the book, without any additional commentary or interpretation. Do not say "I'm unable..." Do not say "If you need more pages transcribed, please let me know!". That will break our app.`;
 
     const systemPrompt = customPrompt || defaultSystemPrompt;
-    
+
     if (customPrompt) {
       logger.info("Using custom prompt for OCR processing");
     }
@@ -183,11 +185,10 @@ IMPORTANT: Please extract and provide any images found in the PDF as base64 data
     let ocrResponse: OpenRouterResponse;
     try {
       ocrResponse = (await response.json()) as OpenRouterResponse;
-      
+
       // Log the full response structure for debugging
       logger.info("Full OpenRouter API response structure:");
       logger.info(JSON.stringify(ocrResponse, null, 2));
-      
     } catch (parseError) {
       logger.error(`Failed to parse JSON response: ${parseError}`);
       throw new Error(`Failed to parse OpenRouter response: ${parseError}`);
@@ -252,26 +253,36 @@ IMPORTANT: Please extract and provide any images found in the PDF as base64 data
     }
 
     let markdown = choice.message.content;
-    
+
     logger.info("Extracting markdown from API response structure:");
-    logger.info(`- choices[0].message.content length: ${markdown.length} characters`);
-    
+    logger.info(
+      `- choices[0].message.content length: ${markdown.length} characters`
+    );
+
     // Extract markdown from code blocks if wrapped
     const codeBlockMatch = markdown.match(/```markdown\n([\s\S]*?)\n```/);
     if (codeBlockMatch) {
       markdown = codeBlockMatch[1];
-      logger.info("✅ Extracted markdown content from code block in choices[0].message.content");
+      logger.info(
+        "✅ Extracted markdown content from code block in choices[0].message.content"
+      );
       logger.info(`- Extracted markdown length: ${markdown.length} characters`);
     } else {
-      logger.info("No markdown code block found, using raw content from choices[0].message.content");
+      logger.info(
+        "No markdown code block found, using raw content from choices[0].message.content"
+      );
     }
-    
+
     // Also log any annotations structure if present
     if (choice.message.annotations) {
-      logger.info(`- Found ${choice.message.annotations.length} annotation(s) in choices[0].message.annotations`);
+      logger.info(
+        `- Found ${choice.message.annotations.length} annotation(s) in choices[0].message.annotations`
+      );
       choice.message.annotations.forEach((annotation, index) => {
         if (annotation.file?.content) {
-          logger.info(`  - Annotation ${index}: file.content array with ${annotation.file.content.length} items`);
+          logger.info(
+            `  - Annotation ${index}: file.content array with ${annotation.file.content.length} items`
+          );
         }
       });
     }
