@@ -55,8 +55,8 @@ program
   )
   .option(
     "--ocr <method>",
-    "OCR processing method: 'mistral' (default, vision-based OCR), 'unpdf' (experimental structural extraction), or any OpenRouter model (e.g. 'gemini', '4o', 'google/gemini-2.0-flash-exp'). Note: unpdf extracts all text from PDF structure, including hidden layers that may not be visually rendered.",
-    "mistral"
+    "OCR processing method: '4o' (default, OpenAI GPT-4o via OpenRouter), 'mistral' (vision-based OCR), 'unpdf' (experimental structural extraction), or any OpenRouter model (e.g. 'gemini', 'google/gemini-2.0-flash-exp'). Note: unpdf extracts all text from PDF structure, including hidden layers that may not be visually rendered.",
+    "4o"
   )
   .option(
     "--parser <engine>",
@@ -76,7 +76,7 @@ program
         promptPath: options.prompt,
         modelName: options.model,
         verbose: options.verbose || false,
-        ocrMethod: options.ocr || "mistral",
+        ocrMethod: options.ocr || "4o",
         parserEngine: options.parser || "native",
       };
 
