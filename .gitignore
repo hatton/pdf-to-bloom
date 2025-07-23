@@ -25,3 +25,5 @@ bilingual-sample.tagged_bloom/
 
 test-output/
 test-outputs/
+
+debug*.js

@@ -31,7 +31,7 @@ program
   )
   .option(
     "-c, --collection <path>",
-    "Path to Bloom collection folder or .bloomCollection file. This is the recommended way to specify where to create the book, as it provides language settings for better processing."
+    "Path to Bloom collection folder or .bloomCollection file. Can be a full path or just a collection name (e.g., 'My Books' will expand to ~/Documents/Bloom/My Books). This is the recommended way to specify where to create the book, as it provides language settings for better processing."
   )
   .option(
     "-o, --output <path>",
@@ -54,8 +54,8 @@ program
     "OpenRouter model name to use for LLM enrichment (e.g., 'google/gemini-2.5-flash')"
   )
   .option(
-    "--pdf <method>",
-    "PDF processing method: 'mistral' (default, vision-based OCR) or 'unpdf' (experimental structural extraction). Note: unpdf extracts all text from PDF structure, including hidden layers that may not be visually rendered.",
+    "--ocr <method>",
+    "OCR processing method: 'mistral' (default, vision-based OCR), 'unpdf' (experimental structural extraction), or any OpenRouter model (e.g. 'gemini', '4o', 'google/gemini-2.0-flash-exp'). Note: unpdf extracts all text from PDF structure, including hidden layers that may not be visually rendered.",
     "mistral"
   )
   .option("--verbose", "Enable verbose logging to see detailed process steps")
@@ -71,8 +71,7 @@ program
         promptPath: options.prompt,
         modelName: options.model,
         verbose: options.verbose || false,
-        pdfProcessor:
-          options.pdf === "unpdf" ? PdfProcessor.Unpdf : PdfProcessor.Mistral,
+        ocrMethod: options.ocr || "mistral",
       };
 
       await processConversion(input, args);

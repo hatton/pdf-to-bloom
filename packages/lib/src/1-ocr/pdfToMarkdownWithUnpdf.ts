@@ -17,41 +17,6 @@ interface UnpdfPage {
 }
 
 /**
- * Determines if a space should be added between two characters based on their types
- */
-function shouldAddSpace(lastChar: string, firstChar: string): boolean {
-  // Don't add space if either character is already a space or punctuation that doesn't need spaces
-  if (lastChar === " " || firstChar === " ") return false;
-
-  // Don't add space before certain punctuation
-  if (/[.,;:!?)]/.test(firstChar)) return false;
-
-  // Don't add space after certain punctuation
-  if (/[(]/.test(lastChar)) return false;
-
-  // Add space between Latin letters and other scripts
-  const lastIsLatin = /[a-zA-Z]/.test(lastChar);
-  const firstIsLatin = /[a-zA-Z]/.test(firstChar);
-
-  // Add space between different script types (e.g., Telugu and English)
-  if (lastIsLatin !== firstIsLatin) return true;
-
-  // Add space between letters and numbers
-  const lastIsDigit = /[0-9]/.test(lastChar);
-  const firstIsDigit = /[0-9]/.test(firstChar);
-  if ((lastIsLatin && firstIsDigit) || (lastIsDigit && firstIsLatin))
-    return true;
-
-  // For same-script characters, be more conservative - only add space if it looks like word boundary
-  if (lastIsLatin && firstIsLatin) {
-    // This could be refined further based on patterns
-    return false; // Let positioning handle spacing for now
-  }
-
-  return false; // Default to no space for fine-grained text
-}
-
-/**
  * Recursively searches within an XObject (which could be a Form) to find the raw image data.
  * This is the key to handling images embedded inside Form XObjects.
  *
@@ -648,15 +613,17 @@ async function processPages(
     }
 
     // HYBRID APPROACH: Use getTextContent() for text with operator list for line breaks
-    logger.verbose(`Page ${p}: Using hybrid approach - getTextContent() + operator positioning`);
-    
+    logger.verbose(
+      `Page ${p}: Using hybrid approach - getTextContent() + operator positioning`
+    );
+
     // Step 1: Get all text content with positioning information
     const textContent = await page.getTextContent();
-    const textItems = textContent.items.filter((item) => 'str' in item);
+    const textItems = textContent.items.filter((item) => "str" in item);
 
     // Step 2: Analyze operator list to find line break Y positions
     const lineBreakYPositions = [];
-    
+
     // Reset positioning tracking for this analysis
     lastTextY = 0;
     hasTextBeenPlaced = false;
@@ -671,16 +638,16 @@ async function processPages(
 
         if (hasTextBeenPlaced) {
           const yDiff = Math.abs(currentTextY - lastTextY);
-          
+
           // Detect significant line breaks (using same logic as original)
-          if (yDiff > 25 || (yDiff > 12)) {
+          if (yDiff > 25 || yDiff > 12) {
             logger.verbose(
               `Page ${p}: Line break Y position detected: ${currentTextY} (diff: ${yDiff} from ${lastTextY})`
             );
             lineBreakYPositions.push(currentTextY);
           }
         }
-        
+
         lastTextY = currentTextY;
         hasTextBeenPlaced = true;
       }
@@ -693,44 +660,49 @@ async function processPages(
       let currentLineY: number | null = null;
 
       for (const item of textItems) {
-        if ('str' in item && 'transform' in item) {
+        if ("str" in item && "transform" in item) {
           const itemY = item.transform[5];
-          
+
           // Check if this item is at a significantly different Y position (new line)
           if (currentLineY === null) {
             currentLineY = itemY;
             currentLine.push(item.str);
           } else {
             const yDiff = Math.abs(itemY - currentLineY);
-            
+
             // If Y position differs significantly or crosses a detected line break, start new line
-            const crossesLineBreak = currentLineY !== null && lineBreakYPositions.some(breakY => 
-              Math.abs(breakY - itemY) < Math.abs(breakY - currentLineY!)
-            );
-            
+            const crossesLineBreak =
+              currentLineY !== null &&
+              lineBreakYPositions.some(
+                (breakY) =>
+                  Math.abs(breakY - itemY) < Math.abs(breakY - currentLineY!)
+              );
+
             if (yDiff > 12 || crossesLineBreak) {
               // Finish current line and start new one
               if (currentLine.length > 0) {
-                textLines.push(currentLine.join(' ').trim());
+                textLines.push(currentLine.join(" ").trim());
                 currentLine = [];
               }
               currentLineY = itemY;
             }
-            
+
             currentLine.push(item.str);
           }
         }
       }
-      
+
       // Add remaining text
       if (currentLine.length > 0) {
-        textLines.push(currentLine.join(' ').trim());
+        textLines.push(currentLine.join(" ").trim());
       }
 
       // Add each line as a separate text block
       textLines.forEach((line, index) => {
         if (line) {
-          logger.verbose(`Page ${p}: Text line ${index + 1}: ${line.substring(0, 50)}...`);
+          logger.verbose(
+            `Page ${p}: Text line ${index + 1}: ${line.substring(0, 50)}...`
+          );
           pageContent.push({
             type: "text",
             content: line,

@@ -20,6 +20,7 @@ import {
 export enum PdfProcessor {
   Mistral = "mistral",
   Unpdf = "unpdf",
+  OpenRouter = "openrouter",
 }
 
 export enum Artifact {
@@ -39,7 +40,7 @@ export type Arguments = {
   openrouterKey?: string; // OpenRouter API key for LLM tagging of markdown
   promptPath?: string; // Path to custom prompt file to override built-in prompt
   modelName?: string; // OpenRouter model name to override the default model
-  pdfProcessor: PdfProcessor; // PDF processing method: mistral or unpdf
+  ocrMethod: string; // OCR processing method: mistral, unpdf, or any OpenRouter model
 };
 
 type Plan = {
@@ -57,7 +58,7 @@ type Plan = {
   openrouterKey?: string;
   promptPath?: string;
   modelName?: string;
-  pdfProcessor: PdfProcessor;
+  ocrMethod: string;
 };
 
 // Convert numeric enum value to readable string
@@ -88,7 +89,7 @@ export async function processConversion(inputPath: string, options: Arguments) {
 
       let markdownContent: string;
 
-      if (plan.pdfProcessor === PdfProcessor.Unpdf) {
+      if (plan.ocrMethod === "unpdf") {
         logger.info(`Using unpdf for PDF processing (experimental)`);
         // Use the new unpdf approach - extracts ALL text from PDF structure,
         // including potentially hidden layers. Some PDFs (especially those from
@@ -98,7 +99,7 @@ export async function processConversion(inputPath: string, options: Arguments) {
           plan.bookFolderPath!,
           logCallback
         );
-      } else {
+      } else if (plan.ocrMethod === "mistral") {
         logger.info(`Using Mistral AI for PDF processing`);
         // Use the existing Mistral AI approach - vision-based OCR that only
         // extracts visually rendered text, similar to what a human would see.
@@ -106,6 +107,17 @@ export async function processConversion(inputPath: string, options: Arguments) {
           plan.pdfPath!,
           plan.bookFolderPath!,
           plan.mistralKey!,
+          logCallback
+        );
+      } else {
+        logger.info(`Using OpenRouter model '${plan.ocrMethod}' for PDF processing`);
+        // Use OpenRouter vision models for OCR
+        const { pdfToMarkdownAndImageFiles } = await import("@pdf-to-bloom/lib/src/1-ocr/pdfToMarkdownAndImageFiles-OpenRouter");
+        markdownContent = await pdfToMarkdownAndImageFiles(
+          plan.pdfPath!,
+          plan.bookFolderPath!,
+          plan.openrouterKey!,
+          plan.ocrMethod,
           logCallback
         );
       }
@@ -347,12 +359,24 @@ async function makeThePlan(
 
   if (
     inputType === Artifact.PDF &&
-    cliArguments.pdfProcessor === PdfProcessor.Mistral &&
+    cliArguments.ocrMethod === "mistral" &&
     !mistralKey
   ) {
     // we are going to have to do OCR, need the key
     throw new Error(
-      "Mistral API key is required for PDF to Bloom conversion. Provide --mistral-api-key or set MISTRAL_API_KEY environment variable, or use --pdf unpdf for local processing."
+      "Mistral API key is required for PDF to Bloom conversion. Provide --mistral-api-key or set MISTRAL_API_KEY environment variable, or use --ocr unpdf for local processing."
+    );
+  }
+  
+  if (
+    inputType === Artifact.PDF &&
+    cliArguments.ocrMethod !== "mistral" &&
+    cliArguments.ocrMethod !== "unpdf" &&
+    !openrouterKey
+  ) {
+    // we are going to use OpenRouter for OCR, need the key
+    throw new Error(
+      "OpenRouter API key is required for OpenRouter OCR models. Provide --openrouter-key or set OPENROUTER_KEY environment variable."
     );
   }
   if (
@@ -438,7 +462,7 @@ async function makeThePlan(
     openrouterKey,
     promptPath: cliArguments.promptPath,
     modelName: cliArguments.modelName,
-    pdfProcessor: cliArguments.pdfProcessor,
+    ocrMethod: cliArguments.ocrMethod,
   };
   //console.log(`Plan created:`, JSON.stringify(plan, null, 2));
 

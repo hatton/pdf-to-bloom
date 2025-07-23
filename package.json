@@ -21,7 +21,8 @@
     "dev:cli": "yarn workspace @pdf-to-bloom/cli dev",
     "watch": "concurrently \"yarn dev:lib\" \"yarn dev:cli\" --names \"lib,cli\" --prefix-colors \"blue,green\"",
     "cli": "yarn node packages/cli/dist/index.js",
-    "test:md-to-tagged": "yarn build:lib && yarn build:cli && node packages/cli/dist/index.js test-inputs/testme.md --target tagged"
+    "test:md-to-tagged": "yarn build:lib && yarn build:cli && node packages/cli/dist/index.js test-inputs/testme.md --target tagged",
+    "test:children-come": "yarn cli  test-inputs/children-come.pdf --collection 'Apalɨ Books'"
   },
   "packageManager": "yarn@1.22.22",
   "volta": {

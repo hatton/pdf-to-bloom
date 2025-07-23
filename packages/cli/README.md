@@ -13,13 +13,16 @@ First, create these accounts and put their keys in your Environment Variables. O
 
 ### Run
 
-The recommended way to use the tool is with the `--collection` option, which points to either a Bloom collection folder or a `.bloomCollection` file:
+The recommended way to use the tool is with the `--collection` option. You can use either a simple collection name or a full path:
 
 ```bash
-# Using a collection folder
+# Simple collection name (recommended) - expands to ~/Documents/Bloom/CollectionName
+pdf-to-bloom Ebida.pdf --collection "Edolo Books"
+
+# Full path to collection folder
 pdf-to-bloom Ebida.pdf --collection "C:\Users\MudMan\Documents\Bloom\Edolo Books"
 
-# Using a .bloomCollection file directly
+# Full path to .bloomCollection file directly
 pdf-to-bloom Ebida.pdf --collection "C:\Users\MudMan\Documents\Bloom\Edolo Books\EdoloBooks.bloomCollection"
 ```
 
@@ -41,10 +44,33 @@ When processing files, the tool can automatically detect expected languages by l
 
 ### Using the --collection Option (Recommended)
 
-The `--collection` option is the preferred way to specify where to create your book because it automatically finds and uses the Bloom Collection settings. You can point it to either:
+The `--collection` option is the preferred way to specify where to create your book because it automatically finds and uses the Bloom Collection settings. You can specify the collection in two ways:
 
-1. **A Bloom collection folder** (containing a `.bloomCollection` file)
-2. **A `.bloomCollection` file directly**
+1. **Simple collection name** - Just provide the collection name, and it will automatically expand to `~/Documents/Bloom/CollectionName`
+2. **Full path** - Provide the complete path to either:
+   - A Bloom collection folder (containing a `.bloomCollection` file)
+   - A `.bloomCollection` file directly
+
+#### Simple Collection Name Examples
+
+```bash
+# These are equivalent:
+pdf-to-bloom mybook.pdf --collection "Edolo Books"
+pdf-to-bloom mybook.pdf --collection "C:\Users\YourName\Documents\Bloom\Edolo Books"
+
+# Works with special characters too:
+pdf-to-bloom mybook.pdf --collection "palɨ Books"
+```
+
+#### Full Path Examples
+
+```bash
+# Using a collection folder
+pdf-to-bloom mybook.pdf --collection "C:\Users\MudMan\Documents\Bloom\Edolo Books"
+
+# Using a .bloomCollection file directly
+pdf-to-bloom mybook.pdf --collection "C:\Users\MudMan\Documents\Bloom\Edolo Books\EdoloBooks.bloomCollection"
+```
 
 The tool will validate that the path exists and contains the necessary collection settings.
 

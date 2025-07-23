@@ -14,8 +14,30 @@ export function getApiKeys(options: any) {
 }
 
 /**
+ * Checks if a path is a simple directory name (not a full path)
+ * @param collectionPath The path to check
+ * @returns true if it's a simple directory name, false if it's a full path
+ */
+function isSimpleDirectoryName(collectionPath: string): boolean {
+  // Check if it contains path separators or is an absolute path
+  const normalizedPath = path.normalize(collectionPath);
+
+  // If it's the same after resolving and doesn't contain separators, it's likely a simple name
+  // Also check common absolute path patterns
+  return (
+    !path.isAbsolute(normalizedPath) &&
+    !normalizedPath.includes(path.sep) &&
+    !normalizedPath.includes("/") &&
+    !normalizedPath.includes("\\") &&
+    normalizedPath === collectionPath
+  );
+}
+
+/**
  * Validates and resolves a collection path.
- * @param collectionPath Path to either a Bloom collection folder or .bloomCollection file
+ * If a simple directory name is provided (e.g., "palɨ Books"), it will be expanded to
+ * the user's Documents/Bloom folder (e.g., "C:/Users/username/Documents/Bloom/palɨ Books").
+ * @param collectionPath Path to either a Bloom collection folder or .bloomCollection file, or simple directory name
  * @returns Object containing the collection folder path and collection file path
  * @throws Error if the path is invalid
  */
@@ -25,7 +47,26 @@ export async function validateAndResolveCollectionPath(
   collectionFolderPath: string;
   collectionFilePath: string;
 }> {
-  const resolvedPath = path.resolve(collectionPath);
+  let resolvedPath: string;
+
+  // Check if this is a simple directory name that should be expanded to Documents/Bloom
+  if (isSimpleDirectoryName(collectionPath)) {
+    const homeDir = os.homedir();
+    const documentsBloomPath = path.join(
+      homeDir,
+      "Documents",
+      "Bloom",
+      collectionPath
+    );
+    resolvedPath = path.resolve(documentsBloomPath);
+    console.log(
+      chalk.blue(
+        `Expanding simple collection name '${collectionPath}' to: ${resolvedPath}`
+      )
+    );
+  } else {
+    resolvedPath = path.resolve(collectionPath);
+  }
 
   // Check if path exists
   try {

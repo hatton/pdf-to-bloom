@@ -3,6 +3,7 @@ export {
   pdfToMarkdownAndImageFiles,
   pdfToMarkdownAndImageFiles as makeMarkdownFromPDF,
 } from "./1-ocr/pdfToMarkdownAndImageFiles-Mistral";
+export { pdfToMarkdownAndImageFiles as pdfToMarkdownWithOpenRouter } from "./1-ocr/pdfToMarkdownAndImageFiles-OpenRouter";
 export { pdfToMarkdownWithUnpdf } from "./1-ocr/pdfToMarkdownWithUnpdf";
 export { llmMarkdown } from "./2-llm/llmMarkdown";
 export { addBloomPlanToMarkdown } from "./3-add-bloom-plan/addBloomPlan";
