@@ -112,9 +112,13 @@ export async function processConversion(inputPath: string, options: Arguments) {
           logCallback
         );
       } else {
-        logger.info(`Using OpenRouter model '${plan.ocrMethod}' for PDF processing`);
+        logger.info(
+          `Using OpenRouter model '${plan.ocrMethod}' for PDF processing`
+        );
         // Use OpenRouter vision models for OCR
-        const { pdfToMarkdownAndImageFiles } = await import("@pdf-to-bloom/lib/src/1-ocr/pdfToMarkdownAndImageFiles-OpenRouter");
+        const { pdfToMarkdownAndImageFiles } = await import(
+          "@pdf-to-bloom/lib/src/1-ocr/pdfToMarkdownAndImageFiles-OpenRouter"
+        );
         markdownContent = await pdfToMarkdownAndImageFiles(
           plan.pdfPath!,
           plan.bookFolderPath!,
@@ -370,7 +374,7 @@ async function makeThePlan(
       "Mistral API key is required for PDF to Bloom conversion. Provide --mistral-api-key or set MISTRAL_API_KEY environment variable, or use --ocr unpdf for local processing."
     );
   }
-  
+
   if (
     inputType === Artifact.PDF &&
     cliArguments.ocrMethod !== "mistral" &&

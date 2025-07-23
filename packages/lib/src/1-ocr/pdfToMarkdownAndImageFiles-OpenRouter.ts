@@ -102,7 +102,9 @@ export async function pdfToMarkdownAndImageFiles(
 
     // Prepare the request for OpenRouter
     const systemPrompt = `You are an expert in OCRing documents in languages you have never seen before. Convert the provided PDF pages to markdown format. 
-Starting with the very first line and then again for each page, insert a <!-- page-index="1" -->. Drop the text giving the page number at the bottom. For images, include a markdown image reference. Be super careful with the transcription, preferring the embedded unicode over optical recognition. This may include minority language text with unusual characters. Therefore, do not omit or substitute any characters, and preserve all Unicode exactly as present, including rare IPA symbols and diacritics."`;
+Starting with the very first line and then again for each page, insert a <!-- page-index="1" -->. Drop the text giving the page number at the bottom. For images, include a markdown image reference AND provide the actual image data if possible. Be super careful with the transcription, preferring the embedded unicode over optical recognition. This may include minority language text with unusual characters. Therefore, do not omit or substitute any characters, and preserve all Unicode exactly as present, including rare IPA symbols and diacritics.
+
+IMPORTANT: Please extract and provide any images found in the PDF as base64 data or in your response annotations so they can be saved as separate files.`;
 
     // Upload the PDF using OpenRouter's file format
     const userMessage: OpenRouterMessage = {
@@ -185,13 +187,13 @@ Starting with the very first line and then again for each page, insert a <!-- pa
 
     logger.info("✅ Received response from OpenRouter model");
 
-    // Check for annotations that might contain image data
+    // Check for annotations that might contain image data (mistral-ocr parser)
     const choice = ocrResponse.choices[0];
     let imageCounter = 1;
-    
+
     if (choice.message.annotations) {
       logger.info(`Found annotations with potential image data`);
-      
+
       choice.message.annotations.forEach((annotation) => {
         if (annotation.file?.content) {
           annotation.file.content.forEach((item) => {
@@ -199,14 +201,21 @@ Starting with the very first line and then again for each page, insert a <!-- pa
               // Extract and save image if it's base64 data
               if (item.image_url.url.startsWith("data:image/")) {
                 try {
-                  const base64Match = item.image_url.url.match(/^data:image\/(\w+);base64,(.+)$/);
+                  const base64Match = item.image_url.url.match(
+                    /^data:image\/(\w+);base64,(.+)$/
+                  );
                   if (base64Match) {
                     const imageExtension = base64Match[1];
                     const base64Data = base64Match[2];
                     const imagePath = `${imageOutputDir}/image${imageCounter}.${imageExtension}`;
-                    
-                    logger.info(`Saving extracted image: image${imageCounter}.${imageExtension}`);
-                    fs.writeFileSync(imagePath, Buffer.from(base64Data, 'base64'));
+
+                    logger.info(
+                      `Saving extracted image: image${imageCounter}.${imageExtension}`
+                    );
+                    fs.writeFileSync(
+                      imagePath,
+                      Buffer.from(base64Data, "base64")
+                    );
                     imageCounter++;
                   }
                 } catch (imageError) {
@@ -217,15 +226,59 @@ Starting with the very first line and then again for each page, insert a <!-- pa
           });
         }
       });
-      
+
       if (imageCounter > 1) {
-        logger.info(`✅ Successfully extracted ${imageCounter - 1} images from PDF`);
+        logger.info(
+          `✅ Successfully extracted ${imageCounter - 1} images from annotations`
+        );
       }
     } else {
-      logger.info("No annotations found - images may not be available with this parser engine");
+      logger.info(
+        "No annotations found - checking for embedded images in markdown content"
+      );
     }
 
     let markdown = choice.message.content;
+
+    // Extract markdown from code blocks if wrapped
+    const codeBlockMatch = markdown.match(/```markdown\n([\s\S]*?)\n```/);
+    if (codeBlockMatch) {
+      markdown = codeBlockMatch[1];
+      logger.info("Extracted markdown content from code block");
+    }
+
+    // Extract base64 images from markdown content (native parser approach)
+    const imageRegex = /!\[([^\]]*)\]\(data:image\/(\w+);base64,([^)]+)\)/g;
+    let match;
+    let extractedFromMarkdown = 0;
+
+    while ((match = imageRegex.exec(markdown)) !== null) {
+      const [fullMatch, altText, imageExtension, base64Data] = match;
+      try {
+        const imagePath = `${imageOutputDir}/image${imageCounter}.${imageExtension}`;
+        const imageFilename = `image${imageCounter}.${imageExtension}`;
+
+        logger.info(`Extracting image from markdown: ${imageFilename}`);
+        fs.writeFileSync(imagePath, Buffer.from(base64Data, "base64"));
+
+        // Replace the data URI with a file reference
+        markdown = markdown.replace(
+          fullMatch,
+          `![${altText}](${imageFilename})`
+        );
+
+        imageCounter++;
+        extractedFromMarkdown++;
+      } catch (imageError) {
+        logger.error(`Failed to save image from markdown: ${imageError}`);
+      }
+    }
+
+    if (extractedFromMarkdown > 0) {
+      logger.info(
+        `✅ Successfully extracted ${extractedFromMarkdown} images from markdown content`
+      );
+    }
 
     // Ensure we have page markers if not present
     if (!markdown.includes("<!-- page")) {
