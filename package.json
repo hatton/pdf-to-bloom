@@ -30,6 +30,10 @@
     "yarn": "1.22.22"
   },
   "devDependencies": {
-    "concurrently": "^9.1.2"
+    "concurrently": "^9.1.2",
+    "ts-node": "^10.9.2"
+  },
+  "dependencies": {
+    "sharp": "^0.34.3"
   }
 }

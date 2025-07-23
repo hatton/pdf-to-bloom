@@ -53,6 +53,7 @@ export default defineConfig({
     rollupOptions: {
       external: [
         "fs",
+        "fs/promises",
         "path",
         "os",
         "crypto",
@@ -65,6 +66,7 @@ export default defineConfig({
         "https",
         "buffer",
         "events",
+        "sharp", // Add Sharp as external to avoid bundling issues
       ],
     },
     sourcemap: true,

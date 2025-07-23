@@ -25,6 +25,7 @@ export enum PdfProcessor {
 
 export enum Artifact {
   PDF,
+  Images,
   MarkdownFromOCR,
   MarkdownFromLLM,
   MarkdownReadyForBloom,
@@ -66,6 +67,7 @@ type Plan = {
 // Convert numeric enum value to readable string
 const artifactNames = {
   [Artifact.PDF]: "PDF",
+  [Artifact.Images]: "Images",
   [Artifact.MarkdownFromOCR]: "Markdown from OCR",
   [Artifact.MarkdownFromLLM]: "Tagged Markdown from LLM",
   [Artifact.MarkdownReadyForBloom]: "Bloom-ready Markdown",
@@ -83,7 +85,25 @@ export async function processConversion(inputPath: string, options: Arguments) {
       `Starting conversion from "${artifactNames[plan.inputArtifact]}" to "${artifactNames[plan.targetArtifact]}"`
     );
 
-    let latestArtifact = plan.inputArtifact; // Start with the input type    // ------------------------------------------------------------------------------
+    let latestArtifact = plan.inputArtifact; // Start with the input type
+
+    // ------------------------------------------------------------------------------
+    // Step 0.5: Extract Images from PDF (if target is Images)
+    // ------------------------------------------------------------------------------
+    if (
+      latestArtifact === Artifact.PDF &&
+      plan.targetArtifact === Artifact.Images
+    ) {
+      logger.info(`-> Extracting images from PDF...`);
+
+      const { extractAndSaveImages } = await import("@pdf-to-bloom/lib");
+
+      await extractAndSaveImages(plan.pdfPath!, plan.bookFolderPath!);
+      logger.info(`Images extracted to: ${plan.bookFolderPath}`);
+      return; // Exit early, we only wanted images
+    }
+
+    // ------------------------------------------------------------------------------
     // Step 1: Convert PDF to Markdown
     // ------------------------------------------------------------------------------
     if (latestArtifact === Artifact.PDF) {

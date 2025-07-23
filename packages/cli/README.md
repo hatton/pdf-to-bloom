@@ -119,13 +119,18 @@ This tool determines the starting stage by looking at the file name you give it:
 
 To specify the end stage, add the `--target` option using one of these values:
 
-- `markdown` - raw markdown from the OCR system
+- `ocr` or `markdown` - raw markdown from the OCR system (includes images as `img-*.jpeg`)
 - `tagged` - markdown annotated by an LLM, with comments that identify text blocks, languages, and metadata fields
 - `bloom` - Bloom HTML
+- `images` - extract images only in `image-{page}-{imageIndex}.png` format
 
 For example, to convert PDF to markdown only:
 
 `pdf-to-bloom mybook.pdf --target=markdown`
+
+To extract only images from a PDF:
+
+`pdf-to-bloom mybook.pdf --target=images`
 
 ## API Keys
 

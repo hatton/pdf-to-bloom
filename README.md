@@ -50,6 +50,12 @@ yarn test:watch
 # convert a pdf
 yarn cli input.pdf --collection path/to/bloom/collection
 yarn cli ./test-inputs/testme.pdf
+
+# Extract only images from a PDF
+yarn cli input.pdf --target images
+
+# Extract markdown and images from PDF
+yarn cli input.pdf --target ocr
 ```
 
 See [./packages/cli/README.md](./packages/cli/README.md) for details

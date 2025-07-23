@@ -27,7 +27,7 @@ program
   )
   .option(
     "-t, --target <target>",
-    "Target format: markdown (just ocr of the PDF), tagged (run through LLM and other processing), or bloom. Default is bloom."
+    "Target format: images (extract images only), markdown (just ocr of the PDF), tagged (run through LLM and other processing), or bloom. Default is bloom."
   )
   .option(
     "-c, --collection <path>",
@@ -55,8 +55,8 @@ program
   )
   .option(
     "--ocr <method>",
-    "OCR processing method: '4o' (default, OpenAI GPT-4o via OpenRouter), 'mistral' (vision-based OCR), 'unpdf' (experimental structural extraction), or any OpenRouter model (e.g. 'gemini', 'google/gemini-2.0-flash-exp'). Note: unpdf extracts all text from PDF structure, including hidden layers that may not be visually rendered.",
-    "4o"
+    "OCR processing method: 'mistral' (default, vision-based OCR), 'unpdf' (experimental structural extraction), or any OpenRouter model (e.g. 'gemini', '4o', 'google/gemini-2.0-flash-exp'). Note: unpdf extracts all text from PDF structure, including hidden layers that may not be visually rendered.",
+    "mistral"
   )
   .option(
     "--parser <engine>",
@@ -76,7 +76,7 @@ program
         promptPath: options.prompt,
         modelName: options.model,
         verbose: options.verbose || false,
-        ocrMethod: options.ocr || "4o",
+        ocrMethod: options.ocr || "mistral",
         parserEngine: options.parser || "native",
       };
 
@@ -119,6 +119,8 @@ program.on("command:*", () => {
 program.parse(process.argv);
 function getTarget(target: any): Artifact {
   switch (target) {
+    case "images":
+      return Artifact.Images;
     case "ocr":
     case "markdown":
       return Artifact.MarkdownFromOCR;
