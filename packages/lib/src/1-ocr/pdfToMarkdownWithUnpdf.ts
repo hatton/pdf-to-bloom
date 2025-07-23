@@ -284,13 +284,13 @@ async function processPages(
     let textAccumulator = "";
     let orderIndex = 0;
 
-    // Track graphics state to filter out invisible text
+    // Keep some tracking for image processing but simplify text handling
     let textRenderingMode = 0; // 0 = fill (visible), 3 = invisible
     let isTextVisible = true;
     let graphicsStack: any[] = [];
     let currentTransformMatrix = [1, 0, 0, 1, 0, 0]; // Default transformation matrix
 
-    // Track text positioning for line break detection
+    // Track text positioning for line break detection (will be used in hybrid approach)
     let lastTextY = 0;
     let hasTextBeenPlaced = false;
 
@@ -380,46 +380,7 @@ async function processPages(
 
         case OPS.showText:
         case OPS.showSpacedText:
-          const textArg = args[0];
-          if (Array.isArray(textArg) && isTextVisible) {
-            const extractedText = textArg
-              .map((item) => {
-                if (item && item.unicode) {
-                  return item.unicode.replace(/\u0000/g, ""); // Remove null characters
-                } else if (typeof item === "number" && item < 0) {
-                  // Negative numbers in showSpacedText often represent spacing
-                  // Convert to space if the value indicates a significant gap
-                  return Math.abs(item) > 100 ? " " : "";
-                } else {
-                  return "";
-                }
-              })
-              .join("")
-              .trim(); // Remove leading/trailing whitespace
-
-            if (extractedText) {
-              // Only add space if there's a significant gap AND we have meaningful content
-              if (
-                textAccumulator.length > 0 &&
-                !textAccumulator.endsWith(" ") &&
-                !extractedText.startsWith(" ") &&
-                textAccumulator.length > 3 && // Don't space single characters too much
-                extractedText.length > 0
-              ) {
-                // Check if the last character and first character suggest word boundary
-                const lastChar = textAccumulator.slice(-1);
-                const firstChar = extractedText.charAt(0);
-
-                // Add space if transitioning between different character types or scripts
-                if (shouldAddSpace(lastChar, firstChar)) {
-                  textAccumulator += " ";
-                }
-              }
-              textAccumulator += extractedText;
-            }
-          } else if (!isTextVisible) {
-            logger.verbose(`Page ${p}: Skipping invisible text operation`);
-          }
+          // Skip operator-level text processing - we'll use getTextContent() instead
           break;
 
         case OPS.paintImageXObject:
@@ -686,8 +647,98 @@ async function processPages(
       }
     }
 
-    // Flush any remaining text at the end of the page processing
-    flushText();
+    // HYBRID APPROACH: Use getTextContent() for text with operator list for line breaks
+    logger.verbose(`Page ${p}: Using hybrid approach - getTextContent() + operator positioning`);
+    
+    // Step 1: Get all text content with positioning information
+    const textContent = await page.getTextContent();
+    const textItems = textContent.items.filter((item) => 'str' in item);
+
+    // Step 2: Analyze operator list to find line break Y positions
+    const lineBreakYPositions = [];
+    
+    // Reset positioning tracking for this analysis
+    lastTextY = 0;
+    hasTextBeenPlaced = false;
+
+    for (let i = 0; i < fnArray.length; i++) {
+      const fn = fnArray[i];
+      const args = argsArray[i];
+
+      if (fn === OPS.setTextMatrix) {
+        const textMatrix = args[0];
+        const currentTextY = textMatrix[5] || textMatrix.f || 0;
+
+        if (hasTextBeenPlaced) {
+          const yDiff = Math.abs(currentTextY - lastTextY);
+          
+          // Detect significant line breaks (using same logic as original)
+          if (yDiff > 25 || (yDiff > 12)) {
+            logger.verbose(
+              `Page ${p}: Line break Y position detected: ${currentTextY} (diff: ${yDiff} from ${lastTextY})`
+            );
+            lineBreakYPositions.push(currentTextY);
+          }
+        }
+        
+        lastTextY = currentTextY;
+        hasTextBeenPlaced = true;
+      }
+    }
+
+    // Step 3: Group text items by Y position, using line break positions as boundaries
+    if (textItems.length > 0) {
+      const textLines = [];
+      let currentLine = [];
+      let currentLineY: number | null = null;
+
+      for (const item of textItems) {
+        if ('str' in item && 'transform' in item) {
+          const itemY = item.transform[5];
+          
+          // Check if this item is at a significantly different Y position (new line)
+          if (currentLineY === null) {
+            currentLineY = itemY;
+            currentLine.push(item.str);
+          } else {
+            const yDiff = Math.abs(itemY - currentLineY);
+            
+            // If Y position differs significantly or crosses a detected line break, start new line
+            const crossesLineBreak = currentLineY !== null && lineBreakYPositions.some(breakY => 
+              Math.abs(breakY - itemY) < Math.abs(breakY - currentLineY!)
+            );
+            
+            if (yDiff > 12 || crossesLineBreak) {
+              // Finish current line and start new one
+              if (currentLine.length > 0) {
+                textLines.push(currentLine.join(' ').trim());
+                currentLine = [];
+              }
+              currentLineY = itemY;
+            }
+            
+            currentLine.push(item.str);
+          }
+        }
+      }
+      
+      // Add remaining text
+      if (currentLine.length > 0) {
+        textLines.push(currentLine.join(' ').trim());
+      }
+
+      // Add each line as a separate text block
+      textLines.forEach((line, index) => {
+        if (line) {
+          logger.verbose(`Page ${p}: Text line ${index + 1}: ${line.substring(0, 50)}...`);
+          pageContent.push({
+            type: "text",
+            content: line,
+            orderIndex: orderIndex++,
+          });
+        }
+      });
+    }
 
     pages.push({
       index: p - 1,
