@@ -30,7 +30,8 @@ export enum Artifact {
   PDF,
   Images,
   MarkdownFromOCR,
-  MarkdownFromLLM,
+  MarkdownFromLLMRaw,
+  MarkdownFromLLMCleaned,
   MarkdownReadyForBloom,
   HTML,
 }
@@ -74,7 +75,8 @@ const artifactNames = {
   [Artifact.PDF]: "PDF",
   [Artifact.Images]: "Images",
   [Artifact.MarkdownFromOCR]: "Markdown from OCR",
-  [Artifact.MarkdownFromLLM]: "Tagged Markdown from LLM",
+  [Artifact.MarkdownFromLLMRaw]: "Raw Markdown from LLM",
+  [Artifact.MarkdownFromLLMCleaned]: "Tagged Markdown from LLM",
   [Artifact.MarkdownReadyForBloom]: "Bloom-ready Markdown",
   [Artifact.HTML]: "Bloom HTML",
 };
@@ -276,11 +278,39 @@ export async function processConversion(inputPath: string, options: Arguments) {
         );
       }
 
-      latestArtifact = Artifact.MarkdownFromLLM;
+      latestArtifact = Artifact.MarkdownFromLLMCleaned;
       console.log(
         `latestArtifact is now MarkdownFromLLM. target is ${artifactNames[plan.targetArtifact]}`
       );
-      if (plan.targetArtifact === Artifact.MarkdownFromLLM) {
+      if (plan.targetArtifact === Artifact.MarkdownFromLLMCleaned) {
+        return; // If Markdown was the final target, we're done here
+      }
+    }
+
+    // ------------------------------------------------------------------------------
+    // Stage 2.5: Process Raw LLM Markdown (if starting from .raw-llm.md)
+    // ------------------------------------------------------------------------------
+    if (latestArtifact === Artifact.MarkdownFromLLMRaw) {
+      logger.info(`-> Processing raw LLM markdown...`);
+
+      // Read the raw LLM output
+      const rawLLMContent = await fs.readFile(
+        plan.markdownFromLLMPath!,
+        "utf-8"
+      );
+
+      // For now, just pass through the content as-is
+      // Any cleaning should be handled by the existing post-llm-cleanup.ts logic
+      logger.info(
+        `Writing raw LLM content to cleaned path: ${plan.markdownCleanedAfterLLMPath}`
+      );
+      await fs.writeFile(plan.markdownCleanedAfterLLMPath!, rawLLMContent);
+
+      latestArtifact = Artifact.MarkdownFromLLMCleaned;
+      console.log(
+        `latestArtifact is now MarkdownFromLLMCleaned. target is ${artifactNames[plan.targetArtifact]}`
+      );
+      if (plan.targetArtifact === Artifact.MarkdownFromLLMCleaned) {
         return; // If Markdown was the final target, we're done here
       }
     }
@@ -288,7 +318,7 @@ export async function processConversion(inputPath: string, options: Arguments) {
     // ------------------------------------------------------------------------------
     // Stage 3: Make Markdown with all decisions made
     // ------------------------------------------------------------------------------
-    if (latestArtifact === Artifact.MarkdownFromLLM) {
+    if (latestArtifact === Artifact.MarkdownFromLLMCleaned) {
       logger.info(`-> Adding Bloom plan to Markdown...`);
       // Now we want to do the final bit of any logic work, still in markdown format because
       // then it is easier for a human to inspect the plan. Later we're going to HTML and by then
@@ -369,7 +399,7 @@ async function makeThePlan(
     );
   }
 
-  // use a regex to figure out the input type (as an Artifact) by looking at its last two file extensions, e.g. ".pdf" or ".ocr.md"
+  // use a regex to figure out the input type (as an Artifact) by looking at its last two file extensions, e.g. ".pdf" or ".ocr.md" or ".raw-llm.md"
   const regex = /^(.*?)(\.[^.]+)?(\.[^.]+)?$/; // Matches the last two extensions
   const match = fullInputPath.match(regex);
   if (!match) {
@@ -377,7 +407,7 @@ async function makeThePlan(
   }
 
   const [, , firstExt, secondExt] = match;
-  // want ".pdf" or ".ocr.md" or ".llm.md" or ".bloom.md" by combining the last two extensions with a dot
+  // want ".pdf" or ".ocr.md" or ".llm.md" or ".bloom.md" or ".raw-llm.md" by combining the last two extensions
 
   const ext = [firstExt, secondExt].filter(Boolean).join("");
 
@@ -390,15 +420,18 @@ async function makeThePlan(
     case ".ocr.md":
       inputType = Artifact.MarkdownFromOCR;
       break;
+    case ".raw-llm.md":
+      inputType = Artifact.MarkdownFromLLMRaw;
+      break;
     case ".llm.md":
-      inputType = Artifact.MarkdownFromLLM;
+      inputType = Artifact.MarkdownFromLLMCleaned;
       break;
     case ".bloom.md":
       inputType = Artifact.MarkdownReadyForBloom;
       break;
     default:
       throw new Error(
-        `Unsupported input file type: ${ext}. Supported types: .pdf, .md, .ocr.md, .llm.md, .bloom.md`
+        `Unsupported input file type: ${ext}. Supported types: .pdf, .md, .ocr.md, .raw-llm.md, .llm.md, .bloom.md`
       );
   }
 
@@ -433,8 +466,8 @@ async function makeThePlan(
     );
   }
   if (
-    inputType < Artifact.MarkdownFromLLM &&
-    targetType >= Artifact.MarkdownFromLLM &&
+    inputType < Artifact.MarkdownFromLLMCleaned &&
+    targetType >= Artifact.MarkdownFromLLMCleaned &&
     !openrouterKey
   ) {
     // we are going to have to do call the LLM, need the key
@@ -495,9 +528,12 @@ async function makeThePlan(
       inputType === Artifact.MarkdownFromOCR
         ? fullInputPath
         : path.join(baseOutputDir, baseName + ".ocr.md"),
-    markdownFromLLMPath: path.join(baseOutputDir, baseName + ".raw-llm.md"),
+    markdownFromLLMPath:
+      inputType === Artifact.MarkdownFromLLMRaw
+        ? fullInputPath
+        : path.join(baseOutputDir, baseName + ".raw-llm.md"),
     markdownCleanedAfterLLMPath:
-      inputType === Artifact.MarkdownFromLLM
+      inputType === Artifact.MarkdownFromLLMCleaned
         ? fullInputPath
         : path.join(baseOutputDir, baseName + ".llm.md"),
     markdownForBloomPath:

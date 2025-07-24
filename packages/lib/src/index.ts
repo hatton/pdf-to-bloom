@@ -12,6 +12,7 @@ export {
 } from "./1-ocr/pdfToImages";
 export type { PdfImage } from "./1-ocr/pdfToImages";
 export { llmMarkdown } from "./2-llm/llmMarkdown";
+export { attemptCleanup } from "./2-llm/post-llm-cleanup";
 export { addBloomPlanToMarkdown } from "./3-add-bloom-plan/addBloomPlan";
 
 // Export additional types and classes for advanced usage
