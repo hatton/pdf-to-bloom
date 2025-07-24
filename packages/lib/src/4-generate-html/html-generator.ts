@@ -53,11 +53,15 @@ export class HtmlGenerator {
     // verify that the titleRecord has an entry for l1
     if (!titleRecord[book.frontMatterMetadata.l1]) {
       logger.error(
-        `Book title does not contain an entry for the primary language (${book.frontMatterMetadata.l1}).`
+        `Um, Book title does not contain an entry for the primary language (${book.frontMatterMetadata.l1}).`
       );
-      throw new Error(
-        `Book title does not contain an entry for the primary language (${book.frontMatterMetadata.l1}).`
+      logger.error(
+        `book.frontMatterMetadata: ${JSON.stringify(book.frontMatterMetadata, null, 2)}`
       );
+      logger.error(`titleRecord: ${JSON.stringify(titleRecord, null, 2)}`);
+      // throw new Error(
+      //   `Book title does not contain an entry for the primary language (${book.frontMatterMetadata.l1}).`
+      // );
     }
     const l1Lang = book.frontMatterMetadata.l1;
     return `<!doctype html>

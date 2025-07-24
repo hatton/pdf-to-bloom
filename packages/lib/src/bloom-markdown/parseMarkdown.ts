@@ -130,7 +130,7 @@ export class BloomMarkdown {
       // Handle inline comments by splitting the line
       const commentMatches = [
         ...line.matchAll(
-          /<!-- text lang=(?:"?([a-z]{2,3})"?)(?:\s+[^>]*)? -->/g
+          /<!-- text lang=(?:"?([a-zA-Z0-9-]+)"?)(?:\s+[^>]*)? -->/g
         ),
       ];
 
@@ -242,7 +242,7 @@ export class BloomMarkdown {
 
       // Check for language blocks
       const langMatch = trimmedLine.match(
-        /<!-- text lang=(?:"?([a-z]{2,3})"?)(?:\s+[^>]*)?(?:\s*)-->/
+        /<!-- text lang=(?:"?([a-zA-Z0-9-]+)"?)(?:\s+[^>]*)?(?:\s*)-->/
       );
       if (langMatch) {
         // Extract field attribute if present
