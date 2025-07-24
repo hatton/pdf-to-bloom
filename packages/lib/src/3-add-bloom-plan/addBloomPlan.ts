@@ -16,11 +16,8 @@ import { Page } from "../types";
 // We then add that information to the <!-- page --> comment in the markdown.
 
 export function addBloomPlanToMarkdown(markdown: string): string {
-  console.log("parsing");
   const book = new BloomMarkdown().parseMarkdown(markdown);
-  console.log("adding page types");
   AddPageTypes(book.pages);
-  console.log("adding bilinguals");
   // foreach page
   for (const page of book.pages) {
     if (isBilingualPage(page)) {
@@ -28,7 +25,6 @@ export function addBloomPlanToMarkdown(markdown: string): string {
     }
     //page.layout = choosePageLayout(page);
   }
-  console.log("getting markdown again");
 
   // TODO: go through each page looking for any metadata that we didn't pick up to the front-matter somewhere so that it isn't lost
   return getMarkdownFromBook(book);

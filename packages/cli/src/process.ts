@@ -294,17 +294,11 @@ export async function processConversion(inputPath: string, options: Arguments) {
       // then it is easier for a human to inspect the plan. Later we're going to HTML and by then
       // it's really hard to wade through what was done.
 
-      console.log("reading in markdown from LLM");
       const input = await fs.readFile(
         plan.markdownCleanedAfterLLMPath!,
         "utf-8"
       );
-      console.log("calling addBloomPlanToMarkdown");
       const finalMarkdown = addBloomPlanToMarkdown(input);
-      console.log("returned;");
-      console.log(
-        `finalMarkdown length: ${finalMarkdown?.length || "undefined"}`
-      );
       logger.info(
         `Writing ready-for-bloom markdown to: ${plan.markdownForBloomPath!}`
       );

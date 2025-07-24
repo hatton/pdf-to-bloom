@@ -1,3 +1,4 @@
+import { logger } from "../logger";
 import type { Book } from "../types";
 
 /**
@@ -79,8 +80,8 @@ export function getMarkdownFromBook(book: Book): string {
         if (element.type === "image") {
           pageContent += `\n![${element.alt || ""}](${element.src})${element.attributes || ""}`;
         } else if (element.type === "text") {
-          console.log(
-            `regen text: ${JSON.stringify(element.content, null, 2)}`
+          logger.verbose(
+            `[getMarkdownFromBook] text: ${JSON.stringify(element.content, null, 2)}`
           );
 
           // Generate text content for each language
