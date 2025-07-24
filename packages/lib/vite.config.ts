@@ -42,6 +42,40 @@ export default defineConfig({
         }
       },
     } as any,
+    {
+      name: "copy-poppler-binaries",
+      apply: "build",
+      generateBundle() {
+        try {
+          const binPath = path.resolve(__dirname, "bin");
+          if (fs.existsSync(binPath)) {
+            // Recursively copy bin directory structure
+            const copyDir = (srcDir: string, destPrefix: string = "") => {
+              const items = fs.readdirSync(srcDir);
+              for (const item of items) {
+                const srcPath = path.join(srcDir, item);
+                const destPath = path.join(destPrefix, item);
+                const stat = fs.statSync(srcPath);
+
+                if (stat.isDirectory()) {
+                  copyDir(srcPath, destPath);
+                } else {
+                  const content = fs.readFileSync(srcPath);
+                  this.emitFile({
+                    type: "asset",
+                    fileName: `bin/${destPath}`,
+                    source: content,
+                  });
+                }
+              }
+            };
+            copyDir(binPath);
+          }
+        } catch (error) {
+          console.warn("Could not copy Poppler binaries:", error);
+        }
+      },
+    } as any,
   ],
   build: {
     lib: {

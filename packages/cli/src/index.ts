@@ -63,6 +63,11 @@ program
     "PDF parsing engine for OpenRouter models: 'native' (default, use model's built-in capabilities), 'mistral-ocr' (best for scanned documents, $2 per 1,000 pages), or 'pdf-text' (free, best for text-based PDFs).",
     "native"
   )
+  .option(
+    "--imager <method>",
+    "Image extraction method: 'pdfjs' (default, uses PDF.js + Sharp), 'poppler' (uses pdfimages from Poppler for higher fidelity).",
+    "pdfjs"
+  )
   .option("--verbose", "Enable verbose logging to see detailed process steps")
   .action(async (input, options) => {
     if (input) {
@@ -78,6 +83,7 @@ program
         verbose: options.verbose || false,
         ocrMethod: options.ocr || "4o",
         parserEngine: options.parser || "native",
+        imager: options.imager || "pdfjs",
       };
 
       await processConversion(input, args);

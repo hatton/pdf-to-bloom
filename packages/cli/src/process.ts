@@ -9,6 +9,8 @@ import {
   addBloomPlanToMarkdown,
   pdfToMarkdownWithUnpdf,
   pdfToMarkdown,
+  extractAndSaveImages,
+  extractImagesWithPdfImages,
 } from "@pdf-to-bloom/lib"; // Assuming these functions are async and return/handle as described
 import {
   createLogCallback,
@@ -44,6 +46,7 @@ export type Arguments = {
   modelName?: string; // OpenRouter model name to override the default model
   ocrMethod: string; // OCR processing method: mistral, unpdf, or any OpenRouter model
   parserEngine: string; // PDF parsing engine for OpenRouter: native, mistral-ocr, or pdf-text
+  imager: string; // Image extraction method: pdfjs or poppler
 };
 
 type Plan = {
@@ -63,6 +66,7 @@ type Plan = {
   modelName?: string;
   ocrMethod: string;
   parserEngine: string;
+  imager: string;
 };
 
 // Convert numeric enum value to readable string
@@ -74,6 +78,27 @@ const artifactNames = {
   [Artifact.MarkdownReadyForBloom]: "Bloom-ready Markdown",
   [Artifact.HTML]: "Bloom HTML",
 };
+
+/**
+ * Extracts images from a PDF using the specified method
+ */
+async function extractImages(
+  pdfPath: string,
+  outputDir: string,
+  method: string
+): Promise<void> {
+  if (method === "poppler") {
+    logger.info("Using Poppler pdfimages for image extraction");
+    const images = await extractImagesWithPdfImages(pdfPath, outputDir);
+    logger.info(`Extracted ${images.length} images using Poppler`);
+  } else {
+    if (method !== "pdfjs") {
+      logger.warn(`Unknown imager method '${method}', defaulting to 'pdfjs'`);
+    }
+    logger.info("Using PDF.js + Sharp for image extraction");
+    await extractAndSaveImages(pdfPath, outputDir);
+  }
+}
 
 export async function processConversion(inputPath: string, options: Arguments) {
   const logCallback = createLogCallback(!!options.verbose);
@@ -97,9 +122,7 @@ export async function processConversion(inputPath: string, options: Arguments) {
     ) {
       logger.info(`-> Extracting images from PDF...`);
 
-      const { extractAndSaveImages } = await import("@pdf-to-bloom/lib");
-
-      await extractAndSaveImages(plan.pdfPath!, plan.bookFolderPath!);
+      await extractImages(plan.pdfPath!, plan.bookFolderPath!, plan.imager);
       logger.info(`Images extracted to: ${plan.bookFolderPath}`);
       return; // Exit early, we only wanted images
     }
@@ -160,8 +183,7 @@ export async function processConversion(inputPath: string, options: Arguments) {
           customPrompt
         );
         // After writing markdown, extract images from the PDF to match markdown references
-        const { extractAndSaveImages } = await import("@pdf-to-bloom/lib");
-        await extractAndSaveImages(plan.pdfPath!, plan.bookFolderPath!);
+        await extractImages(plan.pdfPath!, plan.bookFolderPath!, plan.imager);
       }
 
       logger.info(`Writing OCR'd markdown to: ${plan.markdownFromOCRPath}`);
@@ -506,6 +528,7 @@ async function makeThePlan(
     modelName: cliArguments.modelName,
     ocrMethod: cliArguments.ocrMethod,
     parserEngine: cliArguments.parserEngine,
+    imager: cliArguments.imager,
   };
   //console.log(`Plan created:`, JSON.stringify(plan, null, 2));
 

@@ -1,0 +1,293 @@
+import { spawn } from "child_process";
+import * as fs from "fs/promises";
+import * as path from "path";
+import { logger } from "../logger";
+
+export interface PdfImage {
+  pageNumber: number;
+  imageIndex: number; // Index of the image within the page (1-based)
+  filename: string; // e.g., "image-1-1.png", "image-2-3.png"
+  originalFilename: string; // The filename that pdfimages generates
+  width: number;
+  height: number;
+  type: string; // e.g., "image", "jpeg", "png"
+}
+
+/**
+ * Gets the path to the pdfimages executable
+ * First tries the bundled version, then falls back to system PATH
+ */
+function getPdfImagesPath(): string {
+  // Try to find bundled version first
+  // In a built package, the binaries should be in the same directory as the compiled code
+  const bundledPath = path.resolve(
+    __dirname,
+    "..",
+    "bin",
+    "win32",
+    "pdfimages.exe"
+  );
+
+  try {
+    // Check if bundled version exists (synchronously for simplicity)
+    require("fs").accessSync(bundledPath);
+    logger.info(`Using bundled pdfimages from: ${bundledPath}`);
+    return bundledPath;
+  } catch {
+    // Fall back to system PATH
+    logger.info("Using pdfimages from system PATH");
+    return "pdfimages";
+  }
+}
+
+/**
+ * Runs pdfimages command and returns the output
+ */
+async function runPdfImages(args: string[]): Promise<string> {
+  const pdfImagesPath = getPdfImagesPath();
+
+  return new Promise((resolve, reject) => {
+    const process = spawn(pdfImagesPath, args, {
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+
+    let stdout = "";
+    let stderr = "";
+
+    process.stdout.on("data", (data) => {
+      stdout += data.toString();
+    });
+
+    process.stderr.on("data", (data) => {
+      stderr += data.toString();
+    });
+
+    process.on("close", (code) => {
+      if (code === 0) {
+        resolve(stdout);
+      } else {
+        reject(new Error(`pdfimages failed with code ${code}: ${stderr}`));
+      }
+    });
+
+    process.on("error", (error) => {
+      reject(new Error(`Failed to run pdfimages: ${error.message}`));
+    });
+  });
+}
+
+/**
+ * Parses the output of `pdfimages -list` to get image information
+ */
+function parseImageList(listOutput: string): Array<{
+  page: number;
+  num: number;
+  type: string;
+  width: number;
+  height: number;
+  enc: string; // encoding type (jpeg, png, image, etc.)
+}> {
+  const lines = listOutput.trim().split("\n");
+  const images: Array<{
+    page: number;
+    num: number;
+    type: string;
+    width: number;
+    height: number;
+    enc: string;
+  }> = [];
+
+  // Skip header lines (first 2 lines are usually headers)
+  for (let i = 2; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+
+    // Parse line format: page num type width height color comp bpc enc interp object ID x-ppi y-ppi size ratio
+    const parts = line.split(/\s+/);
+    if (parts.length >= 9) {
+      const page = parseInt(parts[0]);
+      const num = parseInt(parts[1]);
+      const type = parts[2];
+      const width = parseInt(parts[3]);
+      const height = parseInt(parts[4]);
+      const enc = parts[8]; // encoding is the 9th column (index 8)
+
+      if (!isNaN(page) && !isNaN(num) && !isNaN(width) && !isNaN(height)) {
+        images.push({ page, num, type, width, height, enc });
+      }
+    }
+  }
+
+  return images;
+}
+
+/**
+ * Extracts images from a PDF using pdfimages and returns metadata with proper naming
+ * @param pdfPath - Path to the PDF file
+ * @param outputDir - Directory where images will be extracted
+ * @returns Promise resolving to array of extracted image metadata
+ */
+export async function extractImagesWithPdfImages(
+  pdfPath: string,
+  outputDir: string
+): Promise<PdfImage[]> {
+  try {
+    logger.info("Starting image extraction from PDF using pdfimages");
+
+    // Ensure output directory exists
+    await fs.mkdir(outputDir, { recursive: true });
+
+    // First, get the list of images to understand the structure
+    logger.info("Getting image list from PDF...");
+    const listOutput = await runPdfImages(["-list", pdfPath]);
+    const imageList = parseImageList(listOutput);
+
+    logger.info(`Found ${imageList.length} images in PDF`);
+
+    if (imageList.length === 0) {
+      return [];
+    }
+
+    // Create a temporary prefix for pdfimages output
+    const tempPrefix = path.join(outputDir, "temp_img");
+
+    // Extract all images using pdfimages with original formats
+    logger.info("Extracting images with pdfimages...");
+    await runPdfImages(["-all", pdfPath, tempPrefix]);
+
+    // Process extracted images and rename them to match our naming convention
+    const extractedImages: PdfImage[] = [];
+    const pageImageCounts = new Map<number, number>(); // Track image count per page
+
+    for (const imageInfo of imageList) {
+      // Skip soft masks (smask) as they are transparency masks, not standalone images
+      if (imageInfo.type === "smask") {
+        logger.info(
+          `Skipping soft mask on page ${imageInfo.page} (image ${imageInfo.num})`
+        );
+        continue;
+      }
+
+      // Calculate the image index within the page
+      const currentCount = pageImageCounts.get(imageInfo.page) || 0;
+      pageImageCounts.set(imageInfo.page, currentCount + 1);
+      const imageIndexOnPage = currentCount + 1;
+
+      // Determine the file extension based on the image type
+      let extension = ".png"; // default fallback
+      if (imageInfo.enc === "jpeg" || imageInfo.enc === "jpg") {
+        extension = ".jpg";
+      } else if (imageInfo.enc === "png") {
+        extension = ".png";
+      } else if (imageInfo.type === "image" || imageInfo.type === "smask") {
+        // For regular images and masks, pdfimages typically creates .ppm or .pbm files
+        // but we'll convert these to PNG for compatibility
+        extension = ".png";
+      }
+
+      // Generate our standardized filename with appropriate extension
+      const ourFilename = `image-${imageInfo.page}-${imageIndexOnPage}${extension}`;
+
+      // Find the file that pdfimages created - need to check multiple possible extensions
+      const possibleExtensions = [".jpg", ".png", ".ppm", ".pbm", ".pgm"];
+      let pdfImagesPath: string | null = null;
+      let foundExtension: string | null = null;
+
+      for (const ext of possibleExtensions) {
+        const candidatePath = path.join(
+          outputDir,
+          `temp_img-${String(imageInfo.num).padStart(3, "0")}${ext}`
+        );
+        try {
+          await fs.access(candidatePath);
+          pdfImagesPath = candidatePath;
+          foundExtension = ext;
+          break;
+        } catch {
+          // File doesn't exist with this extension, try next
+        }
+      }
+
+      if (!pdfImagesPath || !foundExtension) {
+        logger.warn(
+          `Could not find extracted image file for image ${imageInfo.num}`
+        );
+        continue;
+      }
+
+      const finalPath = path.join(outputDir, ourFilename);
+
+      try {
+        // If we found a PPM/PBM/PGM file but want PNG, convert it
+        if (
+          (foundExtension === ".ppm" ||
+            foundExtension === ".pbm" ||
+            foundExtension === ".pgm") &&
+          extension === ".png"
+        ) {
+          // For now, just rename it - browsers can handle PPM files, or we could convert with Sharp later
+          await fs.rename(pdfImagesPath, finalPath);
+        } else {
+          // Direct rename for JPEG and PNG files
+          await fs.rename(pdfImagesPath, finalPath);
+        }
+
+        extractedImages.push({
+          pageNumber: imageInfo.page,
+          imageIndex: imageIndexOnPage,
+          filename: ourFilename,
+          originalFilename: path.basename(pdfImagesPath),
+          width: imageInfo.width,
+          height: imageInfo.height,
+          type: imageInfo.type,
+        });
+
+        logger.info(
+          `Extracted image: ${ourFilename} (${imageInfo.width}x${imageInfo.height})`
+        );
+      } catch (error) {
+        logger.warn(`Failed to process image ${imageInfo.num}: ${error}`);
+      }
+    }
+
+    // Clean up any remaining temp files
+    try {
+      const files = await fs.readdir(outputDir);
+      for (const file of files) {
+        if (file.startsWith("temp_img-")) {
+          await fs.unlink(path.join(outputDir, file));
+        }
+      }
+    } catch (error) {
+      logger.warn(`Failed to clean up temp files: ${error}`);
+    }
+
+    logger.info(
+      `Extraction complete. Successfully extracted ${extractedImages.length} images`
+    );
+    return extractedImages;
+  } catch (error) {
+    logger.error(`Error during PDF image extraction with pdfimages: ${error}`);
+    throw error;
+  }
+}
+
+/**
+ * Higher-level function that extracts images and returns the file paths
+ * Compatible with the existing extractAndSaveImages interface
+ */
+export async function extractAndSaveImagesWithPdfImages(
+  pdfPath: string,
+  outputDir: string
+): Promise<string[]> {
+  try {
+    const extractedImages = await extractImagesWithPdfImages(
+      pdfPath,
+      outputDir
+    );
+    return extractedImages.map((img) => path.join(outputDir, img.filename));
+  } catch (error) {
+    logger.error(`Error saving extracted images with pdfimages: ${error}`);
+    throw error;
+  }
+}

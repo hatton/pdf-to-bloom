@@ -27,3 +27,4 @@ test-output/
 test-outputs/
 
 debug*.js
+poppler-24.08.0/

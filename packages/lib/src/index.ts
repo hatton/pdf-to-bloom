@@ -11,6 +11,11 @@ export {
   extractAndSaveImages,
 } from "./1-ocr/extractImagesFromPdf";
 export type { ExtractedImage } from "./1-ocr/extractImagesFromPdf";
+export {
+  extractImagesWithPdfImages,
+  extractAndSaveImagesWithPdfImages,
+} from "./1-ocr/pdfToImages";
+export type { PdfImage } from "./1-ocr/pdfToImages";
 export { llmMarkdown } from "./2-llm/llmMarkdown";
 export { addBloomPlanToMarkdown } from "./3-add-bloom-plan/addBloomPlan";
 
