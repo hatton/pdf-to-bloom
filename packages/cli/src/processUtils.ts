@@ -52,12 +52,31 @@ export async function validateAndResolveCollectionPath(
   // Check if this is a simple directory name that should be expanded to Documents/Bloom
   if (isSimpleDirectoryName(collectionPath)) {
     const homeDir = os.homedir();
-    const documentsBloomPath = path.join(
-      homeDir,
-      "Documents",
-      "Bloom",
-      collectionPath
-    );
+    
+    // Try OneDrive Documents first (common on Windows), then fallback to regular Documents
+    const possiblePaths = [
+      path.join(homeDir, "OneDrive", "Documents", "Bloom", collectionPath),
+      path.join(homeDir, "Documents", "Bloom", collectionPath)
+    ];
+    
+    let documentsBloomPath: string | null = null;
+    
+    // Check which path exists
+    for (const possiblePath of possiblePaths) {
+      try {
+        await fs.access(possiblePath);
+        documentsBloomPath = possiblePath;
+        break;
+      } catch {
+        // Path doesn't exist, try next one
+      }
+    }
+    
+    if (!documentsBloomPath) {
+      // If neither path exists, use the first one for error reporting
+      documentsBloomPath = possiblePaths[0];
+    }
+    
     resolvedPath = path.resolve(documentsBloomPath);
     console.log(
       chalk.blue(
