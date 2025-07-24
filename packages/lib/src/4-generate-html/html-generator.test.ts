@@ -541,5 +541,74 @@ describe("generateHtmlDocument", () => {
       expect(html).not.toContain('lang="zxx">1');
       expect(html).not.toContain('lang="zxx">2');
     });
+
+    it("should concatenate multiple fields that map to the same output field", () => {
+      const book: Book = {
+        frontMatterMetadata: {
+          languages: { en: "English" },
+          l1: "en",
+        },
+        pages: [
+          {
+            type: "content" as const,
+            appearsToBeBilingualPage: false,
+            elements: [
+              {
+                type: "text" as const,
+                field: "bookTitle",
+                content: { en: "Test Book" },
+              },
+              {
+                type: "text" as const,
+                field: "credits",
+                content: { en: "Written by Jane Doe" },
+              },
+              {
+                type: "text" as const,
+                field: "author",
+                content: { en: "John Smith" },
+              },
+              {
+                type: "text" as const,
+                field: "illustrator",
+                content: { en: "Alice Brown" },
+              },
+              {
+                type: "text" as const,
+                field: "publisher",
+                content: { en: "Test Publishing" },
+              },
+              {
+                type: "text" as const,
+                field: "isbn",
+                content: { en: "978-1234567890" },
+              },
+            ],
+          },
+        ],
+      };
+
+      const result = HtmlGenerator.generateHtmlDocument(book);
+
+      // Should have one originalAcknowledgments div with concatenated content
+      const originalAckMatches = result.match(
+        /data-book="originalAcknowledgments"/g
+      );
+      expect(originalAckMatches).toHaveLength(1);
+
+      // Should have one ISBN div
+      const isbnMatches = result.match(/data-book="ISBN"/g);
+      expect(isbnMatches).toHaveLength(1);
+
+      // Check that the concatenated content includes all mapped fields with <br> separators
+      expect(result).toContain('data-book="originalAcknowledgments"');
+      expect(result).toContain(
+        "Written by Jane Doe<br>John Smith<br>Alice Brown<br>Test Publishing"
+      );
+
+      // Check that ISBN field is separate
+      expect(result).toContain('data-book="ISBN"');
+      expect(result).toContain("978-1234567890");
+    });
   });
 });

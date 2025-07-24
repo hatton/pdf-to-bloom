@@ -89,7 +89,7 @@ export async function pdfToMarkdown(
     const defaultSystemPrompt = `Return this book in markdown format, both text and image references. 
     
     # Images
-    For the image references, make sure to given them at the correct location with respect to the text, and use the format ![image](image-x-y.png) where x is the page where it was found an y is nth image on that page. Make sure to output all images, some pages have more than one image.
+    For the image references, make sure to given them at the correct location with respect to the text, and use the format ![image](image-x-y.png){width=400px} where x is the page where it was found an y is nth image on that page. Make sure to output all images, some pages have more than one image.
 
     # Pages
     Starting with the very first line and then again for each page, insert a <!-- page-index="1" -->. Drop the text giving the page number at the bottom.  Be super careful with the transcription, preferring the embedded unicode over optical recognition. 

@@ -86,7 +86,7 @@ function AddPageTypes(pages: Page[]): void {
         // For now we're just leaving it there but making sure it doesn't switch us into "content" mode.
         const hasOnlyUnknownLang =
           element.content["unk"] && Object.keys(element.content).length === 1;
-        if (element.field || hasOnlyUnknownLang) {
+        if ((element.field && element.field !== "pageNumber") || hasOnlyUnknownLang) {
           page.type = haveSeenContentPage
             ? ("back-matter" as const)
             : ("front-matter" as const);

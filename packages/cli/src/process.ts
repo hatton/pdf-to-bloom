@@ -508,20 +508,28 @@ async function makeThePlan(
     getFileNameWithoutExtension(fullInputPath)
   );
 
-  // when testing, we often don't want to OCR all over again, so we start with one of the md files, which
-  // is already in the book directory, and we just want to write everything into there.
-  const bookDir =
-    inputType === Artifact.PDF
-      ? path.join(baseOutputDir, baseName)
-      : baseOutputDir;
+  // Determine the book directory
+  let bookDir: string;
 
-  // if inputType is PDF, set the baseOutputDir to the book directory so that all results go in there
-  if (inputType === Artifact.PDF) {
+  // Special case: If we're using a collection and the input file is already
+  // within that collection, use the existing directory structure
+  if (
+    collectionFolderPath &&
+    inputType !== Artifact.PDF &&
+    fullInputPath.startsWith(collectionFolderPath)
+  ) {
+    // The input file is already in the collection, use its parent directory as the book directory
+    bookDir = path.dirname(fullInputPath);
+    logger.info(`Using existing book directory: ${bookDir}`);
+  } else {
+    // Create a new book subdirectory based on the base filename
+    bookDir = path.join(baseOutputDir, baseName);
     logger.info(`Creating book directory: ${bookDir}`);
-    // Ensure the book directory exists
     await fs.mkdir(bookDir, { recursive: true });
-    baseOutputDir = bookDir; // All outputs will go into the book directory
   }
+
+  // All outputs will go into the book directory
+  baseOutputDir = bookDir;
   const plan = {
     pdfPath: inputType === Artifact.PDF ? fullInputPath : undefined,
     markdownFromOCRPath:

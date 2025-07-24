@@ -82,10 +82,9 @@ Here is a list of every kind of metadata you need to identify in the markdown fi
 18: district (e.g. "Santa María Zacatepec")
 19: author (e.g. "Virginia López Lucas") 
 20: illustrator (e.g. "Jose Foo") 
-21: publisher (If the file only mentions a single publisher, always use this feild e.g. "Instituto de Grillo") 
-22: originalPublisher (This feild is for when the file indicates an original publisher in addition to its current publisher, e.g. "Originally published by Acme Publishers")
-23: language (If the name of a language is explicitly listed seperately on the first three pages, list this, 
-e.g. if you see just the word "française" alone, it should be annoted like this: "<!-- text lang="fr" field="language" --> 
+22: originalPublisher (This field is for when the file indicates an original publisher in addition to its current publisher, e.g. "Originally published by Acme Publishers")
+23: language (If the name of a language is explicitly listed separately on the first three pages, list this, 
+e.g. if you see just the word "française" alone, it should be annotated like this: "<!-- text lang="fr" field="language" --> 
 
 Metadata Annotation Format:
 

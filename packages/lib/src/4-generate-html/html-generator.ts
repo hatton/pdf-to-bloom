@@ -114,16 +114,59 @@ export class HtmlGenerator {
         )}</div>`
       );
     }
-    // for every text block that has a field attribute, we add any/all of its language values
+    // hack for now
+    const inputFieldNameToOutputName = {
+      credits: "originalAcknowledgments", // note, no extra "e"
+      isbn: "ISBN",
+      publisher: "originalAcknowledgments", // TODO
+      author: "originalAcknowledgments", // TODO
+      illustrator: "originalAcknowledgments", // TODO
+    };
+
+    // Group fields by their output field name and concatenate values
     const fields = this.fields(book);
+    const groupedFields: Record<string, Record<string, string[]>> = {};
+
     for (const element of fields) {
+      // Ensure we have a valid field name
+      if (!element.field) {
+        continue;
+      }
+
+      // Use the mapping to rename the field if it exists, otherwise use the original field name
+      const outputFieldName =
+        inputFieldNameToOutputName[
+          element.field as keyof typeof inputFieldNameToOutputName
+        ] || element.field;
+      logger.info(`${element.field} -> ${outputFieldName}`);
+
+      // Initialize the output field if it doesn't exist
+      if (!groupedFields[outputFieldName]) {
+        groupedFields[outputFieldName] = {};
+      }
+
+      // For each language in this field, add the value to the array
       for (const [lang, value] of Object.entries(element.content)) {
-        elements.push(
-          `      <div data-book="${element.field}" lang="${lang}">${escapeHtml(
-            // review, is this what we want to do?
-            this.getHtmlFromMarkdown(value)
-          )}</div>`
-        );
+        if (!groupedFields[outputFieldName][lang]) {
+          groupedFields[outputFieldName][lang] = [];
+        }
+        const htmlValue = escapeHtml(this.getHtmlFromMarkdown(value));
+        if (htmlValue.trim()) {
+          // Only add non-empty values
+          groupedFields[outputFieldName][lang].push(htmlValue);
+        }
+      }
+    }
+
+    // Generate div elements for each grouped field
+    for (const [outputFieldName, langValues] of Object.entries(groupedFields)) {
+      for (const [lang, valueArray] of Object.entries(langValues)) {
+        if (valueArray.length > 0) {
+          const concatenatedValue = valueArray.join("<br>");
+          elements.push(
+            `      <div data-book="${outputFieldName}" lang="${lang}">${concatenatedValue}</div>`
+          );
+        }
       }
     }
 
