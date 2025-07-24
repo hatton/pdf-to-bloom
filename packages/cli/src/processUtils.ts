@@ -4,6 +4,7 @@ import os from "os"; // For temporary directory creation
 import chalk from "chalk";
 import { XMLParser } from "fast-xml-parser";
 import { Language } from "@pdf-to-bloom/lib";
+import { getMostRecentBloomCollection } from "./recentCollection";
 
 // --- Helper Functions from original code, slightly adapted for async/promises ---
 
@@ -37,7 +38,8 @@ function isSimpleDirectoryName(collectionPath: string): boolean {
  * Validates and resolves a collection path.
  * If a simple directory name is provided (e.g., "palɨ Books"), it will be expanded to
  * the user's Documents/Bloom folder (e.g., "C:/Users/username/Documents/Bloom/palɨ Books").
- * @param collectionPath Path to either a Bloom collection folder or .bloomCollection file, or simple directory name
+ * If "recent" is provided, it will find the most recently opened Bloom collection.
+ * @param collectionPath Path to either a Bloom collection folder or .bloomCollection file, simple directory name, or "recent"
  * @returns Object containing the collection folder path and collection file path
  * @throws Error if the path is invalid
  */
@@ -49,18 +51,30 @@ export async function validateAndResolveCollectionPath(
 }> {
   let resolvedPath: string;
 
+  // Handle "recent" special case
+  if (collectionPath.toLowerCase() === "recent") {
+    console.log(chalk.blue("Looking up most recent Bloom collection..."));
+    const recentPath = await getMostRecentBloomCollection();
+    if (!recentPath) {
+      throw new Error("No recent Bloom collections found in user settings");
+    }
+    console.log(chalk.green(`Found most recent collection: ${recentPath}`));
+    // Recursively call this function with the found path
+    return validateAndResolveCollectionPath(recentPath);
+  }
+
   // Check if this is a simple directory name that should be expanded to Documents/Bloom
   if (isSimpleDirectoryName(collectionPath)) {
     const homeDir = os.homedir();
-    
+
     // Try OneDrive Documents first (common on Windows), then fallback to regular Documents
     const possiblePaths = [
       path.join(homeDir, "OneDrive", "Documents", "Bloom", collectionPath),
-      path.join(homeDir, "Documents", "Bloom", collectionPath)
+      path.join(homeDir, "Documents", "Bloom", collectionPath),
     ];
-    
+
     let documentsBloomPath: string | null = null;
-    
+
     // Check which path exists
     for (const possiblePath of possiblePaths) {
       try {
@@ -71,12 +85,12 @@ export async function validateAndResolveCollectionPath(
         // Path doesn't exist, try next one
       }
     }
-    
+
     if (!documentsBloomPath) {
       // If neither path exists, use the first one for error reporting
       documentsBloomPath = possiblePaths[0];
     }
-    
+
     resolvedPath = path.resolve(documentsBloomPath);
     console.log(
       chalk.blue(
