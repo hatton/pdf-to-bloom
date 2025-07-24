@@ -114,6 +114,7 @@ export class HtmlGenerator {
         )}</div>`
       );
     }
+
     // hack for now
     const inputFieldNameToOutputName = {
       originalAcknowledgements: "originalAcknowledgments", // in case the version with the "e" gets in there
@@ -126,6 +127,7 @@ export class HtmlGenerator {
 
     // Group fields by their output field name and concatenate values
     const fields = this.fields(book);
+    fixIsbn(fields);
     const groupedFields: Record<string, Record<string, string[]>> = {};
 
     for (const element of fields) {
@@ -384,4 +386,34 @@ export class HtmlGenerator {
       </div>
     </div>`;
   }
+}
+function fixIsbn(fields: TextBlockElement[]) {
+  // if there is a field with "isbn" or "ISBn", do two things:
+  // 1. make the language "*"
+  // 2. Strip off any content before the first digit. e.g. "ISBN (Shell Book): 9980-0-0905-5" --> "9980-0-0905-5"
+
+  fields.forEach((field) => {
+    if (field.field && field.field.toLowerCase() === "isbn") {
+      // Get all the content values from different languages
+      const contentValues = Object.values(field.content);
+
+      if (contentValues.length > 0) {
+        // Take the first available content value
+        let isbnValue = contentValues[0];
+
+        // Strip off any content before the first digit
+        const match = isbnValue.match(/(\d.*)/);
+        if (match) {
+          isbnValue = match[1];
+        }
+
+        // Replace the content with language "*"
+        field.content = { "*": isbnValue };
+
+        logger.info(
+          `Fixed ISBN field: changed language to "*" and cleaned value to "${isbnValue}"`
+        );
+      }
+    }
+  });
 }
