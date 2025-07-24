@@ -31,7 +31,7 @@ program
   )
   .option(
     "-c, --collection <path>",
-    "Path to Bloom collection folder or .bloomCollection file. Can be a full path or just a collection name (e.g., 'My Books' will expand to ~/Documents/Bloom/My Books). This is the recommended way to specify where to create the book, as it provides language settings for better processing."
+    "Path to Bloom collection folder or .bloomCollection file. Can be a full path, just a collection name (e.g., 'My Books' will expand to ~/Documents/Bloom/My Books), or 'recent' to use the most recently opened collection. This is the recommended way to specify where to create the book, as it provides language settings for better processing."
   )
   .option(
     "-o, --output <path>",
@@ -65,8 +65,8 @@ program
   )
   .option(
     "--imager <method>",
-    "Image extraction method: 'pdfjs' (default, uses PDF.js + Sharp), 'poppler' (uses pdfimages from Poppler for higher fidelity).",
-    "pdfjs"
+    "Image extraction method: 'poppler' (default, uses pdfimages from Poppler for higher fidelity), 'pdfjs' (uses PDF.js + Sharp).",
+    "poppler"
   )
   .option("--verbose", "Enable verbose logging to see detailed process steps")
   .action(async (input, options) => {
@@ -83,7 +83,7 @@ program
         verbose: options.verbose || false,
         ocrMethod: options.ocr || "4o",
         parserEngine: options.parser || "native",
-        imager: options.imager || "pdfjs",
+        imager: options.imager || "poppler",
       };
 
       await processConversion(input, args);
