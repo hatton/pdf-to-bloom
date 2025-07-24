@@ -1,4 +1,5 @@
 import escapeHtml from "escape-html";
+import { logger } from "../logger.js";
 
 export enum Orientation {
   Portrait = "portrait",
@@ -109,9 +110,8 @@ function generateTextBlock(
   textBlocks: Record<string, string>,
   translationGroupDefaultLangVariables?: string[]
 ): string {
-  console.log(
-    "Generating text block with languages:",
-    JSON.stringify(textBlocks, null, 2)
+  logger.verbose(
+    `Generating text block with languages: ${JSON.stringify(textBlocks, null, 2)}`
   );
 
   const bloomEditableDivs: string[] = [];

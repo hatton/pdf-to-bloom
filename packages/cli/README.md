@@ -21,7 +21,7 @@ The recommended way to use the tool is with the `--collection` option. You can u
 
 pdf-to-bloom Ebida.pdf --collection recent
 
-# Simple collection name (recommended) - expands to ~/Documents/Bloom/CollectionName
+# Simple collection name (recommended) - expands to ~/Documents/Bloom/<collection-name>
 pdf-to-bloom Ebida.pdf --collection "Edolo Books"
 
 # Full path to collection folder

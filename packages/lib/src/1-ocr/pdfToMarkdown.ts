@@ -83,7 +83,7 @@ export async function pdfToMarkdown(
     const pdfBuffer = fs.readFileSync(pdfPath);
     const base64Pdf = pdfBuffer.toString("base64");
 
-    logger.info("Sending PDF to OpenRouter model...");
+    logger.info(`Sending PDF to  ${resolvedModel} for OCR'ing...`);
 
     // Default system prompt copied from the original file
     const defaultSystemPrompt = `Return this book in markdown format, both text and image references. 

@@ -1,6 +1,7 @@
 import { spawn } from "child_process";
 import * as fs from "fs/promises";
 import * as path from "path";
+import * as os from "os";
 import { logger } from "../logger";
 
 export interface PdfImage {
@@ -46,22 +47,23 @@ async function runPdfImages(args: string[]): Promise<string> {
   const pdfImagesPath = getPdfImagesPath();
 
   return new Promise((resolve, reject) => {
-    const process = spawn(pdfImagesPath, args, {
+    const childProcess = spawn(pdfImagesPath, args, {
       stdio: ["ignore", "pipe", "pipe"],
+      env: { ...process.env, LANG: "en_US.UTF-8" },
     });
 
     let stdout = "";
     let stderr = "";
 
-    process.stdout.on("data", (data) => {
-      stdout += data.toString();
+    childProcess.stdout.on("data", (data: Buffer) => {
+      stdout += data.toString("utf8");
     });
 
-    process.stderr.on("data", (data) => {
-      stderr += data.toString();
+    childProcess.stderr.on("data", (data: Buffer) => {
+      stderr += data.toString("utf8");
     });
 
-    process.on("close", (code) => {
+    childProcess.on("close", (code: number | null) => {
       if (code === 0) {
         resolve(stdout);
       } else {
@@ -69,7 +71,7 @@ async function runPdfImages(args: string[]): Promise<string> {
       }
     });
 
-    process.on("error", (error) => {
+    childProcess.on("error", (error: Error) => {
       reject(new Error(`Failed to run pdfimages: ${error.message}`));
     });
   });
@@ -144,123 +146,118 @@ export async function extractImagesWithPdfImages(
       return [];
     }
 
-    // Create a temporary prefix for pdfimages output
-    const tempPrefix = path.join(outputDir, "temp_img");
-
-    // Extract all images using Poppler with original formats
-    await runPdfImages(["-all", pdfPath, tempPrefix]);
-
-    // Process extracted images and rename them to match our naming convention
-    const extractedImages: PdfImage[] = [];
-    const pageImageCounts = new Map<number, number>(); // Track image count per page
-
-    for (const imageInfo of imageList) {
-      // Skip soft masks (smask) as they are transparency masks, not standalone images
-      if (imageInfo.type === "smask") {
-        logger.info(
-          `Skipping soft mask on page ${imageInfo.page} (image ${imageInfo.num})`
-        );
-        continue;
-      }
-
-      // Calculate the image index within the page
-      const currentCount = pageImageCounts.get(imageInfo.page) || 0;
-      pageImageCounts.set(imageInfo.page, currentCount + 1);
-      const imageIndexOnPage = currentCount + 1;
-
-      // Determine the file extension based on the image type
-      let extension = ".png"; // default fallback
-      if (imageInfo.enc === "jpeg" || imageInfo.enc === "jpg") {
-        extension = ".jpg";
-      } else if (imageInfo.enc === "png") {
-        extension = ".png";
-      } else if (imageInfo.type === "image" || imageInfo.type === "smask") {
-        // For regular images and masks, pdfimages typically creates .ppm or .pbm files
-        // but we'll convert these to PNG for compatibility
-        extension = ".png";
-      }
-
-      // Generate our standardized filename with appropriate extension
-      const ourFilename = `image-${imageInfo.page}-${imageIndexOnPage}${extension}`;
-
-      // Find the file that pdfimages created - need to check multiple possible extensions
-      const possibleExtensions = [".jpg", ".png", ".ppm", ".pbm", ".pgm"];
-      let pdfImagesPath: string | null = null;
-      let foundExtension: string | null = null;
-
-      for (const ext of possibleExtensions) {
-        const candidatePath = path.join(
-          outputDir,
-          `temp_img-${String(imageInfo.num).padStart(3, "0")}${ext}`
-        );
-        try {
-          await fs.access(candidatePath);
-          pdfImagesPath = candidatePath;
-          foundExtension = ext;
-          break;
-        } catch {
-          // File doesn't exist with this extension, try next
-        }
-      }
-
-      if (!pdfImagesPath || !foundExtension) {
-        logger.warn(
-          `Could not find extracted image file for image ${imageInfo.num}`
-        );
-        continue;
-      }
-
-      const finalPath = path.join(outputDir, ourFilename);
-
-      try {
-        // If we found a PPM/PBM/PGM file but want PNG, convert it
-        if (
-          (foundExtension === ".ppm" ||
-            foundExtension === ".pbm" ||
-            foundExtension === ".pgm") &&
-          extension === ".png"
-        ) {
-          // For now, just rename it - browsers can handle PPM files, or we could convert with Sharp later
-          await fs.rename(pdfImagesPath, finalPath);
-        } else {
-          // Direct rename for JPEG and PNG files
-          await fs.rename(pdfImagesPath, finalPath);
-        }
-
-        extractedImages.push({
-          pageNumber: imageInfo.page,
-          imageIndex: imageIndexOnPage,
-          filename: ourFilename,
-          originalFilename: path.basename(pdfImagesPath),
-          width: imageInfo.width,
-          height: imageInfo.height,
-          type: imageInfo.type,
-        });
-
-        logger.info(`${ourFilename} (${imageInfo.width}x${imageInfo.height})`);
-      } catch (error) {
-        logger.warn(`Failed to process image ${imageInfo.num}: ${error}`);
-      }
-    }
-
-    // Clean up any remaining temp files
-    try {
-      const files = await fs.readdir(outputDir);
-      for (const file of files) {
-        if (file.startsWith("temp_img-")) {
-          await fs.unlink(path.join(outputDir, file));
-        }
-      }
-    } catch (error) {
-      logger.warn(`Failed to clean up temp files: ${error}`);
-    }
-
-    logger.info(
-      `Extraction complete. Successfully extracted ${extractedImages.length} images`
+    // Use a temporary directory with ASCII-only path to avoid Unicode issues with pdfimages
+    const tempDir = path.join(
+      os.tmpdir(),
+      `pdfimages_${Date.now()}_${Math.random().toString(36).substring(2)}`
     );
-    return extractedImages;
+    await fs.mkdir(tempDir, { recursive: true });
+
+    try {
+      // Create a temporary prefix for pdfimages output in the temp directory
+      const tempPrefix = path.join(tempDir, "temp_img");
+
+      // Extract all images using Poppler with original formats
+      await runPdfImages(["-all", pdfPath, tempPrefix]);
+
+      // Process extracted images and rename them to match our naming convention
+      const extractedImages: PdfImage[] = [];
+      const pageImageCounts = new Map<number, number>(); // Track image count per page
+
+      for (const imageInfo of imageList) {
+        // Skip soft masks (smask) as they are transparency masks, not standalone images
+        if (imageInfo.type === "smask") {
+          logger.info(
+            `Skipping soft mask on page ${imageInfo.page} (image ${imageInfo.num})`
+          );
+          continue;
+        }
+
+        // Calculate the image index within the page
+        const currentCount = pageImageCounts.get(imageInfo.page) || 0;
+        pageImageCounts.set(imageInfo.page, currentCount + 1);
+        const imageIndexOnPage = currentCount + 1;
+
+        // Determine the file extension based on the image type
+        let extension = ".png"; // default fallback
+        if (imageInfo.enc === "jpeg" || imageInfo.enc === "jpg") {
+          extension = ".jpg";
+        } else if (imageInfo.enc === "png") {
+          extension = ".png";
+        } else if (imageInfo.type === "image" || imageInfo.type === "smask") {
+          // For regular images and masks, pdfimages typically creates .ppm or .pbm files
+          // but we'll convert these to PNG for compatibility
+          extension = ".png";
+        }
+
+        // Generate our standardized filename with appropriate extension
+        const ourFilename = `image-${imageInfo.page}-${imageIndexOnPage}${extension}`;
+
+        // Find the file that pdfimages created - need to check multiple possible extensions
+        const possibleExtensions = [".jpg", ".png", ".ppm", ".pbm", ".pgm"];
+        let pdfImagesPath: string | null = null;
+        let foundExtension: string | null = null;
+
+        for (const ext of possibleExtensions) {
+          const candidatePath = path.join(
+            tempDir,
+            `temp_img-${String(imageInfo.num).padStart(3, "0")}${ext}`
+          );
+          try {
+            await fs.access(candidatePath);
+            pdfImagesPath = candidatePath;
+            foundExtension = ext;
+            break;
+          } catch {
+            // File doesn't exist with this extension, try next
+          }
+        }
+
+        if (!pdfImagesPath || !foundExtension) {
+          logger.warn(
+            `Could not find extracted image file for image ${imageInfo.num}`
+          );
+          continue;
+        }
+
+        const finalPath = path.join(outputDir, ourFilename);
+
+        try {
+          // Move the file from temp directory to final location
+          await fs.rename(pdfImagesPath, finalPath);
+
+          extractedImages.push({
+            pageNumber: imageInfo.page,
+            imageIndex: imageIndexOnPage,
+            filename: ourFilename,
+            originalFilename: path.basename(pdfImagesPath),
+            width: imageInfo.width,
+            height: imageInfo.height,
+            type: imageInfo.type,
+          });
+
+          logger.info(
+            `${ourFilename} (${imageInfo.width}x${imageInfo.height})`
+          );
+        } catch (error) {
+          logger.warn(`Failed to process image ${imageInfo.num}: ${error}`);
+        }
+      }
+
+      logger.info(
+        `Extraction complete. Successfully extracted ${extractedImages.length} images`
+      );
+      return extractedImages;
+    } finally {
+      // Clean up the temporary directory
+      try {
+        await fs.rm(tempDir, { recursive: true, force: true });
+      } catch (error) {
+        logger.warn(`Failed to clean up temp directory ${tempDir}: ${error}`);
+      }
+    }
   } catch (error) {
-    logger.error(`Error during PDF image extraction with pdfimages: ${error}`);
+    logger.error(`Error during PDF image extraction: ${error}`);
     throw error;
   }
 }

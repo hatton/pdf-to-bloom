@@ -156,11 +156,6 @@ export async function processConversion(inputPath: string, options: Arguments) {
           logCallback
         );
       } else {
-        logger.info(
-          `Using OpenRouter model '${plan.ocrMethod}' for PDF processing (simplified approach)`
-        );
-        // Use OpenRouter vision models for OCR with simplified approach
-
         // Read custom prompt if provided
         let customPrompt: string | undefined;
         if (plan.promptPath) {
