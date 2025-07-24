@@ -67,6 +67,59 @@ export function attemptCleanup(content: string): {
     }
   );
 
+  // Mark page numbers that OCR often includes at the end of pages
+  // Page numbers appear as standalone numbers in "zxx" language blocks and are typically
+  // the last text content on a page. We need to find the last zxx numeric block on each page.
+  // Split content by page markers to process each page separately
+  const pageMarkerRegex = /(<!-- page[^>]*-->)/g;
+  const pages = content.split(pageMarkerRegex);
+
+  for (let i = 0; i < pages.length; i++) {
+    const page = pages[i];
+
+    // Skip page marker lines themselves
+    if (page.match(/^<!-- page[^>]*-->$/)) {
+      continue;
+    }
+
+    // Find all zxx text blocks with only numeric content on this page
+    // Use a more flexible regex that matches numeric content followed by any whitespace
+    const zxxNumericRegex =
+      /(<!-- text lang="zxx" -->)(\s*\n\s*[\p{Nd}\-\.\s]+)(?=\s*(?:\n|$))/gu;
+    const matches: {
+      fullMatch: string;
+      comment: string;
+      content: string;
+      index: number;
+    }[] = [];
+
+    let match;
+    while ((match = zxxNumericRegex.exec(page)) !== null) {
+      matches.push({
+        fullMatch: match[0],
+        comment: match[1],
+        content: match[2],
+        index: match.index,
+      });
+    }
+
+    // Mark only the last zxx numeric block on this page as pageNumber
+    if (matches.length > 0) {
+      const lastMatch = matches[matches.length - 1];
+      const markedComment = lastMatch.comment.replace(
+        'lang="zxx"',
+        'lang="zxx" field="pageNumber"'
+      );
+      const replacement = markedComment + lastMatch.content;
+      pages[i] = page.replace(lastMatch.fullMatch, replacement);
+      logger.verbose(
+        `Marked page number block: "${lastMatch.fullMatch.trim()}"`
+      );
+    }
+  }
+
+  content = pages.join("");
+
   // do a final check and return null if we fail the check.
   // we must have a) no code block wrapper, b) a YAML frontmatter bounded by ---, at least one comment with "lang=", and the required frontmatter fields (allTitles, l1, and languages).
   // Check each of these problems individually so that if any fail, log a specific error and return null.

@@ -80,6 +80,11 @@ export function getMarkdownFromBook(book: Book): string {
         if (element.type === "image") {
           pageContent += `\n![${element.alt || ""}](${element.src})${element.attributes || ""}`;
         } else if (element.type === "text") {
+          // Skip page number fields
+          if (element.field === "pageNumber") {
+            continue;
+          }
+
           logger.verbose(
             `[getMarkdownFromBook] text: ${JSON.stringify(element.content, null, 2)}`
           );

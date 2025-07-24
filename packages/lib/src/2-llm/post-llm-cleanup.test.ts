@@ -92,54 +92,170 @@ languages:
     expect(result.cleaned.startsWith("---")).toBe(true);
   });
 
-  it("removes various language specifiers as standalone lines", () => {
-    const input = wrapWithFrontmatter(`python
+  it("marks page numbers in zxx language blocks at end of pages", () => {
+    const input = wrapWithFrontmatter(`<!-- text lang="en" -->
+This is page content.
+More text here.
+
+<!-- text lang="zxx" -->
+42
+
+<!-- page index=2 -->
+
 <!-- text lang="en" -->
-Some text
-typescript
-More text
-bash
-Final text`);
+Next page content.
+
+<!-- text lang="zxx" -->
+100`);
     const result = attemptCleanup(input);
     expect(result.valid).toBe(true);
-    expect(result.cleaned).not.toContain("python");
-    expect(result.cleaned).not.toContain("typescript");
-    expect(result.cleaned).not.toContain("bash");
-    expect(result.cleaned).toContain('<!-- text lang="en" -->');
-    expect(result.cleaned).toContain("Some text");
-    expect(result.cleaned).toContain("More text");
-    expect(result.cleaned).toContain("Final text");
+    expect(result.cleaned).toContain(
+      '<!-- text lang="zxx" field="pageNumber" -->\n42'
+    );
+    expect(result.cleaned).toContain(
+      '<!-- text lang="zxx" field="pageNumber" -->\n100'
+    );
+    expect(result.cleaned).toContain("This is page content.");
+    expect(result.cleaned).toContain("Next page content.");
   });
 
-  it("preserves legitimate single-word content that doesn't look like language identifiers", () => {
+  it("marks page numbers with dashes and dots in zxx blocks", () => {
     const input = wrapWithFrontmatter(`<!-- text lang="en" -->
-Text with special chars!
-Some normal text
-Text-with-hyphens but spaces
-Final text`);
+Content here.
+
+<!-- text lang="zxx" -->
+- 15 -
+
+<!-- page index=2 -->
+
+<!-- text lang="en" -->
+More content.
+
+<!-- text lang="zxx" -->
+3.14`);
     const result = attemptCleanup(input);
     expect(result.valid).toBe(true);
-    expect(result.cleaned).toContain("Text with special chars!");
-    expect(result.cleaned).toContain("Text-with-hyphens but spaces");
-    expect(result.cleaned).toContain("Some normal text");
-    expect(result.cleaned).toContain("Final text");
+    expect(result.cleaned).toContain(
+      '<!-- text lang="zxx" field="pageNumber" -->\n- 15 -'
+    );
+    expect(result.cleaned).toContain(
+      '<!-- text lang="zxx" field="pageNumber" -->\n3.14'
+    );
+    expect(result.cleaned).toContain("Content here.");
+    expect(result.cleaned).toContain("More content.");
   });
 
-  it("handles malformed code blocks with both ``` and language specifiers", () => {
+  it("preserves numbers in other language blocks", () => {
     const input = wrapWithFrontmatter(`<!-- text lang="en" -->
-Some text
-\`\`\`
-yaml
-More text
-\`\`\`python
-Final text`);
+There are 42 students in the class.
+The temperature is 25°C.
+Chapter 3: Advanced Topics
+
+<!-- text lang="en" -->
+More content with numbers: 123, 456`);
     const result = attemptCleanup(input);
     expect(result.valid).toBe(true);
-    expect(result.cleaned).not.toContain("```");
-    expect(result.cleaned).not.toContain("yaml");
-    expect(result.cleaned).not.toContain("python");
-    expect(result.cleaned).toContain("Some text");
-    expect(result.cleaned).toContain("More text");
-    expect(result.cleaned).toContain("Final text");
+    expect(result.cleaned).toContain("There are 42 students in the class.");
+    expect(result.cleaned).toContain("The temperature is 25°C.");
+    expect(result.cleaned).toContain("Chapter 3: Advanced Topics");
+    expect(result.cleaned).toContain("More content with numbers: 123, 456");
+  });
+
+  it("preserves zxx blocks that contain non-numeric content", () => {
+    const input = wrapWithFrontmatter(`<!-- text lang="zxx" -->
+Some special symbols: ♪ ♫ ♬
+
+<!-- text lang="en" -->
+Regular content.
+
+<!-- text lang="zxx" -->
+Mixed content 42 with text`);
+    const result = attemptCleanup(input);
+    expect(result.valid).toBe(true);
+    expect(result.cleaned).toContain("Some special symbols: ♪ ♫ ♬");
+    expect(result.cleaned).toContain("Mixed content 42 with text");
+    expect(result.cleaned).toContain("Regular content.");
+  });
+
+  it("marks Unicode digits from various scripts in zxx blocks", () => {
+    const input = wrapWithFrontmatter(`<!-- text lang="hi" -->
+हिंदी में सामग्री।
+
+<!-- text lang="zxx" -->
+२५
+
+<!-- page index=2 -->
+
+<!-- text lang="ar" -->
+محتوى عربي.
+
+<!-- text lang="zxx" -->
+٤٢`);
+    const result = attemptCleanup(input);
+    expect(result.valid).toBe(true);
+    expect(result.cleaned).toContain(
+      '<!-- text lang="zxx" field="pageNumber" -->\n२५'
+    );
+    expect(result.cleaned).toContain(
+      '<!-- text lang="zxx" field="pageNumber" -->\n٤٢'
+    );
+    expect(result.cleaned).toContain("हिंदी में सामग्री।");
+    expect(result.cleaned).toContain("محتوى عربي.");
+  });
+
+  it("only marks the last zxx number block on each page", () => {
+    const input = wrapWithFrontmatter(`<!-- text lang="en" -->
+Learning about numbers:
+
+<!-- text lang="zxx" -->
+1
+
+<!-- text lang="zxx" -->
+2
+
+<!-- text lang="zxx" -->
+3
+
+<!-- text lang="zxx" -->
+42`);
+    const result = attemptCleanup(input);
+    expect(result.valid).toBe(true);
+    // Should keep the educational numbers unchanged but mark the page number at the end
+    expect(result.cleaned).toContain('<!-- text lang="zxx" -->\n1');
+    expect(result.cleaned).toContain('<!-- text lang="zxx" -->\n2');
+    expect(result.cleaned).toContain('<!-- text lang="zxx" -->\n3');
+    expect(result.cleaned).toContain(
+      '<!-- text lang="zxx" field="pageNumber" -->\n42'
+    );
+  });
+
+  it("marks page numbers followed by images", () => {
+    const input = wrapWithFrontmatter(`<!-- page index="6" -->
+
+<!-- text lang="zxx" -->
+4
+
+![image](image-6-1.png)
+
+<!-- page index="7" -->
+
+<!-- text lang="en" -->
+Next page content.
+
+<!-- text lang="zxx" -->
+5
+
+![another-image](image-7-1.png)`);
+    const result = attemptCleanup(input);
+    expect(result.valid).toBe(true);
+    expect(result.cleaned).toContain(
+      '<!-- text lang="zxx" field="pageNumber" -->\n4'
+    );
+    expect(result.cleaned).toContain(
+      '<!-- text lang="zxx" field="pageNumber" -->\n5'
+    );
+    expect(result.cleaned).toContain("![image](image-6-1.png)");
+    expect(result.cleaned).toContain("![another-image](image-7-1.png)");
+    expect(result.cleaned).toContain("Next page content.");
   });
 });

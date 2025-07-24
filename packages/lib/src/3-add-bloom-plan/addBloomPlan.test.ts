@@ -165,4 +165,37 @@ Second page without attributes`;
     expect(book.pages[0].appearsToBeBilingualPage).toBe(true);
     expect(!!book.pages[1].appearsToBeBilingualPage).toBe(false);
   });
+
+  it("should filter out page number fields", () => {
+    const content = `---
+allTitles:
+  en: "Test Book"
+languages:
+  en: "English"
+l1: "en"
+---
+<!-- page index=1 -->
+
+<!-- text lang="en" -->
+Content on page one.
+
+<!-- text lang="zxx" field="pageNumber" -->
+1
+
+<!-- page index=2 -->
+
+<!-- text lang="en" -->
+Content on page two.
+
+<!-- text lang="zxx" field="pageNumber" -->
+2`;
+
+    const result = addBloomPlanToMarkdown(content);
+
+    // Page number fields should be filtered out of the result
+    expect(result).toContain("Content on page one.");
+    expect(result).toContain("Content on page two.");
+    expect(result).not.toContain('field="pageNumber"');
+    expect(result).not.toContain('<!-- text lang="zxx" field="pageNumber" -->');
+  });
 });

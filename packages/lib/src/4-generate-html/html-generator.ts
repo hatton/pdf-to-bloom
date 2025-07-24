@@ -165,7 +165,11 @@ export class HtmlGenerator {
     const fields: Record<string, Record<string, string>>[] = [];
     for (const page of book.pages) {
       for (const element of page.elements) {
-        if (element.type === "text" && element.field) {
+        if (
+          element.type === "text" &&
+          element.field &&
+          element.field !== "pageNumber"
+        ) {
           const textElement = element as TextBlockElement;
           const fieldName = textElement.field;
           // If the field already exists, merge the content
@@ -259,6 +263,14 @@ export class HtmlGenerator {
       page.elements[2].type === "text";
 
     page.elements.forEach((element: PageElement, index: number) => {
+      // Skip page number elements
+      if (
+        element.type === "text" &&
+        (element as TextBlockElement).field === "pageNumber"
+      ) {
+        return;
+      }
+
       if (element.type === "text") {
         const textElement = element as TextBlockElement;
         const textItem: TextOrigamiItem = {

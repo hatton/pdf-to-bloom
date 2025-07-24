@@ -492,5 +492,54 @@ describe("generateHtmlDocument", () => {
       expect(html).not.toContain('data-book="copyright"');
       expect(html).not.toContain('data-book="licenseUrl"');
     });
+
+    it("should filter out pageNumber field elements", () => {
+      const book: Book = {
+        frontMatterMetadata: {
+          languages: { en: "English" },
+          l1: "en",
+        },
+        pages: [
+          {
+            type: "content" as const,
+            appearsToBeBilingualPage: false,
+            elements: [
+              {
+                type: "text" as const,
+                content: { en: "This is regular content" },
+              },
+              {
+                type: "text" as const,
+                field: "pageNumber",
+                content: { zxx: "1" },
+              },
+              {
+                type: "text" as const,
+                field: "bookTitle",
+                content: { en: "My Book Title" },
+              },
+              {
+                type: "text" as const,
+                field: "pageNumber",
+                content: { zxx: "2" },
+              },
+            ],
+          },
+        ],
+      };
+
+      const html = HtmlGenerator.generateHtmlDocument(book);
+
+      // Should contain regular content and metadata fields
+      expect(html).toContain("This is regular content");
+      expect(html).toContain('data-book="bookTitle"');
+      expect(html).toContain("My Book Title");
+
+      // Should NOT contain page numbers in the content or metadata
+      expect(html).not.toContain('data-book="pageNumber"');
+      // Check that page numbers aren't rendered as standalone content
+      expect(html).not.toContain('lang="zxx">1');
+      expect(html).not.toContain('lang="zxx">2');
+    });
   });
 });
