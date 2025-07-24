@@ -47,8 +47,10 @@ yarn test
 yarn test:watch
 
 # convert a pdf. When --collection is used, the languages specified in the .bloomCollection will be fed to the llm as a hint of what languages to expect
-yarn cli input.pdf --collection recent # use the most recently opened Bloom collection (release, alpha, beta, or betainternal)
+yarn cli input.pdf # defaults to most recently opened Bloom collection for better language detection
+yarn cli input.pdf --collection recent # explicitly use the most recently opened Bloom collection (release, alpha, beta, or betainternal)
 yarn cli input.pdf --collection path/to/bloom/collection # output to a particular collection
+yarn cli input.pdf --output path/to/output/directory # output to a specific directory instead of a collection
 
 
 # Extract only images from a PDF

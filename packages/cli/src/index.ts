@@ -35,7 +35,7 @@ program
   )
   .option(
     "-o, --output <path>",
-    "Directory in which a new directory will be created based on the input file name. Defaults to your current working directory. (Use --collection instead for better language detection)"
+    "Directory in which a new directory will be created based on the input file name. If neither --collection nor --output is specified, defaults to the most recently opened Bloom collection for better language detection."
   )
   .option(
     "--mistral-api-key <key>",

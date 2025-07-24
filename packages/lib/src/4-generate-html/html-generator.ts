@@ -116,6 +116,7 @@ export class HtmlGenerator {
     }
     // hack for now
     const inputFieldNameToOutputName = {
+      originalAcknowledgements: "originalAcknowledgments", // in case the version with the "e" gets in there
       credits: "originalAcknowledgments", // note, no extra "e"
       isbn: "ISBN",
       publisher: "originalAcknowledgments", // TODO
@@ -138,7 +139,10 @@ export class HtmlGenerator {
         inputFieldNameToOutputName[
           element.field as keyof typeof inputFieldNameToOutputName
         ] || element.field;
-      logger.info(`${element.field} -> ${outputFieldName}`);
+
+      // only log if the outputFieldName is different from the input field name
+      if (outputFieldName !== element.field)
+        logger.info(`${element.field} -> ${outputFieldName}`);
 
       // Initialize the output field if it doesn't exist
       if (!groupedFields[outputFieldName]) {

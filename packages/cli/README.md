@@ -12,9 +12,12 @@ First, create these accounts and put their keys in your Environment Variables. O
 
 ### Run
 
-The recommended way to use the tool is with the `--collection` option. You can use either a simple collection name or a full path:
+The recommended way to use the tool is with the `--collection` option, though if you don't specify either `--collection` or `--output`, it will automatically use your most recently opened Bloom collection. You can use either a simple collection name or a full path:
 
 ```bash
+
+# Default behavior - automatically uses most recently opened Bloom collection
+pdf-to-bloom Ebida.pdf
 
 # When --collection is used, the languages specified in the .bloomCollection will be fed to the llm as a hint of what languages to expect
 # use the most recently opened Bloom collection (release, alpha, beta, or betainternal)
@@ -31,7 +34,7 @@ pdf-to-bloom Ebida.pdf --collection "C:\Users\MudMan\Documents\Bloom\Edolo Books
 
 Then run or restart Bloom to see the book.
 
-Alternatively, you can use the older `--output` option:
+Alternatively, you can use the `--output` option to specify a custom output directory:
 
 ```bash
 pdf-to-bloom Ebida.pdf --output "path/to/create/the/output/folder"

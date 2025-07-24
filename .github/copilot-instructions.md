@@ -72,3 +72,5 @@ Ask me any clarifying questions.
 When running add-hoc tests in the terminal, use the --output option to place outputs underneath the `test-outputs` directory, e.g. `yarn test:md-to-tagged --output test-outputs/md-to-tagged`.
 
 When doing debugging by writing temporary one-off code files in the terminal, remember not to leave them laying around.
+
+YOU MUST ALWAYS include the --output option when running the CLI tool. The tool defaults to using the most recent Bloom collection when no --output or --collection is specified, but as a coding assistant, you should never rely on this default behavior. Always explicitly specify --output with a path under test-outputs/ to avoid interfering with the user's actual Bloom collections.

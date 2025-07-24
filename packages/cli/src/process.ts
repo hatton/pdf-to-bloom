@@ -491,16 +491,32 @@ async function makeThePlan(
     collectionFolderPath = resolvedCollectionPath;
     baseOutputDir = collectionFolderPath;
     logger.info(`Using Bloom collection folder: ${collectionFolderPath}`);
+  } else if (cliArguments.output) {
+    // Output directory specified explicitly
+    baseOutputDir = cliArguments.output;
   } else {
-    // Fall back to the old logic
-    // - If output directory is specified, use it. If a book directory will be created, it will be inside this directory.
-    // - If no output directory specified and inputType = PDF, create the book directory in the current working directory
-    // - If no output directory specified and inputType != PDF, send all output to the same directory as the input file
-    baseOutputDir =
-      cliArguments.output ||
-      (inputType === Artifact.PDF
-        ? process.cwd()
-        : path.dirname(fullInputPath));
+    // No collection or output specified - default to recent collection
+    try {
+      logger.info(
+        "No --collection or --output specified, using most recent Bloom collection"
+      );
+      const { collectionFolderPath: resolvedCollectionPath } =
+        await validateAndResolveCollectionPath("recent");
+      collectionFolderPath = resolvedCollectionPath;
+      baseOutputDir = collectionFolderPath;
+      logger.info(
+        `Using most recent Bloom collection folder: ${collectionFolderPath}`
+      );
+    } catch (error) {
+      // Fall back to the old logic if recent collection lookup fails
+      logger.warn(
+        `Could not find recent collection (${error}), falling back to current directory`
+      );
+      baseOutputDir =
+        inputType === Artifact.PDF
+          ? process.cwd()
+          : path.dirname(fullInputPath);
+    }
   }
 
   logger.verbose(`Output directory: ${baseOutputDir}`);
