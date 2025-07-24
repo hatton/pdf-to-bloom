@@ -65,7 +65,7 @@ program
   )
   .option(
     "--imager <method>",
-    "Image extraction method: 'poppler' (default, uses pdfimages from Poppler for higher fidelity), 'pdfjs' (uses PDF.js + Sharp).",
+    "Image extraction method: 'poppler' (default, uses pdfimages from Poppler for higher fidelity). Note: 'pdfjs' method has been removed.",
     "poppler"
   )
   .option("--verbose", "Enable verbose logging to see detailed process steps")

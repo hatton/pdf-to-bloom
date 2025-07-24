@@ -7,11 +7,6 @@ export { pdfToMarkdownAndImageFiles as pdfToMarkdownWithOpenRouter } from "./1-o
 export { pdfToMarkdown } from "./1-ocr/pdfToMarkdown";
 export { pdfToMarkdownWithUnpdf } from "./1-ocr/pdfToMarkdownWithUnpdf";
 export {
-  extractImagesFromPdf,
-  extractAndSaveImages,
-} from "./1-ocr/extractImagesFromPdf";
-export type { ExtractedImage } from "./1-ocr/extractImagesFromPdf";
-export {
   extractImagesWithPdfImages,
   extractAndSaveImagesWithPdfImages,
 } from "./1-ocr/pdfToImages";

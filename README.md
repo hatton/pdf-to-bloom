@@ -46,15 +46,17 @@ yarn test
 # Run tests in watch mode
 yarn test:watch
 
-# convert a pdf
-yarn cli input.pdf --collection path/to/bloom/collection
-yarn cli ./test-inputs/testme.pdf
+# convert a pdf. When --collection is used, the languages specified in the .bloomCollection will be fed to the llm as a hint of what languages to expect
+yarn cli input.pdf --collection recent # use the most recently opened Bloom collection (release, alpha, beta, or betainternal)
+yarn cli input.pdf --collection path/to/bloom/collection # output to a particular collection
+
 
 # Extract only images from a PDF
 yarn cli input.pdf --target images
 
 # Extract markdown and images from PDF
 yarn cli input.pdf --target ocr
+yarn cli input.pdf --target ocr --ocr google/gemini-2.5-pro # specify an llm to do the ocr
 ```
 
 See [./packages/cli/README.md](./packages/cli/README.md) for details

@@ -9,8 +9,8 @@ import {
   addBloomPlanToMarkdown,
   pdfToMarkdownWithUnpdf,
   pdfToMarkdown,
-  extractAndSaveImages,
   extractImagesWithPdfImages,
+  extractAndSaveImagesWithPdfImages,
 } from "@pdf-to-bloom/lib"; // Assuming these functions are async and return/handle as described
 import {
   createLogCallback,
@@ -90,13 +90,14 @@ async function extractImages(
   if (method === "poppler") {
     logger.info("Using Poppler pdfimages for image extraction");
     const images = await extractImagesWithPdfImages(pdfPath, outputDir);
-    logger.info(`Extracted ${images.length} images using Poppler`);
   } else {
     if (method !== "pdfjs") {
-      logger.warn(`Unknown imager method '${method}', defaulting to 'pdfjs'`);
+      logger.warn(`Unknown imager method '${method}', defaulting to 'poppler'`);
     }
-    logger.info("Using PDF.js + Sharp for image extraction");
-    await extractAndSaveImages(pdfPath, outputDir);
+    logger.info(
+      "Using Poppler pdfimages for image extraction (PDF.js method removed)"
+    );
+    await extractAndSaveImagesWithPdfImages(pdfPath, outputDir);
   }
 }
 
@@ -123,7 +124,6 @@ export async function processConversion(inputPath: string, options: Arguments) {
       logger.info(`-> Extracting images from PDF...`);
 
       await extractImages(plan.pdfPath!, plan.bookFolderPath!, plan.imager);
-      logger.info(`Images extracted to: ${plan.bookFolderPath}`);
       return; // Exit early, we only wanted images
     }
 

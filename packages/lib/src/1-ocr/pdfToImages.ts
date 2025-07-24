@@ -31,7 +31,6 @@ function getPdfImagesPath(): string {
   try {
     // Check if bundled version exists (synchronously for simplicity)
     require("fs").accessSync(bundledPath);
-    logger.info(`Using bundled pdfimages from: ${bundledPath}`);
     return bundledPath;
   } catch {
     // Fall back to system PATH
@@ -132,13 +131,10 @@ export async function extractImagesWithPdfImages(
   outputDir: string
 ): Promise<PdfImage[]> {
   try {
-    logger.info("Starting image extraction from PDF using pdfimages");
-
     // Ensure output directory exists
     await fs.mkdir(outputDir, { recursive: true });
 
     // First, get the list of images to understand the structure
-    logger.info("Getting image list from PDF...");
     const listOutput = await runPdfImages(["-list", pdfPath]);
     const imageList = parseImageList(listOutput);
 
@@ -151,8 +147,7 @@ export async function extractImagesWithPdfImages(
     // Create a temporary prefix for pdfimages output
     const tempPrefix = path.join(outputDir, "temp_img");
 
-    // Extract all images using pdfimages with original formats
-    logger.info("Extracting images with pdfimages...");
+    // Extract all images using Poppler with original formats
     await runPdfImages(["-all", pdfPath, tempPrefix]);
 
     // Process extracted images and rename them to match our naming convention
@@ -242,9 +237,7 @@ export async function extractImagesWithPdfImages(
           type: imageInfo.type,
         });
 
-        logger.info(
-          `Extracted image: ${ourFilename} (${imageInfo.width}x${imageInfo.height})`
-        );
+        logger.info(`${ourFilename} (${imageInfo.width}x${imageInfo.height})`);
       } catch (error) {
         logger.warn(`Failed to process image ${imageInfo.num}: ${error}`);
       }
